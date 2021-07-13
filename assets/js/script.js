@@ -230,5 +230,21 @@ $(".card .list-group").sortable({
   }
 });
 
+// drop task-tem to trash to delete from local storage
+$("#trash").droppable({
+  accept: ".card .list-group-item",
+  tolerance: "touch",
+  drop: function (event, ui) {
+    console.log("drop");
+    ui.draggable.remove();
+  },
+  over: function (event, ui) {
+    console.log("over");
+  },
+  out: function (event, ul) {
+    console.log("out");
+  }
+});
+
 // load tasks for the first time
 loadTasks();
