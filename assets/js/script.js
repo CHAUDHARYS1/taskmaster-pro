@@ -32,9 +32,10 @@ var auditTask = function (taskEl) {
   // apply new class if task is near/over due date
   if (moment().isAfter(time)) {
     $(taskEl).addClass("list-group-item-danger");
+  } else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
   }
-  else if (Math.abs(moment().diff(time, "days")) <= 2) {
-    $(taskEl).addClass("list-group-item-warning");}
+  console.log(taskEl);
 };
 
 
@@ -187,7 +188,7 @@ $(".list-group").on("change", "input[type='text']", function () {
   // recreate span and insert in place of input element
   var taskSpan = $("<span>").addClass("badge badge-primary badge-pill").text(date);
   $(this).replaceWith(taskSpan);
-  
+
   // Pass task's <li> element into auditTask() to check new due date
   auditTask($(taskSpan).closest(".list-group-item"));
 });
@@ -280,3 +281,9 @@ $("#modalDueDate").datepicker({
 
 // load tasks for the first time
 loadTasks();
+
+setTimeout(function () {
+  $(".card .list-group-item").each(function (index, el) {
+    auditTask(el);
+  });
+}, (1000 * 60) * 30);
