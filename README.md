@@ -4,9 +4,9 @@
 Taskmaster Pro is a new way to manage tasks seamlessly. Users simply add a task, edit the existing tasks by clicking on the task itself to edit. All the changes are saved even when the browser is closed.
 
 ### Goals
-- [ ] Use 3rd party APIs (Bootstrap Grid Layout).
-- [ ] Use 3rd party APIs (jQueryUI) for drag and drop feature.
-- [ ] UI/UX Improvments
+- [x] Use 3rd party APIs (Bootstrap Grid Layout).
+- [x] Use 3rd party APIs (jQueryUI) for drag and drop feature.
+- [x] UI/UX Improvments
 
 ### Build with
 - HTML
