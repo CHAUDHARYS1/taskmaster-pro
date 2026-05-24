@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskCard from './TaskCard'
 
-export default function Column({ column, tasks, canEdit, onDelete, onUpdate }) {
+export default function Column({ column, tasks, canEdit, onDelete, onOpen }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   return (
@@ -20,7 +20,7 @@ export default function Column({ column, tasks, canEdit, onDelete, onUpdate }) {
               task={task}
               canEdit={canEdit}
               onDelete={onDelete}
-              onUpdate={onUpdate}
+              onOpen={onOpen}
             />
           ))}
           {tasks.length === 0 && (

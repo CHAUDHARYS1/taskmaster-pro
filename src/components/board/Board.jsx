@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTasks } from '../../hooks/useTasks'
@@ -8,6 +8,7 @@ import Column from './Column'
 import TaskCard from './TaskCard'
 import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
+import TaskDetailPanel from './TaskDetailPanel'
 
 const COLUMNS = [
   { id: 'toDo',       label: 'To Do' },
@@ -25,8 +26,17 @@ export default function Board() {
 
   const present = usePresence(currentWorkspace?.id)
 
-  const [showModal, setShowModal] = useState(false)
-  const [activeTask, setActiveTask] = useState(null)
+  const [showModal, setShowModal]       = useState(false)
+  const [activeTask, setActiveTask]     = useState(null)
+  const [selectedTaskId, setSelectedTaskId] = useState(null)
+
+  const allTasks    = Object.values(tasksByStatus).flat()
+  const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
+
+  // Close panel if selected task is deleted
+  useEffect(() => {
+    if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
+  }, [selectedTaskId, selectedTask])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -90,7 +100,7 @@ export default function Board() {
                   tasks={tasksByStatus[col.id] ?? []}
                   canEdit={canEdit}
                   onDelete={deleteTask}
-                  onUpdate={updateTask}
+                  onOpen={setSelectedTaskId}
                 />
               ))}
             </div>
@@ -106,6 +116,15 @@ export default function Board() {
         <AddTaskModal
           onClose={() => setShowModal(false)}
           onSave={async (data) => { await addTask(data); setShowModal(false) }}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          canEdit={canEdit}
+          onUpdate={updateTask}
+          onClose={() => setSelectedTaskId(null)}
         />
       )}
     </div>

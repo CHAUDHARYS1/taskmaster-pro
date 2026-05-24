@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
@@ -11,23 +10,13 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskCard({ task, canEdit = true, onDelete, onUpdate, isDragging = false }) {
-  const [editing, setEditing] = useState(false)
-  const [text, setText]       = useState(task.text)
-
+export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDragging = false }) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging: isSortableDragging,
   } = useSortable({ id: task.id, disabled: !canEdit })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
-
-  const commitEdit = () => {
-    setEditing(false)
-    const trimmed = text.trim()
-    if (trimmed && trimmed !== task.text) onUpdate(task.id, { text: trimmed })
-    else setText(task.text)
-  }
 
   return (
     <li
@@ -39,6 +28,7 @@ export default function TaskCard({ task, canEdit = true, onDelete, onUpdate, isD
         isSortableDragging ? 'task-card--dragging' : '',
         isDragging         ? 'task-card--ghost'    : '',
       ].filter(Boolean).join(' ')}
+      onClick={() => onOpen(task.id)}
       {...(canEdit ? { ...attributes, ...listeners } : {})}
     >
       {task.due_date && (
@@ -47,24 +37,10 @@ export default function TaskCard({ task, canEdit = true, onDelete, onUpdate, isD
         </span>
       )}
 
-      {editing ? (
-        <textarea
-          className="task-edit-input"
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onBlur={commitEdit}
-          autoFocus
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit() } }}
-          onClick={e => e.stopPropagation()}
-        />
-      ) : (
-        <p
-          className="task-text"
-          onDoubleClick={() => canEdit && setEditing(true)}
-          title={canEdit ? 'Double-click to edit' : undefined}
-        >
-          {task.text}
-        </p>
+      <p className="task-text">{task.text}</p>
+
+      {task.description && (
+        <p className="task-desc-preview">{task.description}</p>
       )}
 
       {canEdit && (
