@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
+import { labelMap } from '../../lib/labels'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -41,6 +42,28 @@ export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDra
 
       {task.description && (
         <p className="task-desc-preview">{task.description}</p>
+      )}
+
+      {task.labels?.length > 0 && (
+        <div className="task-labels">
+          {task.labels.slice(0, 3).map(id => {
+            const label = labelMap[id]
+            return label ? (
+              <span
+                key={id}
+                className="label-chip label-chip--sm"
+                style={{ '--label-color': label.color, '--label-bg': label.bg }}
+              >
+                {label.name}
+              </span>
+            ) : null
+          })}
+          {task.labels.length > 3 && (
+            <span className="label-chip label-chip--sm label-chip--overflow">
+              +{task.labels.length - 3}
+            </span>
+          )}
+        </div>
       )}
 
       {task.assignee && (

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { supabase } from '../../lib/supabase'
+import { LABELS } from '../../lib/labels'
 
 const STATUS_LABELS = {
   toDo: 'To Do',
@@ -141,6 +142,42 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
                 {task.assignee?.email ?? <span className="task-panel-empty">Unassigned</span>}
               </p>
             )}
+          </div>
+
+          <div className="task-panel-section">
+            <p className="task-panel-label">Labels</p>
+            <div className="label-picker">
+              {LABELS.map(label => {
+                const active = (task.labels ?? []).includes(label.id)
+                return canEdit ? (
+                  <button
+                    key={label.id}
+                    className={`label-chip${active ? ' label-chip--active' : ''}`}
+                    style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                    onClick={() => {
+                      const current = task.labels ?? []
+                      const next = active
+                        ? current.filter(l => l !== label.id)
+                        : [...current, label.id]
+                      onUpdate(task.id, { labels: next })
+                    }}
+                  >
+                    {label.name}
+                  </button>
+                ) : active ? (
+                  <span
+                    key={label.id}
+                    className="label-chip label-chip--active"
+                    style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                  >
+                    {label.name}
+                  </span>
+                ) : null
+              })}
+              {!(task.labels ?? []).length && !canEdit && (
+                <span className="task-panel-empty">No labels.</span>
+              )}
+            </div>
           </div>
 
           <div className="task-panel-section">

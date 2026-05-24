@@ -1055,6 +1055,57 @@ ul, ol { list-style: none; }
   color: var(--ink-4);
 }
 
+/* ── Labels ───────────────────────────────────────────────── */
+.label-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.03em;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  color: var(--label-color, var(--ink-3));
+  background-color: var(--paper-2);
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s;
+  white-space: nowrap;
+}
+
+.label-chip--active {
+  background-color: var(--label-bg);
+  border-color: var(--label-color);
+}
+
+.label-chip:not(.label-chip--sm):not(.label-chip--overflow):hover {
+  background-color: var(--label-bg);
+}
+
+.label-chip--sm {
+  font-size: 10px;
+  padding: 2px 6px;
+  background-color: var(--label-bg);
+  cursor: default;
+}
+
+.label-chip--overflow {
+  background-color: var(--paper-2);
+  color: var(--ink-4);
+}
+
+.task-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-1);
+}
+
 /* ── Assignee ─────────────────────────────────────────────── */
 .assignee-select {
   font-size: var(--text-md);
