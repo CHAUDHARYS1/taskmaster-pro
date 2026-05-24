@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
+import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
@@ -10,6 +11,7 @@ import TaskCard from './TaskCard'
 import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
+import FilterBar from './FilterBar'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -37,14 +39,46 @@ export default function Board() {
   const [showModal, setShowModal]       = useState(false)
   const [activeTask, setActiveTask]     = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
+  const [filters, setFilters] = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
 
-  const allTasks    = Object.values(tasksByStatus).flat()
+  const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
   // Close panel if selected task is deleted
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
   }, [selectedTaskId, selectedTask])
+
+  // Filtered view for columns — drag/drop still uses unfiltered tasksByStatus
+  const displayByStatus = useMemo(() => {
+    const { search, assigneeId, priority, label, due } = filters
+    const hasFilter = search || assigneeId || priority || label || due
+    if (!hasFilter) return tasksByStatus
+
+    const today = dayjs().startOf('day')
+    const applyFilter = tasks => tasks.filter(task => {
+      if (search) {
+        const q = search.toLowerCase()
+        if (!task.text?.toLowerCase().includes(q) &&
+            !task.description?.toLowerCase().includes(q)) return false
+      }
+      if (assigneeId && task.assignee_id !== assigneeId) return false
+      if (priority   && task.priority !== priority)       return false
+      if (label      && !(task.labels ?? []).includes(label)) return false
+      if (due) {
+        const d = task.due_date ? dayjs(task.due_date) : null
+        if (due === 'overdue' && (!d || !d.isBefore(today)))                             return false
+        if (due === 'today'   && (!d || !d.isSame(today, 'day')))                        return false
+        if (due === 'week'    && (!d || d.isBefore(today) || d.isAfter(today.add(7, 'day')))) return false
+        if (due === 'none'    && d)                                                       return false
+      }
+      return true
+    })
+
+    return Object.fromEntries(
+      Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
+    )
+  }, [tasksByStatus, filters])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -112,6 +146,12 @@ export default function Board() {
           <PresenceAvatars users={present} />
         </div>
 
+        <FilterBar
+          workspaceId={currentWorkspace?.id}
+          filters={filters}
+          onChange={setFilters}
+        />
+
         {userRole === 'viewer' && (
           <div className="viewer-banner">
             You have view-only access to this workspace.
@@ -129,7 +169,7 @@ export default function Board() {
                 <Column
                   key={col.id}
                   column={col}
-                  tasks={tasksByStatus[col.id] ?? []}
+                  tasks={displayByStatus[col.id] ?? []}
                   canEdit={canEdit}
                   onDelete={deleteTask}
                   onOpen={setSelectedTaskId}
