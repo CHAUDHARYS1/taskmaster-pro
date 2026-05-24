@@ -1,9 +1,11 @@
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
+import { ToastProvider } from './contexts/ToastContext'
 import AuthPage from './components/auth/AuthPage'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
+import ToastContainer from './components/ui/ToastContainer'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -24,15 +26,18 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <WorkspaceProvider>
-        <Routes>
-          <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
-          <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
-          <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
-          <Route path="*"               element={<Navigate to="/" replace />} />
-        </Routes>
-      </WorkspaceProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <WorkspaceProvider>
+          <Routes>
+            <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
+            <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
+            <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
+            <Route path="*"               element={<Navigate to="/" replace />} />
+          </Routes>
+          <ToastContainer />
+        </WorkspaceProvider>
+      </AuthProvider>
+    </ToastProvider>
   )
 }

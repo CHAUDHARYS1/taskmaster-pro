@@ -1,6 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useMembers } from '../../hooks/useMembers'
+import { useToast } from '../../contexts/ToastContext'
 
 const ROLE_LABELS = { owner: 'Owner', member: 'Member', viewer: 'Viewer' }
 
@@ -8,12 +9,18 @@ export default function MembersList() {
   const { user }                          = useAuth()
   const { currentWorkspace, userRole }    = useWorkspace()
   const { members, loading, removeMember } = useMembers(currentWorkspace?.id)
+  const { toast } = useToast()
 
   if (loading || members.length === 0) return null
 
   const handleRemove = async (memberId) => {
     if (!window.confirm('Remove this member from the workspace?')) return
-    try { await removeMember(memberId) } catch (err) { alert(err.message) }
+    try {
+      await removeMember(memberId)
+      toast.success('Member removed')
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove member')
+    }
   }
 
   return (

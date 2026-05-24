@@ -12,6 +12,7 @@ import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
+import { useToast } from '../../contexts/ToastContext'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -35,6 +36,7 @@ export default function Board() {
     useTasks(currentWorkspace?.id)
 
   const present = usePresence(currentWorkspace?.id)
+  const { toast } = useToast()
 
   const [showModal, setShowModal]       = useState(false)
   const [activeTask, setActiveTask]     = useState(null)
@@ -130,7 +132,10 @@ export default function Board() {
   const handleDeleteAll = async () => {
     if (!window.confirm('Delete all tasks? This cannot be undone.')) return
     const all = Object.values(tasksByStatus).flat()
-    await Promise.all(all.map(t => deleteTask(t.id)))
+    try {
+      await Promise.all(all.map(t => deleteTask(t.id)))
+      toast.success('All tasks deleted')
+    } catch { toast.error('Failed to delete tasks') }
   }
 
   if (wsLoading || loading) return <div className="loading-screen">Loading board…</div>
@@ -171,7 +176,10 @@ export default function Board() {
                   column={col}
                   tasks={displayByStatus[col.id] ?? []}
                   canEdit={canEdit}
-                  onDelete={deleteTask}
+                  onDelete={async (id) => {
+                    try { await deleteTask(id); toast.success('Task deleted') }
+                    catch (err) { toast.error(err.message || 'Failed to delete task') }
+                  }}
                   onOpen={setSelectedTaskId}
                 />
               ))}
@@ -187,7 +195,10 @@ export default function Board() {
       {showModal && canEdit && (
         <AddTaskModal
           onClose={() => setShowModal(false)}
-          onSave={async (data) => { await addTask(data); setShowModal(false) }}
+          onSave={async (data) => {
+            try { await addTask(data); toast.success('Task added'); setShowModal(false) }
+            catch (err) { toast.error(err.message || 'Failed to add task') }
+          }}
         />
       )}
 

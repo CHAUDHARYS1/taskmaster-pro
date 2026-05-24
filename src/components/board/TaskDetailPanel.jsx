@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { supabase } from '../../lib/supabase'
 import { LABELS } from '../../lib/labels'
@@ -25,6 +26,7 @@ function urgencyClass(due_date) {
 export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
+  const { toast } = useToast()
   const { comments, loading: commentsLoading, addComment, deleteComment } = useTaskDetail(task.id)
 
   const [title, setTitle]           = useState(task.text)
@@ -70,6 +72,9 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
     try {
       await addComment(body)
       setCommentBody('')
+      toast.success('Comment added')
+    } catch (err) {
+      toast.error(err.message || 'Failed to add comment')
     } finally {
       setSubmitting(false)
     }
