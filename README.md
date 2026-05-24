@@ -119,7 +119,7 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 
 ---
 
-### 🔜 Phase 3 — Ship it + Notifications
+### ✅ Phase 3 — Ship it + Notifications
 
 **Goal:** make the app publicly accessible and add a communication layer.
 
@@ -130,7 +130,7 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 
 ---
 
-### 🔜 Phase 4 — Richer Tasks
+### ✅ Phase 4 — Richer Tasks
 
 **Goal:** make individual tasks actually useful beyond text + due date.
 
@@ -143,7 +143,21 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 
 ---
 
-### 🔜 Phase 5 — Scale & Monetise
+### 🔜 Phase 5 — Refinement
+
+**Goal:** polish the app into something genuinely pleasant to use every day.
+
+- **Toast notifications** — success/error feedback for actions (currently silent)
+- **Status + due date editing in panel** — change a task's column and due date from the detail panel, not just the board
+- **Empty states** — helpful UI for empty columns and new workspaces
+- **Keyboard shortcuts** — `N` new task, `Esc` close, `/` focus search
+- **Loading skeletons** — replace spinner text with skeleton cards
+- **Mobile responsiveness** — horizontal scroll, touch-friendly panel
+- **Dark mode** — CSS custom properties are already in place, mostly a token swap
+
+---
+
+### 🔜 Phase 6 — Scale & Monetise
 
 - **Stripe integration** — paid team plan (unlimited workspaces, more members)
 - **Supabase Pro** — upgrade at $25/mo as user base grows
