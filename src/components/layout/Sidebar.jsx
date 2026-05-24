@@ -1,31 +1,55 @@
+import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
+import MembersList from '../workspace/MembersList'
+import InviteModal from '../workspace/InviteModal'
 
 export default function Sidebar({ onAddTask, onDeleteAll }) {
-  const { user, signOut } = useAuth()
+  const { signOut }          = useAuth()
+  const { currentWorkspace, userRole } = useWorkspace()
+  const [showInvite, setShowInvite]    = useState(false)
+
+  const canEdit = userRole !== 'viewer'
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-top">
-        <h1 className="sidebar-title">Taskmaster Pro</h1>
-        <p className="sidebar-user">{user?.email}</p>
-      </div>
+    <>
+      <aside className="sidebar">
+        {/* App title */}
+        <div className="sidebar-top">
+          <h1 className="sidebar-title">Taskmaster Pro</h1>
+        </div>
 
-      <div className="sidebar-actions">
-        <button className="btn-primary btn-block" onClick={onAddTask}>
-          + Add Task
-        </button>
-        <button className="btn-danger btn-block" onClick={onDeleteAll}>
-          🗑 Delete All Tasks
-        </button>
-      </div>
+        {/* Workspace switcher */}
+        <WorkspaceSwitcher />
 
-      <div className="sidebar-footer">
-        <p className="sidebar-desc">
-          Add a task, drag it across columns as it progresses.
-          All changes sync in real time across every open tab and device.
-        </p>
-        <button className="btn-ghost" onClick={signOut}>Sign out</button>
-      </div>
-    </aside>
+        {/* Board actions — hidden for viewers */}
+        {canEdit && (
+          <div className="sidebar-actions">
+            <button className="btn-primary btn-block" onClick={onAddTask}>
+              + Add Task
+            </button>
+            <button className="btn-danger btn-block" onClick={onDeleteAll}>
+              🗑 Delete All Tasks
+            </button>
+          </div>
+        )}
+
+        {/* Members list */}
+        <MembersList />
+
+        {/* Invite + sign out */}
+        <div className="sidebar-footer">
+          {canEdit && (
+            <button className="btn-ghost sidebar-invite-btn" onClick={() => setShowInvite(true)}>
+              + Invite members
+            </button>
+          )}
+          <button className="btn-ghost" onClick={signOut}>Sign out</button>
+        </div>
+      </aside>
+
+      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+    </>
   )
 }

@@ -1,7 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import AuthPage from './components/auth/AuthPage'
 import Board from './components/board/Board'
+import AcceptInvitePage from './components/workspace/AcceptInvitePage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -12,17 +14,25 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen">Loading…</div>
-  return user ? <Navigate to="/" replace /> : children
+  if (!user) return children
+
+  // After login, honour redirect param (e.g. /invite/:token)
+  const [params] = useSearchParams()
+  const redirect = params.get('redirect')
+  return <Navigate to={redirect ?? '/'} replace />
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
-        <Route path="/" element={<ProtectedRoute><Board /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <WorkspaceProvider>
+        <Routes>
+          <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
+          <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
+          <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
+          <Route path="*"               element={<Navigate to="/" replace />} />
+        </Routes>
+      </WorkspaceProvider>
     </AuthProvider>
   )
 }

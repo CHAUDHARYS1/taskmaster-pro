@@ -2,11 +2,11 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskCard from './TaskCard'
 
-export default function Column({ column, tasks, onDelete, onUpdate }) {
+export default function Column({ column, tasks, canEdit, onDelete, onUpdate }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   return (
-    <div className={`column ${isOver ? 'column--over' : ''}`}>
+    <div className={`column ${isOver && canEdit ? 'column--over' : ''}`}>
       <div className="column-header">
         <span className="column-label">{column.label}</span>
         <span className="column-count">{tasks.length}</span>
@@ -18,12 +18,15 @@ export default function Column({ column, tasks, onDelete, onUpdate }) {
             <TaskCard
               key={task.id}
               task={task}
+              canEdit={canEdit}
               onDelete={onDelete}
               onUpdate={onUpdate}
             />
           ))}
           {tasks.length === 0 && (
-            <li className="column-empty" aria-hidden="true">Drop tasks here</li>
+            <li className="column-empty" aria-hidden="true">
+              {canEdit ? 'Drop tasks here' : 'No tasks'}
+            </li>
           )}
         </ul>
       </SortableContext>

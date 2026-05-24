@@ -11,23 +11,16 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskCard({ task, onDelete, onUpdate, isDragging = false }) {
+export default function TaskCard({ task, canEdit = true, onDelete, onUpdate, isDragging = false }) {
   const [editing, setEditing] = useState(false)
-  const [text, setText] = useState(task.text)
+  const [text, setText]       = useState(task.text)
 
   const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: task.id })
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging: isSortableDragging,
+  } = useSortable({ id: task.id, disabled: !canEdit })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style = { transform: CSS.Transform.toString(transform), transition }
 
   const commitEdit = () => {
     setEditing(false)
@@ -44,10 +37,9 @@ export default function TaskCard({ task, onDelete, onUpdate, isDragging = false 
         'task-card',
         urgencyClass(task.due_date),
         isSortableDragging ? 'task-card--dragging' : '',
-        isDragging       ? 'task-card--ghost'    : '',
+        isDragging         ? 'task-card--ghost'    : '',
       ].filter(Boolean).join(' ')}
-      {...attributes}
-      {...listeners}
+      {...(canEdit ? { ...attributes, ...listeners } : {})}
     >
       {task.due_date && (
         <span className="task-badge">
@@ -66,18 +58,24 @@ export default function TaskCard({ task, onDelete, onUpdate, isDragging = false 
           onClick={e => e.stopPropagation()}
         />
       ) : (
-        <p className="task-text" onDoubleClick={() => setEditing(true)}>
+        <p
+          className="task-text"
+          onDoubleClick={() => canEdit && setEditing(true)}
+          title={canEdit ? 'Double-click to edit' : undefined}
+        >
           {task.text}
         </p>
       )}
 
-      <button
-        className="task-delete"
-        aria-label="Delete task"
-        onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-      >
-        ×
-      </button>
+      {canEdit && (
+        <button
+          className="task-delete"
+          aria-label="Delete task"
+          onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+        >
+          ×
+        </button>
+      )}
     </li>
   )
 }
