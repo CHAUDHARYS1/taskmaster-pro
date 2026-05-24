@@ -938,6 +938,59 @@ ul, ol { list-style: none; }
   color: var(--ink-4);
 }
 
+.task-panel-status-select {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-4);
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--line);
+  padding: 2px 4px 2px 0;
+  cursor: pointer;
+  appearance: auto;
+}
+.task-panel-status-select:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+  color: var(--ink-1);
+}
+
+/* ── Due date field in panel ──────────────────────────────── */
+.due-date-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.due-date-input {
+  font-size: var(--text-body);
+  color: var(--ink-1);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.due-date-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+.due-date-clear {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--ink-3);
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.due-date-clear:hover { color: var(--red); }
+
 .task-panel-body {
   flex: 1;
   overflow-y: auto;

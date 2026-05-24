@@ -8,12 +8,13 @@ import { supabase } from '../../lib/supabase'
 import { LABELS } from '../../lib/labels'
 import { PRIORITIES } from '../../lib/priority'
 
-const STATUS_LABELS = {
-  toDo: 'To Do',
-  inProgress: 'In Progress',
-  inReview: 'In Review',
-  done: 'Done',
-}
+const STATUS_OPTIONS = [
+  { id: 'toDo',       label: 'To Do' },
+  { id: 'inProgress', label: 'In Progress' },
+  { id: 'inReview',   label: 'In Review' },
+  { id: 'done',       label: 'Done' },
+]
+const STATUS_LABELS = Object.fromEntries(STATUS_OPTIONS.map(s => [s.id, s.label]))
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -86,12 +87,20 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
       <aside className="task-panel" role="complementary" aria-label="Task detail">
         <div className="task-panel-hdr">
           <div className="task-panel-meta">
-            <span className={`task-panel-status ${urgencyClass(task.due_date)}`}>
-              {STATUS_LABELS[task.status]}
-            </span>
-            {task.due_date && (
-              <span className={`task-badge ${urgencyClass(task.due_date)}`}>
-                {dayjs(task.due_date).format('MMM D')}
+            {canEdit ? (
+              <select
+                className={`task-panel-status-select ${urgencyClass(task.due_date)}`}
+                value={task.status}
+                onChange={e => onUpdate(task.id, { status: e.target.value })}
+                aria-label="Task status"
+              >
+                {STATUS_OPTIONS.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            ) : (
+              <span className={`task-panel-status ${urgencyClass(task.due_date)}`}>
+                {STATUS_LABELS[task.status]}
               </span>
             )}
           </div>
@@ -146,6 +155,37 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
             ) : (
               <p className="task-panel-desc-ro">
                 {task.assignee?.email ?? <span className="task-panel-empty">Unassigned</span>}
+              </p>
+            )}
+          </div>
+
+          <div className="task-panel-section">
+            <p className="task-panel-label">Due date</p>
+            {canEdit ? (
+              <div className="due-date-row">
+                <input
+                  type="date"
+                  className="due-date-input"
+                  value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
+                  onChange={e => onUpdate(task.id, { due_date: e.target.value || null })}
+                  aria-label="Due date"
+                />
+                {task.due_date && (
+                  <button
+                    className="due-date-clear"
+                    onClick={() => onUpdate(task.id, { due_date: null })}
+                    aria-label="Clear due date"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className={`task-panel-desc-ro ${urgencyClass(task.due_date)}`}>
+                {task.due_date
+                  ? dayjs(task.due_date).format('MMM D, YYYY')
+                  : <span className="task-panel-empty">No due date.</span>
+                }
               </p>
             )}
           </div>
