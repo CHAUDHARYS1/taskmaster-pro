@@ -71,16 +71,11 @@ create policy "members can see their workspaces"
     )
   );
 
--- Workspace members: visible within the same workspace
-create policy "members can see co-members"
+-- Workspace members: non-recursive check — users can see their own membership rows only
+-- (Phase 2 will use a security definer function to show co-members without recursion)
+create policy "members can see their own memberships"
   on public.workspace_members for select
-  using (
-    exists (
-      select 1 from public.workspace_members wm
-      where wm.workspace_id = workspace_members.workspace_id
-        and wm.user_id = auth.uid()
-    )
-  );
+  using (user_id = auth.uid());
 
 -- Tasks: select / insert / update / delete scoped to workspace members
 create policy "members can view tasks"
