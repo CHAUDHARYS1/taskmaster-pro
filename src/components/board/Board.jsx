@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTasks } from '../../hooks/useTasks'
+import { usePresence } from '../../hooks/usePresence'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import AddTaskModal from './AddTaskModal'
+import PresenceAvatars from './PresenceAvatars'
 
 const COLUMNS = [
   { id: 'toDo',       label: 'To Do' },
@@ -20,6 +22,8 @@ export default function Board() {
 
   const { tasksByStatus, loading, error, addTask, moveTask, deleteTask, updateTask } =
     useTasks(currentWorkspace?.id)
+
+  const present = usePresence(currentWorkspace?.id)
 
   const [showModal, setShowModal] = useState(false)
   const [activeTask, setActiveTask] = useState(null)
@@ -61,9 +65,14 @@ export default function Board() {
       <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
 
       <main className="board-main">
+        <div className="board-header">
+          <span className="board-header-title">{currentWorkspace?.name}</span>
+          <PresenceAvatars users={present} />
+        </div>
+
         {userRole === 'viewer' && (
           <div className="viewer-banner">
-            👁 You have view-only access to this workspace.
+            You have view-only access to this workspace.
           </div>
         )}
 
