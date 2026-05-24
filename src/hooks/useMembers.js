@@ -35,7 +35,7 @@ export function useMembers(workspaceId) {
     fetchInvitations()
   }, [fetchMembers, fetchInvitations])
 
-  const inviteMember = async ({ email, role = 'member' }) => {
+  const inviteMember = async ({ email, role = 'member', workspaceName = '' }) => {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('invitations')
@@ -44,6 +44,13 @@ export function useMembers(workspaceId) {
       .single()
     if (error) throw error
     setInvitations(prev => [data, ...prev])
+
+    // Fire-and-forget — email failure doesn't break the invite
+    const inviteUrl = `${window.location.origin}/invite/${data.token}`
+    supabase.functions.invoke('send-invite-email', {
+      body: { email, inviteUrl, workspaceName, role },
+    }).catch(console.error)
+
     return data
   }
 

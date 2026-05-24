@@ -17,7 +17,7 @@ export default function InviteModal({ onClose }) {
     setLoading(true)
     setError('')
     try {
-      const invite = await inviteMember({ email, role })
+      const invite = await inviteMember({ email, role, workspaceName: currentWorkspace?.name })
       const link = `${window.location.origin}/invite/${invite.token}`
       setInviteLink(link)
     } catch (err) {
@@ -68,19 +68,22 @@ export default function InviteModal({ onClose }) {
               </div>
               {error && <p className="form-error">{error}</p>}
               <p className="invite-hint">
-                An invite link will be generated. Share it with your teammate — it expires in 7 days.
+                An invite email will be sent and a link will be generated as a backup — it expires in 7 days.
               </p>
             </div>
             <div className="modal-ftr">
               <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
               <button type="submit" className="btn-primary" disabled={loading || !email}>
-                {loading ? 'Generating…' : 'Generate link'}
+                {loading ? 'Sending…' : 'Send invite'}
               </button>
             </div>
           </form>
         ) : (
           <div className="modal-body">
-            <p className="invite-success">Invite link generated!</p>
+            <p className="invite-success">Invite sent to {email}!</p>
+            <p className="invite-hint">
+              Didn't arrive? Share this backup link directly — it expires in 7 days.
+            </p>
             <div className="invite-link-row">
               <input
                 type="text"
@@ -90,9 +93,6 @@ export default function InviteModal({ onClose }) {
               />
               <button className="btn-primary" onClick={copyLink}>Copy</button>
             </div>
-            <p className="invite-hint">
-              Share this link with <strong>{email}</strong>. It expires in 7 days.
-            </p>
             <div className="modal-ftr">
               <button className="btn-ghost" onClick={() => { setInviteLink(''); setEmail('') }}>
                 Invite another
