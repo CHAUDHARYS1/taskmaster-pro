@@ -52,9 +52,10 @@ export default function Board() {
   }, [selectedTaskId, selectedTask])
 
   // Filtered view for columns — drag/drop still uses unfiltered tasksByStatus
+  const { search, assigneeId, priority, label, due } = filters
+  const hasFilter = !!(search || assigneeId || priority || label || due)
+
   const displayByStatus = useMemo(() => {
-    const { search, assigneeId, priority, label, due } = filters
-    const hasFilter = search || assigneeId || priority || label || due
     if (!hasFilter) return tasksByStatus
 
     const today = dayjs().startOf('day')
@@ -69,10 +70,10 @@ export default function Board() {
       if (label      && !(task.labels ?? []).includes(label)) return false
       if (due) {
         const d = task.due_date ? dayjs(task.due_date) : null
-        if (due === 'overdue' && (!d || !d.isBefore(today)))                             return false
-        if (due === 'today'   && (!d || !d.isSame(today, 'day')))                        return false
+        if (due === 'overdue' && (!d || !d.isBefore(today)))                                  return false
+        if (due === 'today'   && (!d || !d.isSame(today, 'day')))                             return false
         if (due === 'week'    && (!d || d.isBefore(today) || d.isAfter(today.add(7, 'day')))) return false
-        if (due === 'none'    && d)                                                       return false
+        if (due === 'none'    && d)                                                            return false
       }
       return true
     })
@@ -80,7 +81,7 @@ export default function Board() {
     return Object.fromEntries(
       Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
     )
-  }, [tasksByStatus, filters])
+  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -141,6 +142,21 @@ export default function Board() {
   if (wsLoading || loading) return <div className="loading-screen">Loading board…</div>
   if (error)                 return <div className="error-screen">Error: {error}</div>
 
+  if (!currentWorkspace) return (
+    <div className="app-shell">
+      <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      <main className="board-main">
+        <div className="board-empty-state">
+          <p className="board-empty-icon" aria-hidden="true">📋</p>
+          <h2 className="board-empty-title">No workspace selected</h2>
+          <p className="board-empty-body">Create a workspace from the sidebar to get started.</p>
+        </div>
+      </main>
+    </div>
+  )
+
+  const totalTasks = allTasks.length
+
   return (
     <div className="app-shell">
       <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
@@ -163,6 +179,15 @@ export default function Board() {
           </div>
         )}
 
+        {totalTasks === 0 && !hasFilter && canEdit && (
+          <div className="board-empty-state">
+            <p className="board-empty-icon" aria-hidden="true">✦</p>
+            <h2 className="board-empty-title">Your board is empty</h2>
+            <p className="board-empty-body">Add your first task to get started.</p>
+            <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
+          </div>
+        )}
+
         <div className="board-columns-wrap">
           <DndContext
             sensors={sensors}
@@ -176,6 +201,7 @@ export default function Board() {
                   column={col}
                   tasks={displayByStatus[col.id] ?? []}
                   canEdit={canEdit}
+                  hasFilter={hasFilter}
                   onDelete={async (id) => {
                     try { await deleteTask(id); toast.success('Task deleted') }
                     catch (err) { toast.error(err.message || 'Failed to delete task') }
