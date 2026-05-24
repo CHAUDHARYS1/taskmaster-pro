@@ -5,6 +5,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { supabase } from '../../lib/supabase'
 import { LABELS } from '../../lib/labels'
+import { PRIORITIES } from '../../lib/priority'
 
 const STATUS_LABELS = {
   toDo: 'To Do',
@@ -142,6 +143,39 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
                 {task.assignee?.email ?? <span className="task-panel-empty">Unassigned</span>}
               </p>
             )}
+          </div>
+
+          <div className="task-panel-section">
+            <p className="task-panel-label">Priority</p>
+            <div className="priority-picker">
+              {PRIORITIES.map(p => {
+                const active = task.priority === p.id
+                return canEdit ? (
+                  <button
+                    key={p.id}
+                    className={`priority-btn${active ? ' priority-btn--active' : ''}`}
+                    style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                    onClick={() => onUpdate(task.id, { priority: active ? null : p.id })}
+                    title={active ? 'Click to clear' : undefined}
+                  >
+                    <span className="priority-icon">{p.icon}</span>
+                    {p.name}
+                  </button>
+                ) : active ? (
+                  <span
+                    key={p.id}
+                    className="priority-btn priority-btn--active"
+                    style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                  >
+                    <span className="priority-icon">{p.icon}</span>
+                    {p.name}
+                  </span>
+                ) : null
+              })}
+              {!task.priority && !canEdit && (
+                <span className="task-panel-empty">No priority.</span>
+              )}
+            </div>
           </div>
 
           <div className="task-panel-section">

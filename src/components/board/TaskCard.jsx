@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
 import { labelMap } from '../../lib/labels'
+import { priorityMap } from '../../lib/priority'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -32,11 +33,25 @@ export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDra
       onClick={() => onOpen(task.id)}
       {...(canEdit ? { ...attributes, ...listeners } : {})}
     >
-      {task.due_date && (
-        <span className="task-badge">
-          {dayjs(task.due_date).format('MMM D')}
-        </span>
-      )}
+      <div className="task-card-top">
+        {task.priority && (() => {
+          const p = priorityMap[task.priority]
+          return p ? (
+            <span
+              className="task-priority-badge"
+              style={{ '--p-color': p.color, '--p-bg': p.bg }}
+              title={`Priority: ${p.name}`}
+            >
+              {p.icon} {p.name}
+            </span>
+          ) : null
+        })()}
+        {task.due_date && (
+          <span className="task-badge">
+            {dayjs(task.due_date).format('MMM D')}
+          </span>
+        )}
+      </div>
 
       <p className="task-text">{task.text}</p>
 
