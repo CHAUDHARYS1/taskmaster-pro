@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Start of every session
+
+**Read `README.md` first.** It contains the current stack, architecture, data model, design system rules, and the full roadmap (what's done and what's next). Do not start any work without reading it.
+
 ## Running the App
 
 No build step — open `index.html` directly in a browser, or serve it with any static file server:
