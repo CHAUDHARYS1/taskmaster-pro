@@ -1055,6 +1055,47 @@ ul, ol { list-style: none; }
   color: var(--ink-4);
 }
 
+/* ── Assignee ─────────────────────────────────────────────── */
+.assignee-select {
+  font-size: var(--text-md);
+  color: var(--ink);
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.assignee-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  background-color: var(--card);
+}
+
+.task-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+.task-assignee-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--accent-tint);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
 /* ── Task card description preview ───────────────────────── */
 .task-desc-preview {
   font-size: var(--text-body);

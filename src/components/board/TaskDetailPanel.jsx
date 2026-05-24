@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useAuth } from '../../contexts/AuthContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
+import { supabase } from '../../lib/supabase'
 
 const STATUS_LABELS = {
   toDo: 'To Do',
@@ -20,18 +22,30 @@ function urgencyClass(due_date) {
 
 export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
   const { user } = useAuth()
+  const { currentWorkspace } = useWorkspace()
   const { comments, loading: commentsLoading, addComment, deleteComment } = useTaskDetail(task.id)
 
   const [title, setTitle]           = useState(task.text)
   const [description, setDescription] = useState(task.description ?? '')
   const [commentBody, setCommentBody] = useState('')
   const [submitting, setSubmitting]  = useState(false)
+  const [members, setMembers]        = useState([])
 
   const commentInputRef = useRef(null)
 
   // Keep local title/description in sync if task updates from real-time
   useEffect(() => { setTitle(task.text) }, [task.text])
   useEffect(() => { setDescription(task.description ?? '') }, [task.description])
+
+  // Fetch workspace members for the assignee dropdown
+  useEffect(() => {
+    if (!currentWorkspace?.id) return
+    supabase
+      .from('workspace_members_view')
+      .select('user_id, email')
+      .eq('workspace_id', currentWorkspace.id)
+      .then(({ data }) => { if (data) setMembers(data) })
+  }, [currentWorkspace?.id])
 
   const saveTitle = () => {
     const trimmed = title.trim()
@@ -105,6 +119,26 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
             ) : (
               <p className="task-panel-desc-ro">
                 {task.description || <span className="task-panel-empty">No description.</span>}
+              </p>
+            )}
+          </div>
+
+          <div className="task-panel-section">
+            <p className="task-panel-label">Assignee</p>
+            {canEdit ? (
+              <select
+                className="assignee-select"
+                value={task.assignee_id ?? ''}
+                onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
+              >
+                <option value="">Unassigned</option>
+                {members.map(m => (
+                  <option key={m.user_id} value={m.user_id}>{m.email}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="task-panel-desc-ro">
+                {task.assignee?.email ?? <span className="task-panel-empty">Unassigned</span>}
               </p>
             )}
           </div>

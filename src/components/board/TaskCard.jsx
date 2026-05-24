@@ -43,6 +43,14 @@ export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDra
         <p className="task-desc-preview">{task.description}</p>
       )}
 
+      {task.assignee && (
+        <div className="task-card-footer">
+          <span className="task-assignee-avatar" title={task.assignee.email}>
+            {task.assignee.email.slice(0, 2).toUpperCase()}
+          </span>
+        </div>
+      )}
+
       {canEdit && (
         <button
           className="task-delete"
