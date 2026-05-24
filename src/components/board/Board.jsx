@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { useAuth } from '../../contexts/AuthContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTasks } from '../../hooks/useTasks'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
@@ -15,12 +15,12 @@ const COLUMNS = [
 ]
 
 export default function Board() {
-  const { user } = useAuth()
-  // Phase 1: personal workspace — workspace_id equals user.id (created by DB trigger on signup)
-  // Phase 2 will add a workspace switcher here
-  const workspaceId = user?.id
+  const { currentWorkspace, userRole, loading: wsLoading } = useWorkspace()
+  const canEdit = userRole !== 'viewer'
 
-  const { tasksByStatus, loading, error, addTask, moveTask, deleteTask, updateTask } = useTasks(workspaceId)
+  const { tasksByStatus, loading, error, addTask, moveTask, deleteTask, updateTask } =
+    useTasks(currentWorkspace?.id)
+
   const [showModal, setShowModal] = useState(false)
   const [activeTask, setActiveTask] = useState(null)
 
@@ -29,15 +29,15 @@ export default function Board() {
   )
 
   const handleDragStart = ({ active }) => {
+    if (!canEdit) return
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
   }
 
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
-    if (!over || active.id === over.id) return
+    if (!canEdit || !over || active.id === over.id) return
 
-    // Resolve which column the item was dropped into
     const targetColumn =
       COLUMNS.find(c => c.id === over.id)?.id ??
       Object.entries(tasksByStatus).find(([, tasks]) =>
@@ -53,34 +53,47 @@ export default function Board() {
     await Promise.all(all.map(t => deleteTask(t.id)))
   }
 
-  if (loading) return <div className="loading-screen">Loading board…</div>
-  if (error)   return <div className="error-screen">Something went wrong: {error}</div>
+  if (wsLoading || loading) return <div className="loading-screen">Loading board…</div>
+  if (error)                 return <div className="error-screen">Error: {error}</div>
 
   return (
     <div className="app-shell">
       <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
 
       <main className="board-main">
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="board-columns">
-            {COLUMNS.map(col => (
-              <Column
-                key={col.id}
-                column={col}
-                tasks={tasksByStatus[col.id] ?? []}
-                onDelete={deleteTask}
-                onUpdate={updateTask}
-              />
-            ))}
+        {userRole === 'viewer' && (
+          <div className="viewer-banner">
+            👁 You have view-only access to this workspace.
           </div>
+        )}
 
-          <DragOverlay dropAnimation={null}>
-            {activeTask ? <TaskCard task={activeTask} isDragging /> : null}
-          </DragOverlay>
-        </DndContext>
+        <div className="board-columns-wrap">
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="board-columns">
+              {COLUMNS.map(col => (
+                <Column
+                  key={col.id}
+                  column={col}
+                  tasks={tasksByStatus[col.id] ?? []}
+                  canEdit={canEdit}
+                  onDelete={deleteTask}
+                  onUpdate={updateTask}
+                />
+              ))}
+            </div>
+
+            <DragOverlay dropAnimation={null}>
+              {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} /> : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       </main>
 
-      {showModal && (
+      {showModal && canEdit && (
         <AddTaskModal
           onClose={() => setShowModal(false)}
           onSave={async (data) => { await addTask(data); setShowModal(false) }}
