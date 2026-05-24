@@ -57,12 +57,14 @@ export function useTasks(workspaceId) {
     if (error) throw error
   }
 
-  // Optimistic move — real-time will confirm for other clients
-  const moveTask = async (taskId, newStatus) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
+  // Optimistic reorder — updates status and position together
+  const reorderTask = async (taskId, newStatus, newPosition) => {
+    setTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, status: newStatus, position: newPosition } : t
+    ))
     const { error } = await supabase
       .from('tasks')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update({ status: newStatus, position: newPosition, updated_at: new Date().toISOString() })
       .eq('id', taskId)
     if (error) { fetchTasks(); throw error }
   }
@@ -82,10 +84,13 @@ export function useTasks(workspaceId) {
     if (error) { fetchTasks(); throw error }
   }
 
+  // Always sorted by position so real-time updates and optimistic moves stay ordered
   const tasksByStatus = STATUSES.reduce((acc, status) => {
-    acc[status] = tasks.filter(t => t.status === status)
+    acc[status] = tasks
+      .filter(t => t.status === status)
+      .sort((a, b) => a.position - b.position)
     return acc
   }, {})
 
-  return { tasks, tasksByStatus, loading, error, addTask, moveTask, deleteTask, updateTask }
+  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask }
 }

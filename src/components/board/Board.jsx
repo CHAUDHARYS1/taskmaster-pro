@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
@@ -9,6 +10,13 @@ import TaskCard from './TaskCard'
 import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
+
+function midpoint(a, b) {
+  if (a == null && b == null) return 0
+  if (a == null) return b - 1000
+  if (b == null) return a + 1000
+  return (a + b) / 2
+}
 
 const COLUMNS = [
   { id: 'toDo',       label: 'To Do' },
@@ -21,7 +29,7 @@ export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading } = useWorkspace()
   const canEdit = userRole !== 'viewer'
 
-  const { tasksByStatus, loading, error, addTask, moveTask, deleteTask, updateTask } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
     useTasks(currentWorkspace?.id)
 
   const present = usePresence(currentWorkspace?.id)
@@ -52,13 +60,37 @@ export default function Board() {
     setActiveTask(null)
     if (!canEdit || !over || active.id === over.id) return
 
-    const targetColumn =
-      COLUMNS.find(c => c.id === over.id)?.id ??
-      Object.entries(tasksByStatus).find(([, tasks]) =>
-        tasks.some(t => t.id === over.id)
-      )?.[0]
+    const all = Object.values(tasksByStatus).flat()
+    const draggedTask = all.find(t => t.id === active.id)
+    if (!draggedTask) return
 
-    if (targetColumn) moveTask(active.id, targetColumn)
+    const isColumnTarget  = COLUMNS.some(c => c.id === over.id)
+    const targetColumnId  = isColumnTarget
+      ? over.id
+      : (all.find(t => t.id === over.id)?.status ?? draggedTask.status)
+
+    const sourceTasks = tasksByStatus[draggedTask.status] ?? []
+    const targetTasks = tasksByStatus[targetColumnId]   ?? []
+
+    let newPosition
+
+    if (isColumnTarget) {
+      const last = targetTasks[targetTasks.length - 1]
+      newPosition = last ? last.position + 1000 : 0
+    } else {
+      const overIndex = targetTasks.findIndex(t => t.id === over.id)
+
+      if (draggedTask.status === targetColumnId) {
+        const activeIndex = sourceTasks.findIndex(t => t.id === active.id)
+        const reordered   = arrayMove(sourceTasks, activeIndex, overIndex)
+        const newIndex    = reordered.findIndex(t => t.id === active.id)
+        newPosition = midpoint(reordered[newIndex - 1]?.position, reordered[newIndex + 1]?.position)
+      } else {
+        newPosition = midpoint(targetTasks[overIndex]?.position, targetTasks[overIndex + 1]?.position)
+      }
+    }
+
+    reorderTask(active.id, targetColumnId, newPosition)
   }
 
   const handleDeleteAll = async () => {
@@ -106,7 +138,7 @@ export default function Board() {
             </div>
 
             <DragOverlay dropAnimation={null}>
-              {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} /> : null}
+              {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} onOpen={() => {}} /> : null}
             </DragOverlay>
           </DndContext>
         </div>
