@@ -50,6 +50,14 @@ export default function AcceptInvitePage() {
         if (ws) switchWorkspace(ws)
       }
 
+      // Store welcome data so the board can show the modal after redirect
+      if (data?.workspace_name) {
+        localStorage.setItem('tm_welcome', JSON.stringify({
+          workspace_name:  data.workspace_name,
+          invited_by_name: data.invited_by_name ?? null,
+        }))
+      }
+
       setStatus('success')
       setTimeout(() => navigate('/', { replace: true }), 1500)
     }

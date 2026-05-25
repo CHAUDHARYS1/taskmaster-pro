@@ -21,6 +21,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
 import BugReportSheet from '../ui/BugReportSheet'
+import WelcomeModal from '../ui/WelcomeModal'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -54,6 +55,7 @@ export default function Board() {
   const [showBugReport, setShowBugReport]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
   const [viewMode, setViewMode]             = useState('board') // 'board' | 'list'
+  const [welcomeData, setWelcomeData]       = useState(null)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -69,6 +71,14 @@ export default function Board() {
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
   }, [selectedTaskId, selectedTask])
+
+  // Show welcome modal once after accepting a workspace invite
+  useEffect(() => {
+    const raw = localStorage.getItem('tm_welcome')
+    if (!raw) return
+    localStorage.removeItem('tm_welcome')
+    try { setWelcomeData(JSON.parse(raw)) } catch { /* ignore malformed */ }
+  }, [])
 
   const { search, assigneeId, priority, label, due } = filters
   const hasFilter = !!(search || assigneeId || priority || label || due)
@@ -426,6 +436,13 @@ export default function Board() {
 
       {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
       {showBugReport  && <BugReportSheet onClose={() => setShowBugReport(false)} />}
+      {welcomeData    && (
+        <WelcomeModal
+          workspaceName={welcomeData.workspace_name}
+          invitedByName={welcomeData.invited_by_name}
+          onClose={() => setWelcomeData(null)}
+        />
+      )}
     </div>
   )
 }

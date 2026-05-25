@@ -2117,6 +2117,53 @@ ul, ol { list-style: none; }
   background-color: var(--paper-2) !important;
 }
 
+/* ── Welcome modal (shown after accepting a workspace invite) ─ */
+.welcome-modal {
+  max-width: 400px;
+  position: relative;
+}
+
+.welcome-modal .modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 1;
+}
+
+.welcome-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  gap: var(--space-3);
+}
+
+.welcome-modal-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+
+.welcome-modal-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.welcome-modal-sub {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.welcome-modal-cta {
+  margin-top: var(--space-3);
+  min-width: 140px;
+}
+
 /* ── Sidebar user row (clickable) ────────────────────────── */
 .sidebar-user-row {
   display: flex;
