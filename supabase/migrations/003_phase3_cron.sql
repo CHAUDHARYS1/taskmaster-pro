@@ -24,7 +24,7 @@ select cron.schedule(
   $cron$
   select net.http_post(
     url     := 'https://ugejeysmqqkyeefdqwao.supabase.co/functions/v1/send-due-reminders',
-    headers := '{"Content-Type":"application/json","x-cron-secret":"<your-cron-secret>"}'::jsonb,
+    headers := '{"Content-Type":"application/json","x-cron-secret":"taskmaster-cron-2026"}'::jsonb,
     body    := '{}'::jsonb
   ) as request_id;
   $cron$
