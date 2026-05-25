@@ -57,10 +57,21 @@ export function WorkspaceProvider({ children }) {
     setCurrentWorkspace(prev => prev?.id === id ? { ...prev, name } : prev)
   }
 
+  const deleteWorkspace = async (id) => {
+    const { error } = await supabase.from('workspaces').delete().eq('id', id)
+    if (error) throw error
+    setWorkspaces(prev => {
+      const next = prev.filter(w => w.id !== id)
+      // Switch to personal workspace or first remaining
+      setCurrentWorkspace(next.find(w => w.id === user?.id) ?? next[0] ?? null)
+      return next
+    })
+  }
+
   return (
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
-      switchWorkspace, createWorkspace, renameWorkspace,
+      switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
       refetch: fetchWorkspaces,
     }}>
       {children}
