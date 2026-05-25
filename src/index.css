@@ -1331,6 +1331,46 @@ ul, ol { list-style: none; }
 .activity-item--comment:hover .comment-delete { opacity: 1; }
 .comment-delete:hover { color: var(--red); }
 
+/* comment edit/delete action links */
+.comment-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.activity-item--comment:hover .comment-actions { opacity: 1; }
+
+.comment-action-btn {
+  background: none;
+  border: none;
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s;
+}
+.comment-action-btn:hover { color: var(--accent); }
+.comment-action-btn--danger:hover { color: var(--red); }
+
+.comment-edited {
+  font-style: italic;
+  color: var(--ink-5);
+}
+
+.comment-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.comment-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 .comment-text {
   font-size: var(--text-md);
   color: var(--ink-2);

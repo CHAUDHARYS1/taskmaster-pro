@@ -44,6 +44,12 @@ export function useTaskDetail(taskId) {
         )
       })
       .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'comments',
+        filter: `task_id=eq.${taskId}`,
+      }, ({ new: row }) => {
+        setComments(prev => prev.map(c => c.id === row.id ? { ...c, body: row.body, updated_at: row.updated_at } : c))
+      })
+      .on('postgres_changes', {
         event: 'DELETE', schema: 'public', table: 'comments',
         filter: `task_id=eq.${taskId}`,
       }, ({ old }) => setComments(prev => prev.filter(c => c.id !== old.id)))
@@ -67,5 +73,14 @@ export function useTaskDetail(taskId) {
     await supabase.from('comments').delete().eq('id', commentId)
   }
 
-  return { comments, loading, addComment, deleteComment }
+  const updateComment = async (commentId, body) => {
+    const { error } = await supabase
+      .from('comments')
+      .update({ body })
+      .eq('id', commentId)
+    if (error) throw error
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, body } : c))
+  }
+
+  return { comments, loading, addComment, deleteComment, updateComment }
 }
