@@ -25,7 +25,6 @@ import BugReportSheet from '../ui/BugReportSheet'
 import WelcomeModal from '../ui/WelcomeModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 import ArchiveView from './ArchiveView'
-import DashboardView from '../dashboard/DashboardView'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -287,7 +286,7 @@ export default function Board() {
           <div className="board-header-right">
             <PresenceAvatars users={present} />
 
-            {canEdit && viewMode !== 'archive' && viewMode !== 'dashboard' && (
+            {canEdit && viewMode !== 'archive' && (
               <button className="btn-primary btn-sm" onClick={() => setShowModal(true)}>
                 + Add Task
               </button>
@@ -349,7 +348,7 @@ export default function Board() {
           </div>
         </div>
 
-        {totalTasks > 0 && viewMode !== 'archive' && viewMode !== 'dashboard' && (
+        {totalTasks > 0 && viewMode !== 'archive' && (
           <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
             <div
               className="board-progress-bar"
@@ -366,7 +365,7 @@ export default function Board() {
           </div>
         )}
 
-        {viewMode !== 'archive' && viewMode !== 'dashboard' && (
+        {viewMode !== 'archive' && (
           <div ref={filterBarRef}>
             <FilterBar
               workspaceId={currentWorkspace?.id}
@@ -447,11 +446,9 @@ export default function Board() {
               onComplete={handleComplete}
             />
           </div>
-        ) : viewMode === 'archive' ? (
+        ) : (
           <ArchiveView canEdit={canEdit} canDelete={canDelete} />
-        ) : viewMode === 'dashboard' ? (
-          <DashboardView workspaceId={currentWorkspace?.id} />
-        ) : null}
+        )}
       </main>
 
       {/* Fixed help button — bottom right corner */}
