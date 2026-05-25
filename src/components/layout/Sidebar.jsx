@@ -9,7 +9,7 @@ import InviteModal from '../workspace/InviteModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
 export default function Sidebar({ isOpen }) {
-  const { user, displayName, signOut } = useAuth()
+  const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace, userRole }  = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
   const [showInvite, setShowInvite]       = useState(false)
@@ -43,13 +43,21 @@ export default function Sidebar({ isOpen }) {
             onClick={() => setShowProfile(true)}
             title="Edit profile"
           >
-            <span
-              className="sidebar-user-avatar"
-              style={{ background: avatarColor }}
-              aria-hidden="true"
-            >
-              {avatarInitial}
-            </span>
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="sidebar-user-avatar sidebar-user-avatar--photo"
+              />
+            ) : (
+              <span
+                className="sidebar-user-avatar"
+                style={{ background: avatarColor }}
+                aria-hidden="true"
+              >
+                {avatarInitial}
+              </span>
+            )}
             <span className="sidebar-user-name" title={user?.email}>
               {displayName || user?.email}
             </span>

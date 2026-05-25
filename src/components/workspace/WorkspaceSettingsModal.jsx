@@ -20,11 +20,10 @@ export default function WorkspaceSettingsModal({ onClose }) {
   }
 
   return (
-    <>
-      <div className="modal-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="modal-box ws-settings-modal" role="dialog" aria-modal="true" aria-label="Workspace settings">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet ws-settings-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Workspace settings">
         <div className="modal-hdr">
-          <h2 className="modal-title">Workspace Settings</h2>
+          <h2 className="modal-ttl">Workspace Settings</h2>
           <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
@@ -46,6 +45,6 @@ export default function WorkspaceSettingsModal({ onClose }) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }

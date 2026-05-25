@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
     if (!user) { setProfile(null); return }
     supabase
       .from('profiles')
-      .select('first_name, last_name, email')
+      .select('first_name, last_name, email, avatar_url')
       .eq('id', user.id)
       .single()
       .then(({ data }) => setProfile(data ?? null))
@@ -65,13 +65,33 @@ export function AuthProvider({ children }) {
     setProfile(prev => prev ? { ...prev, first_name, last_name } : null)
   }
 
+  const uploadAvatar = async (file) => {
+    if (!user) return
+    const ext  = file.name.split('.').pop().toLowerCase() || 'jpg'
+    const path = `${user.id}/avatar.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type })
+    if (uploadError) throw uploadError
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    // Append cache-busting param so re-uploads are always fresh
+    const avatarUrl = `${data.publicUrl}?t=${Date.now()}`
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', user.id)
+    if (error) throw error
+    setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null)
+    return avatarUrl
+  }
+
   // Returns "First Last", falls back to the email username
   const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email?.split('@')[0]
     : user?.email?.split('@')[0] ?? ''
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, displayName }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName }}>
       {children}
     </AuthContext.Provider>
   )

@@ -45,13 +45,21 @@ export default function PresenceAvatars({ users }) {
             onMouseEnter={() => setTooltip({ userId: u.user_id })}
             onMouseLeave={() => setTooltip(null)}
           >
-            <div
-              className="presence-avatar"
-              style={{ background: userColor(u.user_id) }}
-              aria-label={u.display_name || u.email}
-            >
-              {initials(u)}
-            </div>
+            {u.avatar_url ? (
+              <img
+                src={u.avatar_url}
+                alt={u.display_name || u.email}
+                className="presence-avatar presence-avatar--photo"
+              />
+            ) : (
+              <div
+                className="presence-avatar"
+                style={{ background: userColor(u.user_id) }}
+                aria-label={u.display_name || u.email}
+              >
+                {initials(u)}
+              </div>
+            )}
 
             {tooltip?.userId === u.user_id && (
               <div className="presence-tooltip" role="tooltip">

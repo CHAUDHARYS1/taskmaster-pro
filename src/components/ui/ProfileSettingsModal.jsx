@@ -1,14 +1,49 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
+import { userColor } from '../../lib/userColor'
 
 export default function ProfileSettingsModal({ onClose }) {
-  const { profile, user, updateProfile } = useAuth()
+  const { profile, user, updateProfile, uploadAvatar } = useAuth()
   const { toast } = useToast()
 
-  const [firstName, setFirstName] = useState(profile?.first_name ?? '')
-  const [lastName,  setLastName]  = useState(profile?.last_name  ?? '')
-  const [saving, setSaving]       = useState(false)
+  const [firstName,    setFirstName]    = useState(profile?.first_name ?? '')
+  const [lastName,     setLastName]     = useState(profile?.last_name  ?? '')
+  const [saving,       setSaving]       = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState(profile?.avatar_url ?? null)
+  const [uploading,    setUploading]    = useState(false)
+
+  const fileInputRef = useRef(null)
+
+  const displayInitial = firstName
+    ? firstName[0].toUpperCase()
+    : (user?.email?.[0] ?? '?').toUpperCase()
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be under 2 MB')
+      return
+    }
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file)
+    setAvatarPreview(localUrl)
+    setUploading(true)
+    try {
+      await uploadAvatar(file)
+      toast.success('Avatar updated')
+    } catch (err) {
+      setAvatarPreview(profile?.avatar_url ?? null)
+      toast.error(err.message || 'Failed to upload avatar')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -38,8 +73,47 @@ export default function ProfileSettingsModal({ onClose }) {
           <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+        <div className="modal-body">
+          {/* Avatar */}
+          <div className="avatar-upload-wrap">
+            <button
+              type="button"
+              className="avatar-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label="Upload profile picture"
+              title="Click to upload a photo"
+            >
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Profile picture"
+                  className="avatar-upload-img"
+                />
+              ) : (
+                <span
+                  className="avatar-upload-initials"
+                  style={{ background: userColor(user?.id ?? '') }}
+                >
+                  {displayInitial}
+                </span>
+              )}
+              <span className="avatar-upload-overlay" aria-hidden="true">
+                {uploading ? '…' : '📷'}
+              </span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="avatar-file-input"
+              onChange={handleAvatarChange}
+              aria-label="Choose profile picture"
+            />
+            <p className="avatar-upload-hint">Click to upload · Max 2 MB</p>
+          </div>
+
+          <form id="profile-form" onSubmit={handleSubmit}>
             <div className="auth-name-row">
               <div className="field-block">
                 <label htmlFor="prof-first">First name</label>
@@ -49,7 +123,6 @@ export default function ProfileSettingsModal({ onClose }) {
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder="Jane"
-                  autoFocus
                 />
               </div>
               <div className="field-block">
@@ -68,15 +141,15 @@ export default function ProfileSettingsModal({ onClose }) {
               <label>Email</label>
               <input type="email" value={user?.email ?? ''} disabled className="field-disabled" />
             </div>
-          </div>
+          </form>
+        </div>
 
-          <div className="modal-ftr">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
-          </div>
-        </form>
+        <div className="modal-ftr">
+          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" form="profile-form" className="btn-primary" disabled={saving || uploading}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
       </div>
     </div>
   )

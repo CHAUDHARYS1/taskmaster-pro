@@ -18,6 +18,7 @@ export function usePresence(workspaceId) {
       user_id:      user.id,
       email:        user.email,
       display_name: displayName,
+      avatar_url:   profile?.avatar_url ?? null,
       last_seen:    new Date().toISOString(),
     })
   }
