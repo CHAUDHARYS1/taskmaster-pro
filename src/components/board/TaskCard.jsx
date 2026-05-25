@@ -30,7 +30,7 @@ export default function TaskCard({
   onDelete,
   onOpen,
   onComplete,
-  isDragging = false,
+  isOverlay = false,
   editingUser = null,
 }) {
   const isLockedByOther = editingUser != null
@@ -39,11 +39,11 @@ export default function TaskCard({
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging: isSortableDragging,
-  } = useSortable({ id: task.id, disabled: !canEdit || isLockedByOther })
+  } = useSortable({ id: task.id, disabled: !canEdit || isLockedByOther || isOverlay })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    // Overlay card needs no transform — DragOverlay handles positioning itself
+    ...(isOverlay ? {} : { transform: CSS.Transform.toString(transform), transition }),
     ...(glowColor ? { '--editing-color': glowColor } : {}),
   }
 
@@ -54,17 +54,17 @@ export default function TaskCard({
 
   return (
     <li
-      ref={setNodeRef}
+      ref={isOverlay ? undefined : setNodeRef}
       style={style}
       className={[
         'task-card',
         urgencyClass(task.due_date),
-        isSortableDragging      ? 'task-card--dragging' : '',
-        isDragging              ? 'task-card--ghost'    : '',
-        isLockedByOther         ? 'task-card--locked'   : '',
+        !isOverlay && isSortableDragging ? 'task-card--dragging' : '',
+        isOverlay                         ? 'task-card--ghost'    : '',
+        isLockedByOther                   ? 'task-card--locked'   : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
-      {...(canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
+      {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
       {canEdit && !isLockedByOther && (
         <span className="task-drag-handle" aria-hidden="true">

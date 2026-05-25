@@ -378,7 +378,7 @@ export default function Board() {
                 {activeTask ? (
                   <TaskCard
                     task={activeTask}
-                    isDragging
+                    isOverlay
                     canEdit={canEdit}
                     onOpen={() => {}}
                     editingUser={editingMap[activeTask.id] ?? null}
