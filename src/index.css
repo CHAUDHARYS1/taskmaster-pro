@@ -3324,6 +3324,35 @@ ul, ol { list-style: none; }
 
 /* ── Workspace folder-structure visual ───────────────────── */
 .ws-switcher { padding-bottom: 0; }
+
+/* Chevron on active workspace item */
+.ws-chevron {
+  font-size: 12px;
+  color: var(--accent);
+  display: inline-block;
+  transition: transform 0.2s var(--ease-enter);
+  transform: rotate(-90deg);
+  margin-left: auto;
+}
+.ws-chevron--open { transform: rotate(0deg); }
+
+/* Project panel — dropdown container */
+@keyframes projectPanelIn {
+  from { max-height: 0; opacity: 0; transform: translateY(-4px); }
+  to   { max-height: 600px; opacity: 1; transform: translateY(0); }
+}
+
+.project-panel {
+  overflow: hidden;
+  animation: projectPanelIn 0.22s var(--ease-enter);
+}
+.project-panel--closed {
+  max-height: 0 !important;
+  opacity: 0;
+  transition: max-height 0.2s ease-in, opacity 0.15s ease-in;
+  pointer-events: none;
+}
+
 .project-switcher {
   padding-left: var(--space-5);
   border-left: 2px solid var(--line);

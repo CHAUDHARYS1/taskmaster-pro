@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -12,8 +12,14 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showCreate,  setShowCreate]  = useState(false)
-  const [showProfile, setShowProfile] = useState(false)
+  const [showCreate,    setShowCreate]    = useState(false)
+  const [showProfile,   setShowProfile]   = useState(false)
+  const [projectsOpen,  setProjectsOpen]  = useState(true)
+
+  // Re-open projects panel whenever the active workspace changes
+  useEffect(() => {
+    setProjectsOpen(true)
+  }, [currentWorkspace?.id])
 
   const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
   const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
@@ -25,16 +31,26 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           <h1 className="sidebar-title">Taskmaster Pro</h1>
         </div>
 
-        {/* Workspace + Projects as one continuous nav block */}
         <div className="sidebar-nav">
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher
+            projectsOpen={projectsOpen}
+            onToggleProjects={() => setProjectsOpen(p => !p)}
+          />
 
+          {/* Project panel — always mounted when workspace selected,
+              animated via CSS max-height. key remounts on workspace switch
+              so the entrance animation replays. */}
           {currentWorkspace && (
-            <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+            <div
+              key={currentWorkspace.id}
+              className={`project-panel${projectsOpen ? '' : ' project-panel--closed'}`}
+              aria-hidden={!projectsOpen}
+            >
+              <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+            </div>
           )}
         </div>
 
-        {/* + New workspace — at the bottom of the nav, above footer */}
         <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
           + New workspace
         </button>

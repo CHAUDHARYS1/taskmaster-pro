@@ -1,7 +1,7 @@
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 
-export default function WorkspaceSwitcher() {
+export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects }) {
   const { user } = useAuth()
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
 
@@ -17,7 +17,13 @@ export default function WorkspaceSwitcher() {
             <li key={ws.id} className="ws-list-item">
               <button
                 className={`ws-item ${isActive ? 'ws-item--active' : ''}`}
-                onClick={() => switchWorkspace(ws)}
+                onClick={() => {
+                  if (isActive) {
+                    onToggleProjects?.()
+                  } else {
+                    switchWorkspace(ws)
+                  }
+                }}
               >
                 <span className="ws-avatar">
                   {ws.name.charAt(0).toUpperCase()}
@@ -25,7 +31,14 @@ export default function WorkspaceSwitcher() {
                 <span className="ws-name">
                   {isPersonal ? 'My Workspace' : ws.name}
                 </span>
-                {isActive && <span className="ws-check">✓</span>}
+                {isActive && (
+                  <span
+                    className={`ws-chevron${projectsOpen ? ' ws-chevron--open' : ''}`}
+                    aria-hidden="true"
+                  >
+                    ▾
+                  </span>
+                )}
               </button>
             </li>
           )
