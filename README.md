@@ -167,12 +167,12 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 3. **Environment variables** (Site settings → Environment variables):
    - `VITE_SUPABASE_URL` = `https://ugejeysmqqkyeefdqwao.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` = *(your anon key from `.env`)*
-4. Deploy — note your Netlify URL (e.g. `https://taskmaster-pro.netlify.app`)
+4. Deploy — live at **https://taskmaster12.netlify.app**
 
 #### B. Supabase auth redirect URLs
 1. Supabase dashboard → Authentication → URL Configuration
-2. Add your Netlify URL to **Redirect URLs**: `https://taskmaster-pro.netlify.app/**`
-3. Set **Site URL** to the Netlify URL
+2. Add to **Redirect URLs**: `https://taskmaster12.netlify.app/**`
+3. Set **Site URL** to `https://taskmaster12.netlify.app`
 
 #### C. Database migrations (if not yet applied)
 Run in Supabase dashboard → SQL Editor in order:
@@ -195,7 +195,7 @@ Run in Supabase dashboard → SQL Editor in order:
    ```
    supabase secrets set RESEND_API_KEY=re_your_key
    supabase secrets set CRON_SECRET=any-random-string
-   supabase secrets set APP_URL=https://taskmaster-pro.netlify.app
+   supabase secrets set APP_URL=https://taskmaster12.netlify.app
    ```
 4. Deploy functions:
    ```
