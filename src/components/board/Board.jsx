@@ -54,7 +54,9 @@ export default function Board() {
   const [showShortcuts, setShowShortcuts]   = useState(false)
   const [showBugReport, setShowBugReport]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
-  const [viewMode, setViewMode]             = useState('board') // 'board' | 'list'
+  const [viewMode, setViewMode]             = useState(
+    () => localStorage.getItem('tm_view_mode') ?? 'board'
+  )
   const [welcomeData, setWelcomeData]       = useState(null)
 
   const searchRef      = useRef(null)
@@ -93,6 +95,11 @@ export default function Board() {
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
   }, [selectedTaskId, selectedTask])
+
+  // Persist view mode across reloads
+  useEffect(() => {
+    localStorage.setItem('tm_view_mode', viewMode)
+  }, [viewMode])
 
   // Show welcome modal once after accepting a workspace invite
   useEffect(() => {
