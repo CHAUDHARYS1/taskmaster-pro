@@ -9,10 +9,13 @@ alter table public.profiles
   add column if not exists last_name  text;
 
 -- Allow users to update their own profile
-create policy if not exists "users can update own profile"
-  on public.profiles for update
-  using (id = auth.uid())
-  with check (id = auth.uid());
+do $$ begin
+  create policy "users can update own profile"
+    on public.profiles for update
+    using (id = auth.uid())
+    with check (id = auth.uid());
+exception when duplicate_object then null;
+end $$;
 
 -- Update the signup trigger to pull names from user_metadata
 create or replace function public.handle_new_user()
