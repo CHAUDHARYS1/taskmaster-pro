@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useRef, useState } from 'react'
 
 const ToastContext = createContext(null)
 
@@ -6,22 +6,31 @@ let _id = 0
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
+  const timers = useRef({})
 
   const dismiss = useCallback((id) => {
+    clearTimeout(timers.current[id])
+    delete timers.current[id]
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const addToast = useCallback((type, message, duration) => {
+  const addToast = useCallback((type, message, { duration, action } = {}) => {
     const id = ++_id
     const ms = duration ?? (type === 'error' ? 5000 : 3500)
-    setToasts(prev => [...prev, { id, type, message }])
-    setTimeout(() => dismiss(id), ms)
+    setToasts(prev => [...prev, { id, type, message, action }])
+    timers.current[id] = setTimeout(() => dismiss(id), ms)
+    return id
   }, [dismiss])
 
   const toast = {
-    success: (msg, dur) => addToast('success', msg, dur),
-    error:   (msg, dur) => addToast('error',   msg, dur),
-    info:    (msg, dur) => addToast('info',    msg, dur),
+    success: (msg, opts)  => addToast('success', msg, typeof opts === 'object' ? opts : { duration: opts }),
+    error:   (msg, opts)  => addToast('error',   msg, typeof opts === 'object' ? opts : { duration: opts }),
+    info:    (msg, opts)  => addToast('info',    msg, typeof opts === 'object' ? opts : { duration: opts }),
+    // Convenience: toast.undo('message', onUndo) — 4-second action toast
+    undo: (msg, onUndo) => addToast('info', msg, {
+      duration: 4000,
+      action: { label: 'Undo', onClick: onUndo },
+    }),
   }
 
   return (

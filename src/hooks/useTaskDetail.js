@@ -10,7 +10,7 @@ export function useTaskDetail(taskId) {
   const fetchWithProfile = useCallback(async (id) => {
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles(email)')
+      .select('*, profiles(email, first_name, last_name)')
       .eq('id', id)
       .single()
     return data
@@ -20,7 +20,7 @@ export function useTaskDetail(taskId) {
     if (!taskId) return
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles(email)')
+      .select('*, profiles(email, first_name, last_name)')
       .eq('task_id', taskId)
       .order('created_at', { ascending: true })
     if (data) setComments(data)
@@ -56,7 +56,7 @@ export function useTaskDetail(taskId) {
     const { data, error } = await supabase
       .from('comments')
       .insert({ task_id: taskId, user_id: user.id, body })
-      .select('*, profiles(email)')
+      .select('*, profiles(email, first_name, last_name)')
       .single()
     if (error) throw error
     if (data) setComments(prev => prev.some(c => c.id === data.id) ? prev : [...prev, data])

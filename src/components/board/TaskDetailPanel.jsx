@@ -8,6 +8,17 @@ import { supabase } from '../../lib/supabase'
 import { LABELS } from '../../lib/labels'
 import { PRIORITIES } from '../../lib/priority'
 
+function memberDisplayName(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  return full || m.email?.split('@')[0] || m.email
+}
+
+function commentAuthor(profiles) {
+  if (!profiles) return 'Unknown'
+  const full = [profiles.first_name, profiles.last_name].filter(Boolean).join(' ')
+  return full || profiles.email?.split('@')[0] || 'Unknown'
+}
+
 const STATUS_OPTIONS = [
   { id: 'toDo',       label: 'To Do' },
   { id: 'inProgress', label: 'In Progress' },
@@ -47,7 +58,7 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
     if (!currentWorkspace?.id) return
     supabase
       .from('workspace_members_view')
-      .select('user_id, email')
+      .select('user_id, email, first_name, last_name')
       .eq('workspace_id', currentWorkspace.id)
       .then(({ data }) => { if (data) setMembers(data) })
   }, [currentWorkspace?.id])
@@ -149,12 +160,15 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
               >
                 <option value="">Unassigned</option>
                 {members.map(m => (
-                  <option key={m.user_id} value={m.user_id}>{m.email}</option>
+                  <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
                 ))}
               </select>
             ) : (
               <p className="task-panel-desc-ro">
-                {task.assignee?.email ?? <span className="task-panel-empty">Unassigned</span>}
+                {task.assignee
+                  ? memberDisplayName(task.assignee)
+                  : <span className="task-panel-empty">Unassigned</span>
+                }
               </p>
             )}
           </div>
@@ -283,7 +297,7 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
                   <div className="comment-body">
                     <div className="comment-meta">
                       <span className="comment-author">
-                        {c.profiles?.email?.split('@')[0] ?? 'Unknown'}
+                        {commentAuthor(c.profiles)}
                       </span>
                       <span className="comment-time">
                         {dayjs(c.created_at).format('MMM D, h:mm a')}
