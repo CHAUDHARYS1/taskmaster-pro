@@ -1,13 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
 
-const COLORS = ['#2563EB', '#15803d', '#7c3aed', '#c2410c', '#be185d', '#0f766e']
 const MAX_VISIBLE = 4
-
-function colorFor(id) {
-  let hash = 0
-  for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) | 0
-  return COLORS[Math.abs(hash) % COLORS.length]
-}
 
 function initials(u) {
   if (u.display_name) {
@@ -33,7 +27,7 @@ export default function PresenceAvatars({ users }) {
         <div
           key={u.user_id}
           className="presence-avatar"
-          style={{ background: colorFor(u.user_id) }}
+          style={{ background: userColor(u.user_id) }}
           title={u.user_id === user?.id
             ? `${u.display_name || u.email} (you)`
             : (u.display_name || u.email)

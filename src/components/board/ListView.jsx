@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import { labelMap } from '../../lib/labels'
 import { priorityMap } from '../../lib/priority'
+import { userColor } from '../../lib/userColor'
 
 const COLUMNS = [
   { id: 'toDo',       label: 'To Do' },
@@ -53,6 +54,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
             const p   = task.priority ? priorityMap[task.priority] : null
             const editingUser = editingMap?.[task.id]
             const isLockedByOther = editingUser != null
+            const glowColor = editingUser ? userColor(editingUser.user_id) : null
 
             return (
               <tr
@@ -62,6 +64,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                   urgencyClass(task.due_date),
                   isLockedByOther ? 'list-row--editing' : '',
                 ].filter(Boolean).join(' ')}
+                style={glowColor ? { '--editing-color': glowColor } : undefined}
                 onClick={() => onOpen(task.id)}
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(task.id) } }}
@@ -72,6 +75,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                   {isLockedByOther && (
                     <span
                       className="list-editing-badge"
+                      style={{ background: glowColor }}
                       title={`${editingUser.display_name || editingUser.email} is editing`}
                     >
                       {(editingUser.display_name || editingUser.email || '?')[0].toUpperCase()}
