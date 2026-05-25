@@ -39,11 +39,13 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
-  const { comments, loading: commentsLoading, addComment, deleteComment } = useTaskDetail(task.id)
+  const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
 
   const [title, setTitle]           = useState(task.text)
   const [description, setDescription] = useState(task.description ?? '')
-  const [commentBody, setCommentBody] = useState('')
+  const [commentBody, setCommentBody]         = useState('')
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingCommentBody, setEditingCommentBody] = useState('')
   const [submitting, setSubmitting]  = useState(false)
   const [members, setMembers]        = useState([])
 
@@ -296,23 +298,71 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
                   </div>
                   <div className="comment-body">
                     <div className="comment-meta">
-                      <span className="comment-author">
-                        {commentAuthor(c.profiles)}
-                      </span>
+                      <span className="comment-author">{commentAuthor(c.profiles)}</span>
                       <span className="comment-time">
                         {dayjs(c.created_at).format('MMM D, h:mm a')}
+                        {c.updated_at && c.updated_at !== c.created_at && (
+                          <span className="comment-edited"> (edited)</span>
+                        )}
                       </span>
-                      {c.user_id === user?.id && (
-                        <button
-                          className="comment-delete"
-                          onClick={() => deleteComment(c.id)}
-                          aria-label="Delete comment"
-                        >
-                          ×
-                        </button>
+                      {c.user_id === user?.id && editingCommentId !== c.id && (
+                        <span className="comment-actions">
+                          <button
+                            className="comment-action-btn"
+                            onClick={() => { setEditingCommentId(c.id); setEditingCommentBody(c.body) }}
+                            aria-label="Edit comment"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="comment-action-btn comment-action-btn--danger"
+                            onClick={() => deleteComment(c.id)}
+                            aria-label="Delete comment"
+                          >
+                            Delete
+                          </button>
+                        </span>
                       )}
                     </div>
-                    <p className="comment-text">{c.body}</p>
+
+                    {editingCommentId === c.id ? (
+                      <div className="comment-edit-form">
+                        <textarea
+                          className="comment-input"
+                          value={editingCommentBody}
+                          onChange={e => setEditingCommentBody(e.target.value)}
+                          rows={2}
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') setEditingCommentId(null)
+                          }}
+                        />
+                        <div className="comment-edit-actions">
+                          <button
+                            className="btn-ghost"
+                            onClick={() => setEditingCommentId(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="btn-primary"
+                            disabled={!editingCommentBody.trim()}
+                            onClick={async () => {
+                              try {
+                                await updateComment(c.id, editingCommentBody.trim())
+                                setEditingCommentId(null)
+                              } catch (err) {
+                                toast.error(err.message || 'Failed to update comment')
+                              }
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="comment-text">{c.body}</p>
+                    )}
                   </div>
                 </div>
               ))}

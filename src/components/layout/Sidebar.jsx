@@ -8,7 +8,7 @@ import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
-export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
+export default function Sidebar({ isOpen }) {
   const { user, displayName, signOut } = useAuth()
   const { currentWorkspace, userRole }  = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
@@ -28,19 +28,6 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
         </div>
 
         <WorkspaceSwitcher />
-
-        {canEdit && (
-          <div className="sidebar-actions">
-            <button className="btn-primary btn-block" onClick={onAddTask}>
-              + Add Task
-            </button>
-            {userRole === 'owner' && (
-              <button className="btn-danger btn-block" onClick={onDeleteAll}>
-                Delete All Tasks
-              </button>
-            )}
-          </div>
-        )}
 
         <MembersList />
 
@@ -75,6 +62,8 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
             </button>
             <button className="btn-ghost" onClick={signOut}>Sign out</button>
           </div>
+
+          <p className="sidebar-version">v1.0.01</p>
         </div>
       </aside>
 

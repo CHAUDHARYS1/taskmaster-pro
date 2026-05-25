@@ -61,6 +61,28 @@ export default function Board() {
   const filterBarRef   = useRef(null)
   const pendingDeletes = useRef({})
 
+  const playDoneSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      // Two-note ascending chime: C5 → E5
+      const notes = [523.25, 659.25]
+      notes.forEach((freq, i) => {
+        const osc  = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        const start = ctx.currentTime + i * 0.12
+        gain.gain.setValueAtTime(0, start)
+        gain.gain.linearRampToValueAtTime(0.18, start + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35)
+        osc.start(start)
+        osc.stop(start + 0.35)
+      })
+    } catch { /* audio not available — silently skip */ }
+  }
+
   const present    = usePresence(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
@@ -128,6 +150,7 @@ export default function Board() {
     try {
       await updateTask(id, { status: 'done' })
       toast.success(`"${task?.text ?? 'Task'}" marked as done`)
+      playDoneSound()
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
@@ -231,7 +254,7 @@ export default function Board() {
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} onClose={() => setShowSidebar(false)} onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      <Sidebar isOpen={showSidebar} />
       <main className="board-main">
         <div className="board-empty-state">
           <p className="board-empty-icon" aria-hidden="true">📋</p>
@@ -251,12 +274,7 @@ export default function Board() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar
-        isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
-        onAddTask={() => { setShowModal(true); setShowSidebar(false) }}
-        onDeleteAll={handleDeleteAll}
-      />
+      <Sidebar isOpen={showSidebar} />
 
       <main className="board-main">
         <div className="board-header">
@@ -272,6 +290,12 @@ export default function Board() {
           </div>
           <div className="board-header-right">
             <PresenceAvatars users={present} />
+
+            {canEdit && (
+              <button className="btn-primary btn-sm" onClick={() => setShowModal(true)}>
+                + Add Task
+              </button>
+            )}
 
             {/* View toggle */}
             <div className="view-toggle" role="group" aria-label="View mode">
@@ -345,6 +369,14 @@ export default function Board() {
         {userRole === 'viewer' && (
           <div className="viewer-banner">
             You have view-only access to this workspace.
+          </div>
+        )}
+
+        {userRole === 'owner' && totalTasks > 0 && (
+          <div className="board-danger-row">
+            <button className="btn-ghost btn-sm btn-danger-ghost" onClick={handleDeleteAll}>
+              Delete all tasks
+            </button>
           </div>
         )}
 
