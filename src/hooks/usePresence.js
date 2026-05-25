@@ -1,34 +1,55 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
-export function usePresence(workspaceId) {
-  const { user } = useAuth()
+export function usePresence(workspaceId, editingTaskId = null) {
+  const { user, profile } = useAuth()
   const [present, setPresent] = useState([])
+  const channelRef = useRef(null)
+
+  const displayName = profile
+    ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email?.split('@')[0]
+    : user?.email?.split('@')[0] ?? ''
 
   useEffect(() => {
     if (!workspaceId || !user) return
 
-    // Key by user.id so multiple tabs from the same user merge into one entry
     const channel = supabase.channel(`presence:workspace:${workspaceId}`, {
       config: { presence: { key: user.id } },
     })
 
+    channelRef.current = channel
+
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
-        // Each key maps to an array of presence payloads; take the first per user
         const users = Object.values(state).map(entries => entries[0])
         setPresent(users)
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, email: user.email })
+          await channel.track({
+            user_id: user.id,
+            email: user.email,
+            display_name: displayName,
+            editing_task_id: editingTaskId,
+          })
         }
       })
 
     return () => { supabase.removeChannel(channel) }
-  }, [workspaceId, user])
+  }, [workspaceId, user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-track when editingTaskId or displayName changes (without re-subscribing)
+  useEffect(() => {
+    if (!channelRef.current || !user) return
+    channelRef.current.track({
+      user_id: user.id,
+      email: user.email,
+      display_name: displayName,
+      editing_task_id: editingTaskId,
+    }).catch(() => {})
+  }, [editingTaskId, displayName, user])
 
   return present
 }
