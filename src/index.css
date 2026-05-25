@@ -1802,14 +1802,14 @@ ul, ol { list-style: none; }
 /* ── Collaborative editing: locked card ──────────────────── */
 .task-card--locked {
   cursor: default;
-  outline: 2px solid var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-tint), var(--shadow-card);
+  outline: 2px solid var(--editing-color, var(--accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--editing-color, var(--accent)) 15%, transparent), var(--shadow-card);
   animation: editingPulse 2s ease-in-out infinite;
 }
 
 @keyframes editingPulse {
-  0%, 100% { box-shadow: 0 0 0 4px var(--accent-tint), var(--shadow-card); }
-  50%       { box-shadow: 0 0 0 7px var(--accent-tint), var(--shadow-card); }
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--editing-color, var(--accent)) 15%, transparent), var(--shadow-card); }
+  50%       { box-shadow: 0 0 0 8px color-mix(in srgb, var(--editing-color, var(--accent)) 12%, transparent), var(--shadow-card); }
 }
 
 .task-card-editing-badge {
@@ -1819,7 +1819,7 @@ ul, ol { list-style: none; }
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: var(--accent);
+  background-color: var(--editing-color, var(--accent));
   color: #fff;
   font-size: 9px;
   font-weight: var(--weight-bold);
@@ -1956,7 +1956,7 @@ ul, ol { list-style: none; }
 .list-row--due-soon { background-color: var(--amber-tint); }
 
 .list-row--editing {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--editing-color, var(--accent));
   outline-offset: -2px;
   animation: editingPulse 2s ease-in-out infinite;
 }
@@ -2036,7 +2036,7 @@ ul, ol { list-style: none; }
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background-color: var(--accent);
+  background-color: var(--editing-color, var(--accent));
   color: #fff;
   font-size: 9px;
   font-weight: var(--weight-bold);

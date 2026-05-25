@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
 import { labelMap } from '../../lib/labels'
 import { priorityMap } from '../../lib/priority'
+import { userColor } from '../../lib/userColor'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -32,13 +33,18 @@ export default function TaskCard({
   editingUser = null,   // presence entry of whoever has this task open for editing
 }) {
   const isLockedByOther = editingUser != null
+  const glowColor = editingUser ? userColor(editingUser.user_id) : null
 
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging: isSortableDragging,
   } = useSortable({ id: task.id, disabled: !canEdit || isLockedByOther })
 
-  const style = { transform: CSS.Transform.toString(transform), transition }
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(glowColor ? { '--editing-color': glowColor } : {}),
+  }
 
   const handleOpen = () => {
     if (isLockedByOther) return
@@ -62,6 +68,7 @@ export default function TaskCard({
       {isLockedByOther && (
         <div
           className="task-card-editing-badge"
+          style={{ background: glowColor }}
           title={`${editingUser.display_name || editingUser.email} is editing this task`}
         >
           {initials(editingUser)}
