@@ -5,7 +5,8 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { supabase } from '../../lib/supabase'
-import { LABELS } from '../../lib/labels'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
+import ManageLabelsModal from '../workspace/ManageLabelsModal'
 import { PRIORITIES } from '../../lib/priority'
 
 function memberDisplayName(m) {
@@ -39,6 +40,7 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
+  const { labels, labelMap } = useLabelsCtx()
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
 
   const [title, setTitle]           = useState(task.text)
@@ -48,6 +50,7 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
   const [editingCommentBody, setEditingCommentBody] = useState('')
   const [submitting, setSubmitting]  = useState(false)
   const [members, setMembers]        = useState([])
+  const [showManageLabels, setShowManageLabels] = useState(false)
 
   const commentInputRef = useRef(null)
 
@@ -240,15 +243,37 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
           </div>
 
           <div className="task-panel-section">
-            <p className="task-panel-label">Labels</p>
+            <p className="task-panel-label">
+              Labels
+              {canEdit && (
+                <button
+                  className="task-panel-manage-btn"
+                  onClick={() => setShowManageLabels(true)}
+                  title="Manage labels"
+                >
+                  Manage
+                </button>
+              )}
+            </p>
             <div className="label-picker">
-              {LABELS.map(label => {
+              {labels.length === 0 && canEdit && (
+                <button
+                  className="label-create-hint"
+                  onClick={() => setShowManageLabels(true)}
+                >
+                  + Create your first label
+                </button>
+              )}
+              {labels.map(label => {
                 const active = (task.labels ?? []).includes(label.id)
+                const rgb = label.color.length === 7
+                  ? `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+                  : '37,99,235'
                 return canEdit ? (
                   <button
                     key={label.id}
                     className={`label-chip${active ? ' label-chip--active' : ''}`}
-                    style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                    style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
                     onClick={() => {
                       const current = task.labels ?? []
                       const next = active
@@ -263,7 +288,7 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
                   <span
                     key={label.id}
                     className="label-chip label-chip--active"
-                    style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                    style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
                   >
                     {label.name}
                   </span>
@@ -396,6 +421,10 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
           </div>
         </div>
       </aside>
+
+      {showManageLabels && (
+        <ManageLabelsModal onClose={() => setShowManageLabels(false)} />
+      )}
     </>
   )
 }

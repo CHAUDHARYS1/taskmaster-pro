@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { labelMap } from '../../lib/labels'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 
@@ -33,6 +33,7 @@ export default function TaskCard({
   isOverlay = false,
   editingUser = null,
 }) {
+  const { labelMap } = useLabelsCtx()
   const isLockedByOther = editingUser != null
   const glowColor = editingUser ? userColor(editingUser.user_id) : null
 
@@ -120,15 +121,17 @@ export default function TaskCard({
         <div className="task-labels">
           {task.labels.slice(0, 3).map(id => {
             const label = labelMap[id]
-            return label ? (
+            if (!label) return null
+            const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+            return (
               <span
                 key={id}
                 className="label-chip label-chip--sm"
-                style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
               >
                 {label.name}
               </span>
-            ) : null
+            )
           })}
           {task.labels.length > 3 && (
             <span className="label-chip label-chip--sm label-chip--overflow">

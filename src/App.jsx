@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
+import { LabelsProvider } from './contexts/LabelsContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
@@ -31,6 +32,7 @@ export default function App() {
     <ToastProvider>
       <AuthProvider>
         <WorkspaceProvider>
+          <LabelsProvider>
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
@@ -38,6 +40,7 @@ export default function App() {
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
           <ToastContainer />
+          </LabelsProvider>
         </WorkspaceProvider>
       </AuthProvider>
     </ToastProvider>

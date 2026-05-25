@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { labelMap } from '../../lib/labels'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 
@@ -27,6 +27,7 @@ function displayName(u) {
 }
 
 export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap }) {
+  const { labelMap } = useLabelsCtx()
   const allTasks = COLUMNS.flatMap(col =>
     (tasksByStatus[col.id] ?? []).map(t => ({ ...t, _colLabel: col.label }))
   )
@@ -121,15 +122,17 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                     <div className="task-labels">
                       {task.labels.slice(0, 2).map(id => {
                         const label = labelMap[id]
-                        return label ? (
+                        if (!label) return null
+                        const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+                        return (
                           <span
                             key={id}
                             className="label-chip label-chip--sm"
-                            style={{ '--label-color': label.color, '--label-bg': label.bg }}
+                            style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
                           >
                             {label.name}
                           </span>
-                        ) : null
+                        )
                       })}
                       {task.labels.length > 2 && (
                         <span className="label-chip label-chip--sm label-chip--overflow">
