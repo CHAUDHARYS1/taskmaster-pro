@@ -3,6 +3,8 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
 import Sidebar from '../layout/Sidebar'
@@ -13,9 +15,11 @@ import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
+import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
+import BugReportSheet from '../ui/BugReportSheet'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -33,33 +37,47 @@ const COLUMNS = [
 
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading } = useWorkspace()
+  const { user } = useAuth()
+  const { toggle: toggleTheme } = useTheme()
   const canEdit   = userRole !== 'viewer'
   const canDelete = userRole === 'owner'
 
   const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
     useTasks(currentWorkspace?.id)
 
-  const present = usePresence(currentWorkspace?.id)
-  const { toast } = useToast()
-
-  const [showModal, setShowModal]         = useState(false)
-  const [activeTask, setActiveTask]       = useState(null)
+  const [showModal, setShowModal]           = useState(false)
+  const [activeTask, setActiveTask]         = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
-  const [filters, setFilters]             = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
-  const [showShortcuts, setShowShortcuts] = useState(false)
-  const [showSidebar, setShowSidebar]     = useState(false)
+  const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [showShortcuts, setShowShortcuts]   = useState(false)
+  const [showBugReport, setShowBugReport]   = useState(false)
+  const [showSidebar, setShowSidebar]       = useState(false)
+  const [viewMode, setViewMode]             = useState('board') // 'board' | 'list'
 
   const searchRef = useRef(null)
+  const filterBarRef = useRef(null)
+
+  const present = usePresence(currentWorkspace?.id, selectedTaskId)
 
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
+
+  // Map of taskId → presence user currently editing it (excludes current user)
+  const editingMap = useMemo(() => {
+    const map = {}
+    for (const u of present) {
+      if (u.editing_task_id && u.user_id !== user?.id) {
+        map[u.editing_task_id] = u
+      }
+    }
+    return map
+  }, [present, user?.id])
 
   // Close panel if selected task is deleted
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
   }, [selectedTaskId, selectedTask])
 
-  // Filtered view for columns — drag/drop still uses unfiltered tasksByStatus
   const { search, assigneeId, priority, label, due } = filters
   const hasFilter = !!(search || assigneeId || priority || label || due)
 
@@ -91,14 +109,42 @@ export default function Board() {
     )
   }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
 
+  // Navigate prev/next task when panel is open
+  const navigateTask = (dir) => {
+    if (!selectedTaskId) return
+    const flat = Object.values(tasksByStatus).flat()
+    const idx  = flat.findIndex(t => t.id === selectedTaskId)
+    if (idx === -1) return
+    const next = flat[idx + dir]
+    if (next) setSelectedTaskId(next.id)
+  }
+
+  const { toast } = useToast()
+
   useKeyboardShortcuts({
     'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
     '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
+    'f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
     '?': () => setShowShortcuts(prev => !prev),
+    'b': (e) => { e.preventDefault(); setViewMode('board') },
+    'l': (e) => { e.preventDefault(); setViewMode('list') },
+    'd': (e) => { e.preventDefault(); toggleTheme() },
+    'ArrowLeft':  () => navigateTask(-1),
+    'ArrowRight': () => navigateTask(1),
+    'Delete': () => {
+      if (selectedTask && canDelete) {
+        if (window.confirm(`Delete "${selectedTask.text}"?`)) {
+          deleteTask(selectedTask.id)
+            .then(() => { toast.success('Task deleted'); setSelectedTaskId(null) })
+            .catch(err => toast.error(err.message || 'Failed to delete'))
+        }
+      }
+    },
     'Escape': () => {
-      if (showShortcuts)   { setShowShortcuts(false); return }
-      if (selectedTaskId)  { setSelectedTaskId(null); return }
-      if (showModal)       { setShowModal(false) }
+      if (showBugReport)  { setShowBugReport(false); return }
+      if (showShortcuts)  { setShowShortcuts(false); return }
+      if (selectedTaskId) { setSelectedTaskId(null); return }
+      if (showModal)      { setShowModal(false) }
     },
   })
 
@@ -202,6 +248,27 @@ export default function Board() {
           </div>
           <div className="board-header-right">
             <PresenceAvatars users={present} />
+
+            {/* View toggle */}
+            <div className="view-toggle" role="group" aria-label="View mode">
+              <button
+                className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('board')}
+                aria-pressed={viewMode === 'board'}
+                title="Board view (B)"
+              >
+                <span aria-hidden="true">⊞</span>
+              </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'list'}
+                title="List view (L)"
+              >
+                <span aria-hidden="true">☰</span>
+              </button>
+            </div>
+
             <button
               className="shortcuts-hint-btn"
               onClick={() => setShowShortcuts(true)}
@@ -210,15 +277,29 @@ export default function Board() {
             >
               ?
             </button>
+
+            <button
+              className="bug-report-btn"
+              onClick={() => setShowBugReport(true)}
+              aria-label="Report a bug or request a feature"
+              title="Report a bug / request a feature"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 22c1.1 0 2-.9 2-2H10c0 1.1.9 2 2 2z"/>
+                <path d="M18 16v-5a6 6 0 00-4-5.66V5a2 2 0 10-4 0v.34A6 6 0 006 11v5l-2 2h16l-2-2z"/>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <FilterBar
-          workspaceId={currentWorkspace?.id}
-          filters={filters}
-          onChange={setFilters}
-          searchRef={searchRef}
-        />
+        <div ref={filterBarRef}>
+          <FilterBar
+            workspaceId={currentWorkspace?.id}
+            filters={filters}
+            onChange={setFilters}
+            searchRef={searchRef}
+          />
+        </div>
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
@@ -235,35 +316,52 @@ export default function Board() {
           </div>
         )}
 
-        <div className="board-columns-wrap">
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="board-columns">
-              {COLUMNS.map(col => (
-                <Column
-                  key={col.id}
-                  column={col}
-                  tasks={displayByStatus[col.id] ?? []}
-                  canEdit={canEdit}
-                  hasFilter={hasFilter}
-                  canDelete={canDelete}
-                  onDelete={async (id) => {
-                    try { await deleteTask(id); toast.success('Task deleted') }
-                    catch (err) { toast.error(err.message || 'Failed to delete task') }
-                  }}
-                  onOpen={setSelectedTaskId}
-                />
-              ))}
-            </div>
+        {viewMode === 'board' ? (
+          <div className="board-columns-wrap">
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="board-columns">
+                {COLUMNS.map(col => (
+                  <Column
+                    key={col.id}
+                    column={col}
+                    tasks={displayByStatus[col.id] ?? []}
+                    canEdit={canEdit}
+                    hasFilter={hasFilter}
+                    canDelete={canDelete}
+                    editingMap={editingMap}
+                    onDelete={async (id) => {
+                      try { await deleteTask(id); toast.success('Task deleted') }
+                      catch (err) { toast.error(err.message || 'Failed to delete task') }
+                    }}
+                    onOpen={setSelectedTaskId}
+                  />
+                ))}
+              </div>
 
-            <DragOverlay dropAnimation={null}>
-              {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} onOpen={() => {}} /> : null}
-            </DragOverlay>
-          </DndContext>
-        </div>
+              <DragOverlay dropAnimation={null}>
+                {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} onOpen={() => {}} /> : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        ) : (
+          <div className="list-view-wrap">
+            <ListView
+              tasksByStatus={displayByStatus}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              editingMap={editingMap}
+              onDelete={async (id) => {
+                try { await deleteTask(id); toast.success('Task deleted') }
+                catch (err) { toast.error(err.message || 'Failed to delete task') }
+              }}
+              onOpen={setSelectedTaskId}
+            />
+          </div>
+        )}
       </main>
 
       {showModal && canEdit && (
@@ -285,7 +383,8 @@ export default function Board() {
         />
       )}
 
-      {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+      {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+      {showBugReport  && <BugReportSheet onClose={() => setShowBugReport(false)} />}
     </div>
   )
 }

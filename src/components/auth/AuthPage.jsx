@@ -6,6 +6,8 @@ export default function AuthPage() {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,6 +26,12 @@ export default function AuthPage() {
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    if (mode === 'signup' && !firstName.trim()) {
+      setError('Please enter your first name.')
+      return
+    }
+
     setLoading(true)
     try {
       if (mode === 'login') {
@@ -31,7 +39,7 @@ export default function AuthPage() {
         if (error) throw error
         navigate(redirectTo || '/', { replace: true })
       } else {
-        const { error } = await signUp(email, password)
+        const { error } = await signUp(email, password, firstName.trim(), lastName.trim())
         if (error) throw error
         setSuccess('Account created! Check your email to confirm, then sign in.')
       }
@@ -54,6 +62,34 @@ export default function AuthPage() {
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {mode === 'signup' && (
+            <div className="auth-name-row">
+              <div className="field-block">
+                <label htmlFor="first-name">First name</label>
+                <input
+                  id="first-name"
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="Jane"
+                  required
+                  autoComplete="given-name"
+                />
+              </div>
+              <div className="field-block">
+                <label htmlFor="last-name">Last name</label>
+                <input
+                  id="last-name"
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="Smith"
+                  autoComplete="family-name"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="field-block">
             <label htmlFor="email">Email</label>
             <input

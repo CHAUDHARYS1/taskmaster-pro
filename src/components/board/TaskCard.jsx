@@ -12,13 +12,38 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskCard({ task, canEdit = true, canDelete = false, onDelete, onOpen, isDragging = false }) {
+function initials(u) {
+  if (u.display_name) {
+    const parts = u.display_name.trim().split(/\s+/)
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase()
+  }
+  return (u.email ?? '??').split('@')[0].slice(0, 2).toUpperCase()
+}
+
+export default function TaskCard({
+  task,
+  canEdit = true,
+  canDelete = false,
+  onDelete,
+  onOpen,
+  isDragging = false,
+  editingUser = null,   // presence entry of whoever has this task open for editing
+}) {
+  const isLockedByOther = editingUser != null
+
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging: isSortableDragging,
-  } = useSortable({ id: task.id, disabled: !canEdit })
+  } = useSortable({ id: task.id, disabled: !canEdit || isLockedByOther })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
+
+  const handleOpen = () => {
+    if (isLockedByOther) return
+    onOpen(task.id)
+  }
 
   return (
     <li
@@ -27,12 +52,22 @@ export default function TaskCard({ task, canEdit = true, canDelete = false, onDe
       className={[
         'task-card',
         urgencyClass(task.due_date),
-        isSortableDragging ? 'task-card--dragging' : '',
-        isDragging         ? 'task-card--ghost'    : '',
+        isSortableDragging      ? 'task-card--dragging' : '',
+        isDragging              ? 'task-card--ghost'    : '',
+        isLockedByOther         ? 'task-card--locked'   : '',
       ].filter(Boolean).join(' ')}
-      onClick={() => onOpen(task.id)}
-      {...(canEdit ? { ...attributes, ...listeners } : {})}
+      onClick={handleOpen}
+      {...(canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
+      {isLockedByOther && (
+        <div
+          className="task-card-editing-badge"
+          title={`${editingUser.display_name || editingUser.email} is editing this task`}
+        >
+          {initials(editingUser)}
+        </div>
+      )}
+
       <div className="task-card-top">
         {task.priority && (() => {
           const p = priorityMap[task.priority]
@@ -89,7 +124,7 @@ export default function TaskCard({ task, canEdit = true, canDelete = false, onDe
         </div>
       )}
 
-      {canDelete && (
+      {canDelete && !isLockedByOther && (
         <button
           className="task-delete"
           aria-label="Delete task"
