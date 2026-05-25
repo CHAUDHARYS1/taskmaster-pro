@@ -7,6 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
+import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
 import TaskCard from './TaskCard'
@@ -58,21 +59,11 @@ export default function Board() {
   const filterBarRef   = useRef(null)
   const pendingDeletes = useRef({})
 
-  const present = usePresence(currentWorkspace?.id, selectedTaskId)
+  const present    = usePresence(currentWorkspace?.id)
+  const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
-
-  // Map of taskId → presence user currently editing it (excludes current user)
-  const editingMap = useMemo(() => {
-    const map = {}
-    for (const u of present) {
-      if (u.editing_task_id && u.user_id !== user?.id) {
-        map[u.editing_task_id] = u
-      }
-    }
-    return map
-  }, [present, user?.id])
 
   // Close panel if selected task is deleted
   useEffect(() => {
