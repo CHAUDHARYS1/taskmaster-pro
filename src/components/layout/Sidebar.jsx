@@ -28,6 +28,22 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
         </div>
 
         <div className="sidebar-nav">
+          <button
+            className={`sidebar-dash-btn${viewMode === 'dashboard' ? ' sidebar-dash-btn--active' : ''}`}
+            onClick={() => onViewChange(viewMode === 'dashboard' ? 'board' : 'dashboard')}
+            aria-pressed={viewMode === 'dashboard'}
+          >
+            <span className="sidebar-dash-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="1" width="5" height="5" rx="1"/>
+                <rect x="8" y="1" width="5" height="5" rx="1"/>
+                <rect x="1" y="8" width="5" height="5" rx="1"/>
+                <rect x="8" y="8" width="5" height="5" rx="1"/>
+              </svg>
+            </span>
+            Dashboard
+          </button>
+
           <WorkspaceSwitcher
             projectsOpen={projectsOpen}
             onToggleProjects={() => setProjectsOpen(p => !p)}
