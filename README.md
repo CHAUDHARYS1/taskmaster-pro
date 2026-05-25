@@ -233,6 +233,12 @@ Run in Supabase dashboard → SQL Editor in order:
 - **Sidebar user identity** — logged-in user's avatar (in their unique color) and display name shown above the sign-out button in the sidebar footer
 - **Quick-complete button** — a ✓ button appears on task card hover (board and list view) to instantly move a task to Done without opening the detail panel; shows a toast confirmation
 
+### QoL 3
+- **Drag glow fix** — editing lock glow now persists correctly on task cards while dragging to a new column; the DragOverlay card receives the live `editingUser` prop and the dragging ghost stays fully opaque when locked
+- **Drag handle indicator** — a 6-dot grip icon appears on the left edge of task cards on hover, giving clear affordance that cards are draggable; automatically hidden on locked cards
+- **Color-coded column counts** — the task count badge in each column header is color-coded: blue for In Progress, amber for In Review, green for Done
+- **Profile settings** — click the user row in the sidebar footer to open a Profile Settings modal; edit first and last name inline without leaving the board; changes persist to Supabase and update the display name everywhere immediately
+
 ---
 
 ## Keyboard Shortcuts

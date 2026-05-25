@@ -66,6 +66,19 @@ export default function TaskCard({
       onClick={handleOpen}
       {...(canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
+      {canEdit && !isLockedByOther && (
+        <span className="task-drag-handle" aria-hidden="true">
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+            <circle cx="2.5" cy="2"  r="1.5"/>
+            <circle cx="7.5" cy="2"  r="1.5"/>
+            <circle cx="2.5" cy="7"  r="1.5"/>
+            <circle cx="7.5" cy="7"  r="1.5"/>
+            <circle cx="2.5" cy="12" r="1.5"/>
+            <circle cx="7.5" cy="12" r="1.5"/>
+          </svg>
+        </span>
+      )}
+
       {isLockedByOther && (
         <div
           className="task-card-editing-badge"

@@ -55,13 +55,23 @@ export function AuthProvider({ children }) {
 
   const signOut = () => supabase.auth.signOut()
 
+  const updateProfile = async ({ first_name, last_name }) => {
+    if (!user) return
+    const { error } = await supabase
+      .from('profiles')
+      .update({ first_name, last_name })
+      .eq('id', user.id)
+    if (error) throw error
+    setProfile(prev => prev ? { ...prev, first_name, last_name } : null)
+  }
+
   // Returns "First Last", falls back to the email username
   const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email?.split('@')[0]
     : user?.email?.split('@')[0] ?? ''
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, displayName }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, displayName }}>
       {children}
     </AuthContext.Provider>
   )

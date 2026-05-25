@@ -13,7 +13,7 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
   }
 
   return (
-    <div className={`column ${isOver && canEdit ? 'column--over' : ''}`}>
+    <div className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}>
       <div className="column-header">
         <span className="column-label">{column.label}</span>
         <span className="column-count">{tasks.length}</span>
