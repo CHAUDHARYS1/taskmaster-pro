@@ -143,17 +143,17 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 
 ---
 
-### 🔜 Phase 5 — Refinement
+### ✅ Phase 5 — Refinement
 
 **Goal:** polish the app into something genuinely pleasant to use every day.
 
 - **Toast notifications** — success/error feedback for actions (currently silent)
 - **Status + due date editing in panel** — change a task's column and due date from the detail panel, not just the board
 - **Empty states** — helpful UI for empty columns and new workspaces
-- **Keyboard shortcuts** — `N` new task, `Esc` close, `/` focus search
-- **Loading skeletons** — replace spinner text with skeleton cards
-- **Mobile responsiveness** — horizontal scroll, touch-friendly panel
-- **Dark mode** — CSS custom properties are already in place, mostly a token swap
+- **Keyboard shortcuts** — `N` new task, `Esc` close, `/` focus search, `?` cheatsheet
+- **Loading skeletons** — shimmer skeleton matching full board layout
+- **Mobile responsiveness** — off-canvas sidebar drawer, scroll-snap column carousel, bottom-sheet panel
+- **Dark mode** — full token set, system preference detection, flash-prevention script, sidebar toggle
 
 ---
 
