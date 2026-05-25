@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
-export function usePresence(workspaceId, editingTaskId = null) {
+export function usePresence(workspaceId) {
   const { user, profile } = useAuth()
   const [present, setPresent] = useState([])
-  const channelRef = useRef(null)
 
   const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email?.split('@')[0]
@@ -18,8 +17,6 @@ export function usePresence(workspaceId, editingTaskId = null) {
       config: { presence: { key: user.id } },
     })
 
-    channelRef.current = channel
-
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
@@ -28,28 +25,12 @@ export function usePresence(workspaceId, editingTaskId = null) {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({
-            user_id: user.id,
-            email: user.email,
-            display_name: displayName,
-            editing_task_id: editingTaskId,
-          })
+          await channel.track({ user_id: user.id, email: user.email, display_name: displayName })
         }
       })
 
     return () => { supabase.removeChannel(channel) }
-  }, [workspaceId, user]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Re-track when editingTaskId or displayName changes (without re-subscribing)
-  useEffect(() => {
-    if (!channelRef.current || !user) return
-    channelRef.current.track({
-      user_id: user.id,
-      email: user.email,
-      display_name: displayName,
-      editing_task_id: editingTaskId,
-    }).catch(() => {})
-  }, [editingTaskId, displayName, user])
+  }, [workspaceId, user, displayName])
 
   return present
 }
