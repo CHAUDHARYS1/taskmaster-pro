@@ -16,7 +16,7 @@ A real-time collaborative Kanban board with multi-user team workspaces, built wi
 | Real-time | Supabase Realtime |
 | Dates | dayjs |
 | Styling | CSS custom properties (design system tokens — no Bootstrap) |
-| Hosting (planned) | Netlify (frontend) + Supabase (backend) |
+| Hosting | Netlify (frontend) + Supabase (backend) |
 
 ---
 
@@ -157,7 +157,69 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 
 ---
 
-### 🔜 Phase 6 — Scale & Monetise
+### 🔜 Phase 6 — Go Live
+
+**Goal:** get the app fully working in production, end-to-end.
+
+#### A. Netlify (frontend hosting)
+1. Go to [app.netlify.com](https://app.netlify.com) → Add new site → Import from Git → pick this repo
+2. Build command: `npm run build` · Publish directory: `dist` (auto-detected from `netlify.toml`)
+3. **Environment variables** (Site settings → Environment variables):
+   - `VITE_SUPABASE_URL` = `https://ugejeysmqqkyeefdqwao.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = *(your anon key from `.env`)*
+4. Deploy — live at **https://taskmaster12.netlify.app**
+
+#### B. Supabase auth redirect URLs
+1. Supabase dashboard → Authentication → URL Configuration
+2. Add to **Redirect URLs**: `https://taskmaster12.netlify.app/**`
+3. Set **Site URL** to `https://taskmaster12.netlify.app`
+
+#### C. Database migrations (if not yet applied)
+Run in Supabase dashboard → SQL Editor in order:
+- `supabase/migrations/004_phase4_task_detail.sql`
+- `supabase/migrations/005_phase4_assignees.sql`
+- `supabase/migrations/006_phase4_labels.sql`
+- `supabase/migrations/007_phase4_priority.sql`
+
+*(Skip any already applied — they use `if not exists` guards.)*
+
+#### D. Edge Functions + email (Resend)
+1. Sign up at [resend.com](https://resend.com), create an API key
+2. Install CLI and link project:
+   ```
+   npm install -g supabase
+   supabase login
+   supabase link --project-ref ugejeysmqqkyeefdqwao
+   ```
+3. Set secrets (replace values):
+   ```
+   supabase secrets set RESEND_API_KEY=re_your_key
+   supabase secrets set CRON_SECRET=any-random-string
+   supabase secrets set APP_URL=https://taskmaster12.netlify.app
+   ```
+4. Deploy functions:
+   ```
+   supabase functions deploy send-invite-email
+   supabase functions deploy send-due-reminders
+   ```
+5. For sending to non-owner emails: verify a custom domain in Resend and update `from` in `supabase/functions/send-invite-email/index.ts`
+
+#### E. Activate due-date reminders (pg_cron)
+1. Open `supabase/migrations/003_phase3_cron.sql`
+2. Replace `<your-cron-secret>` with the `CRON_SECRET` value from step D
+3. Run the file in Supabase SQL Editor
+
+#### F. Smoke test checklist
+- [ ] Sign up with a new account
+- [ ] Create a workspace, add tasks, drag between columns
+- [ ] Invite a second user — check invite email arrives
+- [ ] Accept invite, verify role enforcement (viewer vs member)
+- [ ] Open board in two browser tabs — confirm real-time sync
+- [ ] Toggle dark mode, reload — confirm preference is remembered
+
+---
+
+### 🔜 Phase 7 — Scale & Monetise
 
 - **Stripe integration** — paid team plan (unlimited workspaces, more members)
 - **Supabase Pro** — upgrade at $25/mo as user base grows
