@@ -54,8 +54,9 @@ export default function Board() {
   const [showSidebar, setShowSidebar]       = useState(false)
   const [viewMode, setViewMode]             = useState('board') // 'board' | 'list'
 
-  const searchRef = useRef(null)
-  const filterBarRef = useRef(null)
+  const searchRef      = useRef(null)
+  const filterBarRef   = useRef(null)
+  const pendingDeletes = useRef({})
 
   const present = usePresence(currentWorkspace?.id, selectedTaskId)
 
@@ -121,6 +122,19 @@ export default function Board() {
 
   const { toast } = useToast()
 
+  const scheduleDelete = (id, label) => {
+    const timerId = setTimeout(async () => {
+      delete pendingDeletes.current[id]
+      try { await deleteTask(id) }
+      catch (err) { toast.error(err.message || 'Failed to delete task') }
+    }, 4000)
+    pendingDeletes.current[id] = timerId
+    toast.undo(`"${label}" deleted`, () => {
+      clearTimeout(pendingDeletes.current[id])
+      delete pendingDeletes.current[id]
+    })
+  }
+
   useKeyboardShortcuts({
     'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
     '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
@@ -133,11 +147,8 @@ export default function Board() {
     'ArrowRight': () => navigateTask(1),
     'Delete': () => {
       if (selectedTask && canDelete) {
-        if (window.confirm(`Delete "${selectedTask.text}"?`)) {
-          deleteTask(selectedTask.id)
-            .then(() => { toast.success('Task deleted'); setSelectedTaskId(null) })
-            .catch(err => toast.error(err.message || 'Failed to delete'))
-        }
+        setSelectedTaskId(null)
+        scheduleDelete(selectedTask.id, selectedTask.text)
       }
     },
     'Escape': () => {
@@ -221,6 +232,8 @@ export default function Board() {
   )
 
   const totalTasks = allTasks.length
+  const doneTasks  = tasksByStatus['done']?.length ?? 0
+  const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
   return (
     <div className="app-shell">
@@ -292,6 +305,23 @@ export default function Board() {
           </div>
         </div>
 
+        {totalTasks > 0 && (
+          <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
+            <div
+              className="board-progress-bar"
+              style={{ width: `${progress}%` }}
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${doneTasks} of ${totalTasks} tasks done`}
+            />
+            <span className="board-progress-label">
+              {doneTasks} / {totalTasks} done
+            </span>
+          </div>
+        )}
+
         <div ref={filterBarRef}>
           <FilterBar
             workspaceId={currentWorkspace?.id}
@@ -333,9 +363,9 @@ export default function Board() {
                     hasFilter={hasFilter}
                     canDelete={canDelete}
                     editingMap={editingMap}
-                    onDelete={async (id) => {
-                      try { await deleteTask(id); toast.success('Task deleted') }
-                      catch (err) { toast.error(err.message || 'Failed to delete task') }
+                    onDelete={(id) => {
+                      const task = allTasks.find(t => t.id === id)
+                      scheduleDelete(id, task?.text ?? 'Task')
                     }}
                     onOpen={setSelectedTaskId}
                   />
@@ -354,9 +384,9 @@ export default function Board() {
               canEdit={canEdit}
               canDelete={canDelete}
               editingMap={editingMap}
-              onDelete={async (id) => {
-                try { await deleteTask(id); toast.success('Task deleted') }
-                catch (err) { toast.error(err.message || 'Failed to delete task') }
+              onDelete={(id) => {
+                const task = allTasks.find(t => t.id === id)
+                scheduleDelete(id, task?.text ?? 'Task')
               }}
               onOpen={setSelectedTaskId}
             />

@@ -12,6 +12,14 @@ export default function ToastContainer() {
         <div key={t.id} className={`toast toast--${t.type}`} role="status">
           <span className="toast-icon" aria-hidden="true">{ICONS[t.type]}</span>
           <p className="toast-msg">{t.message}</p>
+          {t.action && (
+            <button
+              className="toast-action"
+              onClick={() => { t.action.onClick(); dismiss(t.id) }}
+            >
+              {t.action.label}
+            </button>
+          )}
           <button className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss">×</button>
         </div>
       ))}
