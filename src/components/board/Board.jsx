@@ -46,6 +46,7 @@ export default function Board() {
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]             = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showSidebar, setShowSidebar]     = useState(false)
 
   const searchRef = useRef(null)
 
@@ -161,7 +162,7 @@ export default function Board() {
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      <Sidebar isOpen={showSidebar} onClose={() => setShowSidebar(false)} onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
       <main className="board-main">
         <div className="board-empty-state">
           <p className="board-empty-icon" aria-hidden="true">📋</p>
@@ -176,11 +177,28 @@ export default function Board() {
 
   return (
     <div className="app-shell">
-      <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      {showSidebar && (
+        <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
+      )}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onAddTask={() => { setShowModal(true); setShowSidebar(false) }}
+        onDeleteAll={handleDeleteAll}
+      />
 
       <main className="board-main">
         <div className="board-header">
-          <span className="board-header-title">{currentWorkspace?.name}</span>
+          <div className="board-header-left">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setShowSidebar(prev => !prev)}
+              aria-label="Toggle sidebar"
+            >
+              ☰
+            </button>
+            <span className="board-header-title">{currentWorkspace?.name}</span>
+          </div>
           <div className="board-header-right">
             <PresenceAvatars users={present} />
             <button

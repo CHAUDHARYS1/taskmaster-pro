@@ -5,7 +5,7 @@ import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
 
-export default function Sidebar({ onAddTask, onDeleteAll }) {
+export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
   const { signOut }          = useAuth()
   const { currentWorkspace, userRole } = useWorkspace()
   const [showInvite, setShowInvite]    = useState(false)
@@ -14,7 +14,7 @@ export default function Sidebar({ onAddTask, onDeleteAll }) {
 
   return (
     <>
-      <aside className="sidebar">
+      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         {/* App title */}
         <div className="sidebar-top">
           <h1 className="sidebar-title">Taskmaster Pro</h1>

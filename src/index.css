@@ -768,6 +768,15 @@ ul, ol { list-style: none; }
   min-height: 44px;
 }
 
+.board-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Hidden on desktop — only shown via mobile media query */
+.sidebar-toggle { display: none; }
+
 .board-header-title {
   font-size: var(--text-body);
   font-weight: var(--weight-medium);
@@ -1607,4 +1616,134 @@ ul, ol { list-style: none; }
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE  (max-width: 768px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Sidebar drawer ───────────────────────────────────────── */
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 100;
+    width: min(280px, 85vw);
+    transform: translateX(-100%);
+    transition: transform 0.25s var(--ease-enter);
+    box-shadow: var(--shadow-float);
+  }
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background-color: rgb(0 0 0 / 0.4);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Hamburger button ─────────────────────────────────────── */
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--ink-2);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .sidebar-toggle:hover { background-color: var(--surface); }
+
+  /* ── Board header ─────────────────────────────────────────── */
+  .board-header {
+    padding: var(--space-2) var(--space-3);
+  }
+  .board-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  /* ── Columns: scroll-snap carousel ───────────────────────── */
+  .board-columns-wrap {
+    padding: var(--space-3);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .board-columns {
+    gap: var(--space-3);
+    min-width: unset;
+  }
+  .column {
+    width: 82vw;
+    scroll-snap-align: start;
+    max-height: calc(100dvh - 180px);
+  }
+
+  /* ── Filter bar: horizontal scroll ───────────────────────── */
+  .filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+  .filter-search-wrap {
+    min-width: 160px;
+  }
+  .filter-select {
+    flex-shrink: 0;
+  }
+
+  /* ── Task detail panel → bottom sheet ────────────────────── */
+  .task-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-height: 85dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: sheetUp 0.3s var(--ease-enter);
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  /* ── Modals: full-width bottom sheet ─────────────────────── */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  .modal-sheet {
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  /* ── Toast: full-width on mobile ─────────────────────────── */
+  .toast-container {
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+  .toast {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+  }
 }
