@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -12,6 +12,7 @@ export default function AcceptInvitePage() {
 
   const [status, setStatus] = useState('idle') // idle | accepting | success | error
   const [error, setError]   = useState('')
+  const acceptedRef = useRef(false)
 
   useEffect(() => {
     // Wait for auth to resolve
@@ -22,6 +23,10 @@ export default function AcceptInvitePage() {
       navigate(`/login?redirect=/invite/${token}`, { replace: true })
       return
     }
+
+    // Guard against double-invocation (unstable context refs cause re-runs)
+    if (acceptedRef.current) return
+    acceptedRef.current = true
 
     // Logged in — accept the invitation
     const accept = async () => {

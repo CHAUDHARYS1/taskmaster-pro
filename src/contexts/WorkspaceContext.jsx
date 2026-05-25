@@ -40,7 +40,7 @@ export function WorkspaceProvider({ children }) {
       .then(({ data }) => setUserRole(data?.role ?? 'member'))
   }, [currentWorkspace, user])
 
-  const switchWorkspace = (workspace) => setCurrentWorkspace(workspace)
+  const switchWorkspace = useCallback((workspace) => setCurrentWorkspace(workspace), [])
 
   const createWorkspace = async (name) => {
     const { data, error } = await supabase.rpc('create_workspace', { workspace_name: name })
