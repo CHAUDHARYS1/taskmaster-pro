@@ -5,13 +5,15 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import ProjectSwitcher from '../workspace/ProjectSwitcher'
+import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
 export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showProfile, setShowProfile]   = useState(false)
+  const [showCreate,  setShowCreate]  = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
 
   const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
   const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
@@ -23,11 +25,19 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           <h1 className="sidebar-title">Taskmaster Pro</h1>
         </div>
 
-        <WorkspaceSwitcher />
+        {/* Workspace + Projects as one continuous nav block */}
+        <div className="sidebar-nav">
+          <WorkspaceSwitcher />
 
-        {currentWorkspace && (
-          <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
-        )}
+          {currentWorkspace && (
+            <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+          )}
+        </div>
+
+        {/* + New workspace — at the bottom of the nav, above footer */}
+        <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
+          + New workspace
+        </button>
 
         <div className="sidebar-footer">
           <button
@@ -67,6 +77,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
         </div>
       </aside>
 
+      {showCreate  && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
       {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </>
   )
