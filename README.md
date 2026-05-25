@@ -219,6 +219,22 @@ Run in Supabase dashboard → SQL Editor in order:
 
 ---
 
+## Quality of Life Updates
+
+### QoL 1
+- **Collaborative editing lock** — task cards glow in the editing user's unique color with their initials badge while another user has the panel open; the card is unclickable and un-draggable for others; lock clears instantly via Supabase Broadcast (no page reload required)
+- **List view** — toggle between Kanban board (⊞) and flat table view (☰) from the board header; editing lock indicators appear in both views
+- **Bug report / feature request** — bell icon in the header opens a bottom sheet that submits directly to GitHub Issues via a Netlify function (`netlify/functions/create-github-issue.js`); requires `GITHUB_TOKEN` env var in Netlify and a `user-report` label in the repo
+- **Signup name capture** — first and last name fields on registration; stored in `profiles` via Supabase trigger; used throughout the UI instead of email addresses
+- **Expanded keyboard shortcuts** — `D` dark mode, `F` filter bar, `B`/`L` view toggle, `←`/`→` prev/next task in panel, `Del` delete open task (owners)
+
+### QoL 2
+- **Assignee avatar color** — the assignee bubble on task cards uses the same deterministic color as that user's presence avatar (derived from `src/lib/userColor.js`)
+- **Sidebar user identity** — logged-in user's avatar (in their unique color) and display name shown above the sign-out button in the sidebar footer
+- **Quick-complete button** — a ✓ button appears on task card hover (board and list view) to instantly move a task to Done without opening the detail panel; shows a toast confirmation
+
+---
+
 ## Keyboard Shortcuts
 
 Press `?` anywhere on the board to see the in-app cheatsheet.

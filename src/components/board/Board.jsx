@@ -113,6 +113,16 @@ export default function Board() {
 
   const { toast } = useToast()
 
+  const handleComplete = async (id) => {
+    const task = allTasks.find(t => t.id === id)
+    try {
+      await updateTask(id, { status: 'done' })
+      toast.success(`"${task?.text ?? 'Task'}" marked as done`)
+    } catch (err) {
+      toast.error(err.message || 'Failed to update task')
+    }
+  }
+
   const scheduleDelete = (id, label) => {
     const timerId = setTimeout(async () => {
       delete pendingDeletes.current[id]
@@ -359,6 +369,7 @@ export default function Board() {
                       scheduleDelete(id, task?.text ?? 'Task')
                     }}
                     onOpen={setSelectedTaskId}
+                    onComplete={handleComplete}
                   />
                 ))}
               </div>
@@ -380,6 +391,7 @@ export default function Board() {
                 scheduleDelete(id, task?.text ?? 'Task')
               }}
               onOpen={setSelectedTaskId}
+              onComplete={handleComplete}
             />
           </div>
         )}

@@ -26,7 +26,7 @@ function displayName(u) {
   return u.email?.split('@')[0] ?? null
 }
 
-export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, editingMap }) {
+export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap }) {
   const allTasks = COLUMNS.flatMap(col =>
     (tasksByStatus[col.id] ?? []).map(t => ({ ...t, _colLabel: col.label }))
   )
@@ -46,7 +46,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
             <th className="list-th">Assignee</th>
             <th className="list-th">Due</th>
             <th className="list-th">Labels</th>
-            {canDelete && <th className="list-th list-th--action" />}
+            {(canEdit || canDelete) && <th className="list-th list-th--action" />}
           </tr>
         </thead>
         <tbody>
@@ -140,18 +140,31 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                   ) : <span className="list-empty-cell">—</span>}
                 </td>
 
-                {canDelete && (
-                  <td className="list-td list-td--action" onClick={e => e.stopPropagation()}>
-                    <button
-                      className="task-delete"
-                      style={{ opacity: 1, position: 'static' }}
-                      aria-label="Delete task"
-                      onClick={() => onDelete(task.id)}
-                    >
-                      ×
-                    </button>
-                  </td>
-                )}
+                <td className="list-td list-td--action" onClick={e => e.stopPropagation()}>
+                  <div className="list-row-actions">
+                    {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
+                      <button
+                        className="task-complete-btn"
+                        style={{ opacity: 1, position: 'static' }}
+                        aria-label="Mark as done"
+                        title="Mark as done"
+                        onClick={() => onComplete(task.id)}
+                      >
+                        ✓
+                      </button>
+                    )}
+                    {canDelete && !isLockedByOther && (
+                      <button
+                        className="task-delete"
+                        style={{ opacity: 1, position: 'static' }}
+                        aria-label="Delete task"
+                        onClick={() => onDelete(task.id)}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             )
           })}
