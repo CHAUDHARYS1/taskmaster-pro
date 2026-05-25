@@ -33,7 +33,7 @@ function midpoint(a, b) {
   return (a + b) / 2
 }
 
-const COLUMNS = [
+export const DEFAULT_COLUMNS = [
   { id: 'toDo',       label: 'To Do' },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'inReview',   label: 'In Review' },
@@ -70,24 +70,10 @@ export default function Board() {
 
   const playDoneSound = () => {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)()
-      // Two-note ascending chime: C5 → E5
-      const notes = [523.25, 659.25]
-      notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.type = 'sine'
-        osc.frequency.value = freq
-        const start = ctx.currentTime + i * 0.12
-        gain.gain.setValueAtTime(0, start)
-        gain.gain.linearRampToValueAtTime(0.18, start + 0.02)
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35)
-        osc.start(start)
-        osc.stop(start + 0.35)
-      })
-    } catch { /* audio not available — silently skip */ }
+      const audio = new Audio('/sound/done.mp3')
+      audio.volume = 0.5
+      audio.play().catch(() => {})
+    } catch { /* silently skip */ }
   }
 
   const present    = usePresence(currentWorkspace?.id)
@@ -96,17 +82,18 @@ export default function Board() {
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
-  // Close panel if selected task is deleted
+  const columns = currentProject?.enabled_columns
+    ? DEFAULT_COLUMNS.filter(c => currentProject.enabled_columns.includes(c.id))
+    : DEFAULT_COLUMNS
+
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
   }, [selectedTaskId, selectedTask])
 
-  // Persist view mode across reloads
   useEffect(() => {
     localStorage.setItem('tm_view_mode', viewMode)
   }, [viewMode])
 
-  // Show welcome modal once after accepting a workspace invite
   useEffect(() => {
     const raw = localStorage.getItem('tm_welcome')
     if (!raw) return
@@ -145,7 +132,6 @@ export default function Board() {
     )
   }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
 
-  // Navigate prev/next task when panel is open
   const navigateTask = (dir) => {
     if (!selectedTaskId) return
     const flat = Object.values(tasksByStatus).flat()
@@ -224,7 +210,7 @@ export default function Board() {
     const draggedTask = all.find(t => t.id === active.id)
     if (!draggedTask) return
 
-    const isColumnTarget  = COLUMNS.some(c => c.id === over.id)
+    const isColumnTarget  = columns.some(c => c.id === over.id)
     const targetColumnId  = isColumnTarget
       ? over.id
       : (all.find(t => t.id === over.id)?.status ?? draggedTask.status)
@@ -267,7 +253,7 @@ export default function Board() {
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
       <main className="board-main">
         <div className="board-empty-state">
           <p className="board-empty-icon" aria-hidden="true">📋</p>
@@ -287,7 +273,7 @@ export default function Board() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
 
       <main className="board-main">
         <div className="board-header">
@@ -315,7 +301,7 @@ export default function Board() {
               </button>
             )}
 
-            {/* View toggle */}
+            {/* Board / List toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
                 className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
@@ -333,23 +319,16 @@ export default function Board() {
               >
                 <span aria-hidden="true">☰</span>
               </button>
-              <button
-                className={`view-toggle-btn${viewMode === 'archive' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('archive')}
-                aria-pressed={viewMode === 'archive'}
-                title="Archive (A)"
-              >
-                <span aria-hidden="true">🗂</span>
-              </button>
             </div>
 
+            {/* Archive — separate from layout toggle */}
             <button
-              className="shortcuts-hint-btn"
-              onClick={() => setShowShortcuts(true)}
-              aria-label="Keyboard shortcuts"
-              title="Keyboard shortcuts (?)"
+              className={`archive-toggle-btn${viewMode === 'archive' ? ' archive-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
+              aria-pressed={viewMode === 'archive'}
+              title="Archive (A)"
             >
-              ?
+              <span aria-hidden="true">🗂</span>
             </button>
 
             <button
@@ -364,19 +343,17 @@ export default function Board() {
               </svg>
             </button>
 
-            {canDelete && (
-              <button
-                className="ws-settings-btn"
-                onClick={() => setShowWsSettings(true)}
-                aria-label="Workspace settings"
-                title="Workspace settings"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-                </svg>
-              </button>
-            )}
+            <button
+              className="ws-settings-btn"
+              onClick={() => setShowWsSettings(true)}
+              aria-label="Workspace settings"
+              title="Workspace settings"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -439,7 +416,7 @@ export default function Board() {
               onDragEnd={handleDragEnd}
             >
               <div className="board-columns">
-                {COLUMNS.map(col => (
+                {columns.map(col => (
                   <Column
                     key={col.id}
                     column={col}
@@ -491,6 +468,16 @@ export default function Board() {
         )}
       </main>
 
+      {/* Fixed help button — bottom right corner */}
+      <button
+        className="help-fab"
+        onClick={() => setShowShortcuts(true)}
+        aria-label="Keyboard shortcuts"
+        title="Keyboard shortcuts (?)"
+      >
+        ?
+      </button>
+
       {showModal && canEdit && (
         <AddTaskModal
           onClose={() => setShowModal(false)}
@@ -513,7 +500,7 @@ export default function Board() {
 
       {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
       {showBugReport  && <BugReportSheet onClose={() => setShowBugReport(false)} />}
-      {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} />}
+      {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
       {welcomeData    && (
         <WelcomeModal
           workspaceName={welcomeData.workspace_name}

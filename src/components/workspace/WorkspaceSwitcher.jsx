@@ -2,15 +2,11 @@ import { useState } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 import CreateWorkspaceModal from './CreateWorkspaceModal'
-import DeleteWorkspaceModal from './DeleteWorkspaceModal'
 
 export default function WorkspaceSwitcher() {
   const { user } = useAuth()
-  const { workspaces, currentWorkspace, userRole, switchWorkspace } = useWorkspace()
-  const [showCreate, setShowCreate]   = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-
-  const isOwner = userRole === 'owner'
+  const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
+  const [showCreate, setShowCreate] = useState(false)
 
   return (
     <>
@@ -35,18 +31,6 @@ export default function WorkspaceSwitcher() {
                   </span>
                   {isActive && <span className="ws-check">✓</span>}
                 </button>
-
-                {/* Delete button — owners only, shown on active workspace, not personal */}
-                {isActive && isOwner && !isPersonal && (
-                  <button
-                    className="ws-delete-btn"
-                    onClick={() => setDeleteTarget(ws)}
-                    title="Delete workspace"
-                    aria-label={`Delete workspace ${ws.name}`}
-                  >
-                    ×
-                  </button>
-                )}
               </li>
             )
           })}
@@ -57,15 +41,7 @@ export default function WorkspaceSwitcher() {
         </button>
       </div>
 
-      {showCreate && (
-        <CreateWorkspaceModal onClose={() => setShowCreate(false)} />
-      )}
-      {deleteTarget && (
-        <DeleteWorkspaceModal
-          workspace={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-        />
-      )}
+      {showCreate && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
     </>
   )
 }

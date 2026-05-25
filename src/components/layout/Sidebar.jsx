@@ -5,18 +5,13 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import ProjectSwitcher from '../workspace/ProjectSwitcher'
-import MembersList from '../workspace/MembersList'
-import InviteModal from '../workspace/InviteModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
-export default function Sidebar({ isOpen }) {
+export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
-  const { currentWorkspace, userRole }  = useWorkspace()
+  const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showInvite, setShowInvite]       = useState(false)
-  const [showProfile, setShowProfile]     = useState(false)
-
-  const canEdit = userRole !== 'viewer'
+  const [showProfile, setShowProfile]   = useState(false)
 
   const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
   const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
@@ -30,17 +25,11 @@ export default function Sidebar({ isOpen }) {
 
         <WorkspaceSwitcher />
 
-        <ProjectSwitcher />
-
-        <MembersList />
+        {currentWorkspace && (
+          <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+        )}
 
         <div className="sidebar-footer">
-          {canEdit && (
-            <button className="btn-ghost sidebar-invite-btn" onClick={() => setShowInvite(true)}>
-              + Invite members
-            </button>
-          )}
-
           <button
             className="sidebar-user-row"
             onClick={() => setShowProfile(true)}
@@ -78,8 +67,7 @@ export default function Sidebar({ isOpen }) {
         </div>
       </aside>
 
-      {showInvite   && <InviteModal onClose={() => setShowInvite(false)} />}
-      {showProfile  && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
+      {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </>
   )
 }

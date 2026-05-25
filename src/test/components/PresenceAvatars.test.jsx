@@ -52,15 +52,15 @@ describe('PresenceAvatars', () => {
     expect(screen.getByText('+2')).toBeInTheDocument()
   })
 
-  it('shows tooltip with name and email on hover', async () => {
+  it('shows tooltip with name and email on click', async () => {
     const user = userEvent.setup()
     const users = [
       make({ user_id: 'user-1', display_name: 'Test User', email: 'test@example.com' }),
       make({ user_id: 'user-2' }),
     ]
     render(<PresenceAvatars users={users} />)
-    const wrap = screen.getAllByRole('generic').find(el => el.className?.includes('presence-avatar-wrap'))
-    await user.hover(wrap)
+    const wrap = document.querySelectorAll('.presence-avatar-wrap')[0]
+    await user.click(wrap)
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
@@ -73,7 +73,7 @@ describe('PresenceAvatars', () => {
     ]
     render(<PresenceAvatars users={users} />)
     const wraps = document.querySelectorAll('.presence-avatar-wrap')
-    await user.hover(wraps[0])
+    await user.click(wraps[0])
     expect(screen.getByText('(you)')).toBeInTheDocument()
   })
 })

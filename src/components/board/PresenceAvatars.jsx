@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 
@@ -25,25 +25,32 @@ function timeAgo(isoString) {
 }
 
 export default function PresenceAvatars({ users }) {
-  const { user } = useAuth()
-  const [tooltip, setTooltip] = useState(null) // { userId, x, y }
+  const { user }   = useAuth()
+  const [openId, setOpenId] = useState(null)
+  const wrapRef    = useRef(null)
+
+  useEffect(() => {
+    if (!openId) return
+    const close = (e) => { if (!wrapRef.current?.contains(e.target)) setOpenId(null) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [openId])
 
   if (!users || users.length < 2) return null
 
   const visible  = users.slice(0, MAX_VISIBLE)
   const overflow = users.length - MAX_VISIBLE
-  const tooltipUser = tooltip ? users.find(u => u.user_id === tooltip.userId) : null
 
   return (
-    <div className="presence-avatars" aria-label={`${users.length} people viewing`}>
+    <div className="presence-avatars" ref={wrapRef} aria-label={`${users.length} people viewing`}>
       {visible.map(u => {
         const isSelf = u.user_id === user?.id
+        const isOpen = openId === u.user_id
         return (
           <div
             key={u.user_id}
             className="presence-avatar-wrap"
-            onMouseEnter={() => setTooltip({ userId: u.user_id })}
-            onMouseLeave={() => setTooltip(null)}
+            onClick={() => setOpenId(isOpen ? null : u.user_id)}
           >
             {u.avatar_url ? (
               <img
@@ -61,7 +68,7 @@ export default function PresenceAvatars({ users }) {
               </div>
             )}
 
-            {tooltip?.userId === u.user_id && (
+            {isOpen && (
               <div className="presence-tooltip" role="tooltip">
                 <span className="presence-tooltip-name">
                   {u.display_name || u.email.split('@')[0]}
@@ -80,8 +87,6 @@ export default function PresenceAvatars({ users }) {
           +{overflow}
         </div>
       )}
-
-      {/* Tooltip for tooltipUser rendered outside the loop for overflow case if needed */}
     </div>
   )
 }
