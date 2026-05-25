@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
@@ -8,6 +9,7 @@ import InviteModal from '../workspace/InviteModal'
 export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
   const { signOut }          = useAuth()
   const { currentWorkspace, userRole } = useWorkspace()
+  const { isDark, toggle: toggleTheme } = useTheme()
   const [showInvite, setShowInvite]    = useState(false)
 
   const canEdit = userRole !== 'viewer'
@@ -45,7 +47,12 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
               + Invite members
             </button>
           )}
-          <button className="btn-ghost" onClick={signOut}>Sign out</button>
+          <div className="sidebar-footer-row">
+            <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
+              {isDark ? '☀ Light' : '☾ Dark'}
+            </button>
+            <button className="btn-ghost" onClick={signOut}>Sign out</button>
+          </div>
         </div>
       </aside>
 

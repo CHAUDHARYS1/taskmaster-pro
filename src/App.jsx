@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
@@ -26,6 +27,7 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <ToastProvider>
       <AuthProvider>
         <WorkspaceProvider>
@@ -39,5 +41,6 @@ export default function App() {
         </WorkspaceProvider>
       </AuthProvider>
     </ToastProvider>
+    </ThemeProvider>
   )
 }
