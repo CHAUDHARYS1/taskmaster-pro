@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -11,6 +12,9 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
+  const navigate   = useNavigate()
+  const location   = useLocation()
+  const onDashboard = location.pathname === '/dashboard'
   const [showCreate,   setShowCreate]   = useState(false)
   const [showProfile,  setShowProfile]  = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(true)
@@ -29,9 +33,9 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
 
         <div className="sidebar-nav">
           <button
-            className={`sidebar-dash-btn${viewMode === 'dashboard' ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => onViewChange(viewMode === 'dashboard' ? 'board' : 'dashboard')}
-            aria-pressed={viewMode === 'dashboard'}
+            className={`sidebar-dash-btn${onDashboard ? ' sidebar-dash-btn--active' : ''}`}
+            onClick={() => navigate(onDashboard ? '/' : '/dashboard')}
+            aria-pressed={onDashboard}
           >
             <span className="sidebar-dash-icon" aria-hidden="true">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

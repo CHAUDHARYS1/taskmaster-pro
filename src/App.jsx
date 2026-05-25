@@ -8,6 +8,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
+import DashboardPage from './components/dashboard/DashboardPage'
 import ToastContainer from './components/ui/ToastContainer'
 
 function ProtectedRoute({ children }) {
@@ -38,6 +39,7 @@ export default function App() {
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
+            <Route path="/dashboard"      element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
