@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { LABELS } from '../../lib/labels'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
 
 export default function FilterBar({ workspaceId, filters, onChange, searchRef }) {
+  const { labels } = useLabelsCtx()
   const [members, setMembers] = useState([])
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
         aria-label="Filter by label"
       >
         <option value="">Label</option>
-        {LABELS.map(l => (
+        {labels.map(l => (
           <option key={l.id} value={l.id}>{l.name}</option>
         ))}
       </select>
