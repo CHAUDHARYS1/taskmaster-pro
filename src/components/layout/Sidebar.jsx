@@ -4,6 +4,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
+import ProjectSwitcher from '../workspace/ProjectSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
@@ -28,6 +29,8 @@ export default function Sidebar({ isOpen }) {
         </div>
 
         <WorkspaceSwitcher />
+
+        <ProjectSwitcher />
 
         <MembersList />
 

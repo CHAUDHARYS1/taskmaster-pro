@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useProject } from '../../contexts/ProjectContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
@@ -41,13 +42,14 @@ const COLUMNS = [
 
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
+  const { currentProject, loading: projLoading } = useProject()
   const { user } = useAuth()
   const { toggle: toggleTheme } = useTheme()
   const canEdit   = userRole !== 'viewer'
   const canDelete = userRole === 'owner'
 
   const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
-    useTasks(currentWorkspace?.id)
+    useTasks(currentWorkspace?.id, currentProject?.id)
 
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
@@ -260,7 +262,7 @@ export default function Board() {
     } catch { toast.error('Failed to delete tasks') }
   }
 
-  if (wsLoading || loading) return <BoardSkeleton />
+  if (wsLoading || projLoading || loading) return <BoardSkeleton />
   if (error)                 return <div className="error-screen">Error: {error}</div>
 
   if (!currentWorkspace) return (
@@ -297,7 +299,12 @@ export default function Board() {
             >
               ☰
             </button>
-            <span className="board-header-title">{currentWorkspace?.name}</span>
+            <span className="board-header-title">
+              {currentWorkspace?.name}
+              {currentProject && (
+                <span className="board-header-project"> / {currentProject.name}</span>
+              )}
+            </span>
           </div>
           <div className="board-header-right">
             <PresenceAvatars users={present} />
