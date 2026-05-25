@@ -2,30 +2,31 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
 
 export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
-  const { signOut }          = useAuth()
-  const { currentWorkspace, userRole } = useWorkspace()
+  const { user, displayName, signOut } = useAuth()
+  const { currentWorkspace, userRole }  = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showInvite, setShowInvite]    = useState(false)
+  const [showInvite, setShowInvite]     = useState(false)
 
   const canEdit = userRole !== 'viewer'
+
+  const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
+  const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
 
   return (
     <>
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
-        {/* App title */}
         <div className="sidebar-top">
           <h1 className="sidebar-title">Taskmaster Pro</h1>
         </div>
 
-        {/* Workspace switcher */}
         <WorkspaceSwitcher />
 
-        {/* Board actions — hidden for viewers */}
         {canEdit && (
           <div className="sidebar-actions">
             <button className="btn-primary btn-block" onClick={onAddTask}>
@@ -39,16 +40,28 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
           </div>
         )}
 
-        {/* Members list */}
         <MembersList />
 
-        {/* Invite + sign out */}
         <div className="sidebar-footer">
           {canEdit && (
             <button className="btn-ghost sidebar-invite-btn" onClick={() => setShowInvite(true)}>
               + Invite members
             </button>
           )}
+
+          <div className="sidebar-user-row">
+            <span
+              className="sidebar-user-avatar"
+              style={{ background: avatarColor }}
+              aria-hidden="true"
+            >
+              {avatarInitial}
+            </span>
+            <span className="sidebar-user-name" title={user?.email}>
+              {displayName || user?.email}
+            </span>
+          </div>
+
           <div className="sidebar-footer-row">
             <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
               {isDark ? '☀ Light' : '☾ Dark'}

@@ -29,8 +29,9 @@ export default function TaskCard({
   canDelete = false,
   onDelete,
   onOpen,
+  onComplete,
   isDragging = false,
-  editingUser = null,   // presence entry of whoever has this task open for editing
+  editingUser = null,
 }) {
   const isLockedByOther = editingUser != null
   const glowColor = editingUser ? userColor(editingUser.user_id) : null
@@ -125,10 +126,25 @@ export default function TaskCard({
 
       {task.assignee && (
         <div className="task-card-footer">
-          <span className="task-assignee-avatar" title={task.assignee.email}>
+          <span
+            className="task-assignee-avatar"
+            style={{ background: userColor(task.assignee_id), color: '#fff' }}
+            title={task.assignee.email}
+          >
             {task.assignee.email.slice(0, 2).toUpperCase()}
           </span>
         </div>
+      )}
+
+      {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
+        <button
+          className="task-complete-btn"
+          aria-label="Mark as done"
+          title="Mark as done"
+          onClick={e => { e.stopPropagation(); onComplete(task.id) }}
+        >
+          ✓
+        </button>
       )}
 
       {canDelete && !isLockedByOther && (
