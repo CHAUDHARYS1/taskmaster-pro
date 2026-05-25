@@ -141,7 +141,7 @@ ul, ol { list-style: none; }
 .sidebar-nav { display: flex; flex-direction: column; }
 
 .sidebar-title {
-  font-size: var(--text-4xl);
+  font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
   color: var(--ink);
   letter-spacing: -0.02em;
@@ -162,7 +162,7 @@ ul, ol { list-style: none; }
 
 .sidebar-version {
   font-size: var(--text-xs);
-  color: var(--ink-5);
+  color: var(--ink-4);
   text-align: center;
   margin: 0;
   letter-spacing: 0.02em;
@@ -181,7 +181,7 @@ ul, ol { list-style: none; }
   font-size: var(--text-body);
   letter-spacing: 0.01em;
 }
-.theme-toggle:hover { color: var(--ink-1); }
+.theme-toggle:hover { color: var(--ink); }
 
 .sidebar-desc {
   font-size: var(--text-body);
@@ -733,7 +733,7 @@ ul, ol { list-style: none; }
 .ws-name { font-size: var(--text-body); color: var(--ink-2); flex: 1; }
 .ws-check { font-size: var(--text-xs); color: var(--accent); }
 
-.ws-list-item { position: relative; display: flex; align-items: center; }
+.ws-list-item { position: relative; display: flex; flex-direction: column; align-items: stretch; }
 .ws-list-item .ws-item { flex: 1; }
 
 .ws-delete-btn {
@@ -946,7 +946,7 @@ ul, ol { list-style: none; }
   align-items: center;
   justify-content: center;
   border: 2px solid var(--card);
-  cursor: default;
+  cursor: pointer;
   transition: transform 0.15s var(--ease-spring);
 }
 
@@ -1018,7 +1018,7 @@ ul, ol { list-style: none; }
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: var(--space-10) var(--space-5);
+  padding: var(--space-8) var(--space-5);
   text-align: center;
   gap: var(--space-3);
 }
@@ -1248,7 +1248,7 @@ ul, ol { list-style: none; }
 .task-panel-status-select:focus {
   outline: none;
   border-bottom-color: var(--accent);
-  color: var(--ink-1);
+  color: var(--ink);
 }
 
 /* ── Due date field in panel ──────────────────────────────── */
@@ -1260,7 +1260,7 @@ ul, ol { list-style: none; }
 
 .due-date-input {
   font-size: var(--text-body);
-  color: var(--ink-1);
+  color: var(--ink);
   background: none;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -1473,7 +1473,7 @@ ul, ol { list-style: none; }
 
 .comment-edited {
   font-style: italic;
-  color: var(--ink-5);
+  color: var(--ink-4);
 }
 
 .comment-edit-form {
@@ -1933,7 +1933,7 @@ ul, ol { list-style: none; }
 .toast-msg {
   flex: 1;
   font-size: var(--text-body);
-  color: var(--ink-1);
+  color: var(--ink);
   line-height: 1.4;
 }
 
@@ -1948,7 +1948,7 @@ ul, ol { list-style: none; }
   flex-shrink: 0;
   transition: color 0.15s;
 }
-.toast-close:hover { color: var(--ink-1); }
+.toast-close:hover { color: var(--ink); }
 
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px); }
@@ -3016,7 +3016,7 @@ ul, ol { list-style: none; }
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-10) 0;
+  padding: var(--space-8) 0;
 }
 
 .archive-empty-icon {
@@ -3153,6 +3153,12 @@ ul, ol { list-style: none; }
   border-color: var(--accent);
   color: var(--accent);
   box-shadow: var(--shadow-pop);
+}
+
+/* ── AddTaskModal two-col row ─────────────────────────────── */
+.add-task-row {
+  display: flex;
+  gap: var(--space-4);
 }
 
 /* ── Quick date buttons (AddTaskModal) ───────────────────── */

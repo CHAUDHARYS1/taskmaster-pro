@@ -239,15 +239,6 @@ export default function Board() {
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
-  const handleDeleteAll = async () => {
-    if (!window.confirm('Delete all tasks? This cannot be undone.')) return
-    const all = Object.values(tasksByStatus).flat()
-    try {
-      await Promise.all(all.map(t => deleteTask(t.id)))
-      toast.success('All tasks deleted')
-    } catch { toast.error('Failed to delete tasks') }
-  }
-
   if (wsLoading || projLoading || loading) return <BoardSkeleton />
   if (error)                 return <div className="error-screen">Error: {error}</div>
 
@@ -391,14 +382,6 @@ export default function Board() {
           </div>
         )}
 
-        {userRole === 'owner' && totalTasks > 0 && viewMode !== 'archive' && (
-          <div className="board-danger-row">
-            <button className="btn-ghost btn-sm btn-danger-ghost" onClick={handleDeleteAll}>
-              Delete all tasks
-            </button>
-          </div>
-        )}
-
         {totalTasks === 0 && !hasFilter && canEdit && viewMode !== 'archive' && (
           <div className="board-empty-state">
             <p className="board-empty-icon" aria-hidden="true">✦</p>
@@ -480,6 +463,7 @@ export default function Board() {
 
       {showModal && canEdit && (
         <AddTaskModal
+          columns={columns}
           onClose={() => setShowModal(false)}
           onSave={async (data) => {
             try { await addTask(data); toast.success('Task added'); setShowModal(false) }

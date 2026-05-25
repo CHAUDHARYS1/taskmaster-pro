@@ -161,27 +161,6 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
         </form>
       )}
 
-      {/* View toggle in sidebar */}
-      {onViewChange && (
-        <div className="sidebar-view-toggle" role="group" aria-label="View mode">
-          <button
-            className={`sidebar-view-btn${viewMode === 'board' ? ' sidebar-view-btn--active' : ''}`}
-            onClick={() => onViewChange('board')}
-            aria-pressed={viewMode === 'board'}
-            title="Board view (B)"
-          >
-            <span aria-hidden="true">⊞</span> Board
-          </button>
-          <button
-            className={`sidebar-view-btn${viewMode === 'list' ? ' sidebar-view-btn--active' : ''}`}
-            onClick={() => onViewChange('list')}
-            aria-pressed={viewMode === 'list'}
-            title="List view (L)"
-          >
-            <span aria-hidden="true">☰</span> List
-          </button>
-        </div>
-      )}
     </div>
   )
 }

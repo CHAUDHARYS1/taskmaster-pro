@@ -45,16 +45,17 @@ export function useTasks(workspaceId, projectId) {
     return () => supabase.removeChannel(channel)
   }, [workspaceId, projectId, fetchTasks])
 
-  const addTask = async ({ text, due_date, status = 'toDo' }) => {
+  const addTask = async ({ text, description, due_date, status = 'toDo' }) => {
     const colTasks = tasks.filter(t => t.status === status)
     const maxPos = colTasks.length ? Math.max(...colTasks.map(t => t.position)) : 0
     const { error } = await supabase.from('tasks').insert({
       workspace_id: workspaceId,
       project_id:   projectId,
       text,
-      due_date: due_date || null,
+      description:  description || null,
+      due_date:     due_date || null,
       status,
-      position: maxPos + 1000,
+      position:     maxPos + 1000,
     })
     if (error) throw error
   }
