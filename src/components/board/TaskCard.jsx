@@ -59,7 +59,8 @@ export default function TaskCard({
       className={[
         'task-card',
         urgencyClass(task.due_date),
-        !isOverlay && isSortableDragging ? 'task-card--dragging' : '',
+        task.status === 'done'            ? 'task-card--done'     : '',
+        !isOverlay && isSortableDragging  ? 'task-card--dragging' : '',
         isOverlay                         ? 'task-card--ghost'    : '',
         isLockedByOther                   ? 'task-card--locked'   : '',
       ].filter(Boolean).join(' ')}
