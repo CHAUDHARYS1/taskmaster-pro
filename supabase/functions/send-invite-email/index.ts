@@ -61,7 +61,10 @@ serve(async (req) => {
       body: JSON.stringify({
         // Use your verified Resend domain in production.
         // During development, onboarding@resend.dev works for the account owner's email only.
-        from: 'Taskmaster Pro <invites@resend.dev>',
+        // Use a verified domain in production (e.g. noreply@yourdomain.com).
+        // onboarding@resend.dev is Resend's shared sender — only delivers to
+        // the Resend account owner's email address during development.
+        from: 'Taskmaster Pro <onboarding@resend.dev>',
         to: [email],
         subject: `You've been invited to ${workspaceName}`,
         html: `

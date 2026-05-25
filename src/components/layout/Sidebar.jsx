@@ -1,20 +1,22 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
 
-export default function Sidebar({ onAddTask, onDeleteAll }) {
+export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
   const { signOut }          = useAuth()
   const { currentWorkspace, userRole } = useWorkspace()
+  const { isDark, toggle: toggleTheme } = useTheme()
   const [showInvite, setShowInvite]    = useState(false)
 
   const canEdit = userRole !== 'viewer'
 
   return (
     <>
-      <aside className="sidebar">
+      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         {/* App title */}
         <div className="sidebar-top">
           <h1 className="sidebar-title">Taskmaster Pro</h1>
@@ -45,7 +47,12 @@ export default function Sidebar({ onAddTask, onDeleteAll }) {
               + Invite members
             </button>
           )}
-          <button className="btn-ghost" onClick={signOut}>Sign out</button>
+          <div className="sidebar-footer-row">
+            <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
+              {isDark ? '☀ Light' : '☾ Dark'}
+            </button>
+            <button className="btn-ghost" onClick={signOut}>Sign out</button>
+          </div>
         </div>
       </aside>
 

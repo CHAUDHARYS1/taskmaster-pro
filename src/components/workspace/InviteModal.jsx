@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useMembers } from '../../hooks/useMembers'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useToast } from '../../contexts/ToastContext'
 
 export default function InviteModal({ onClose }) {
   const { currentWorkspace } = useWorkspace()
   const { inviteMember }     = useMembers(currentWorkspace?.id)
+  const { toast }            = useToast()
 
   const [email, setEmail]     = useState('')
   const [role, setRole]       = useState('member')
@@ -20,6 +22,7 @@ export default function InviteModal({ onClose }) {
       const invite = await inviteMember({ email, role, workspaceName: currentWorkspace?.name })
       const link = `${window.location.origin}/invite/${invite.token}`
       setInviteLink(link)
+      toast.success(`Invite sent to ${email}`)
     } catch (err) {
       setError(err.message)
     } finally {

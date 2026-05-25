@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -12,6 +12,10 @@ import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
+import BoardSkeleton from './BoardSkeleton'
+import { useToast } from '../../contexts/ToastContext'
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
+import ShortcutsHelp from '../ui/ShortcutsHelp'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -35,11 +39,16 @@ export default function Board() {
     useTasks(currentWorkspace?.id)
 
   const present = usePresence(currentWorkspace?.id)
+  const { toast } = useToast()
 
-  const [showModal, setShowModal]       = useState(false)
-  const [activeTask, setActiveTask]     = useState(null)
+  const [showModal, setShowModal]         = useState(false)
+  const [activeTask, setActiveTask]       = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
-  const [filters, setFilters] = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [filters, setFilters]             = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showSidebar, setShowSidebar]     = useState(false)
+
+  const searchRef = useRef(null)
 
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
@@ -50,9 +59,10 @@ export default function Board() {
   }, [selectedTaskId, selectedTask])
 
   // Filtered view for columns — drag/drop still uses unfiltered tasksByStatus
+  const { search, assigneeId, priority, label, due } = filters
+  const hasFilter = !!(search || assigneeId || priority || label || due)
+
   const displayByStatus = useMemo(() => {
-    const { search, assigneeId, priority, label, due } = filters
-    const hasFilter = search || assigneeId || priority || label || due
     if (!hasFilter) return tasksByStatus
 
     const today = dayjs().startOf('day')
@@ -67,10 +77,10 @@ export default function Board() {
       if (label      && !(task.labels ?? []).includes(label)) return false
       if (due) {
         const d = task.due_date ? dayjs(task.due_date) : null
-        if (due === 'overdue' && (!d || !d.isBefore(today)))                             return false
-        if (due === 'today'   && (!d || !d.isSame(today, 'day')))                        return false
+        if (due === 'overdue' && (!d || !d.isBefore(today)))                                  return false
+        if (due === 'today'   && (!d || !d.isSame(today, 'day')))                             return false
         if (due === 'week'    && (!d || d.isBefore(today) || d.isAfter(today.add(7, 'day')))) return false
-        if (due === 'none'    && d)                                                       return false
+        if (due === 'none'    && d)                                                            return false
       }
       return true
     })
@@ -78,7 +88,18 @@ export default function Board() {
     return Object.fromEntries(
       Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
     )
-  }, [tasksByStatus, filters])
+  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
+
+  useKeyboardShortcuts({
+    'n': () => { if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
+    '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
+    '?': () => setShowShortcuts(prev => !prev),
+    'Escape': () => {
+      if (showShortcuts)   { setShowShortcuts(false); return }
+      if (selectedTaskId)  { setSelectedTaskId(null); return }
+      if (showModal)       { setShowModal(false) }
+    },
+  })
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -130,31 +151,86 @@ export default function Board() {
   const handleDeleteAll = async () => {
     if (!window.confirm('Delete all tasks? This cannot be undone.')) return
     const all = Object.values(tasksByStatus).flat()
-    await Promise.all(all.map(t => deleteTask(t.id)))
+    try {
+      await Promise.all(all.map(t => deleteTask(t.id)))
+      toast.success('All tasks deleted')
+    } catch { toast.error('Failed to delete tasks') }
   }
 
-  if (wsLoading || loading) return <div className="loading-screen">Loading board…</div>
+  if (wsLoading || loading) return <BoardSkeleton />
   if (error)                 return <div className="error-screen">Error: {error}</div>
+
+  if (!currentWorkspace) return (
+    <div className="app-shell">
+      <Sidebar isOpen={showSidebar} onClose={() => setShowSidebar(false)} onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      <main className="board-main">
+        <div className="board-empty-state">
+          <p className="board-empty-icon" aria-hidden="true">📋</p>
+          <h2 className="board-empty-title">No workspace selected</h2>
+          <p className="board-empty-body">Create a workspace from the sidebar to get started.</p>
+        </div>
+      </main>
+    </div>
+  )
+
+  const totalTasks = allTasks.length
 
   return (
     <div className="app-shell">
-      <Sidebar onAddTask={() => setShowModal(true)} onDeleteAll={handleDeleteAll} />
+      {showSidebar && (
+        <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
+      )}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onAddTask={() => { setShowModal(true); setShowSidebar(false) }}
+        onDeleteAll={handleDeleteAll}
+      />
 
       <main className="board-main">
         <div className="board-header">
-          <span className="board-header-title">{currentWorkspace?.name}</span>
-          <PresenceAvatars users={present} />
+          <div className="board-header-left">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setShowSidebar(prev => !prev)}
+              aria-label="Toggle sidebar"
+            >
+              ☰
+            </button>
+            <span className="board-header-title">{currentWorkspace?.name}</span>
+          </div>
+          <div className="board-header-right">
+            <PresenceAvatars users={present} />
+            <button
+              className="shortcuts-hint-btn"
+              onClick={() => setShowShortcuts(true)}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              ?
+            </button>
+          </div>
         </div>
 
         <FilterBar
           workspaceId={currentWorkspace?.id}
           filters={filters}
           onChange={setFilters}
+          searchRef={searchRef}
         />
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
             You have view-only access to this workspace.
+          </div>
+        )}
+
+        {totalTasks === 0 && !hasFilter && canEdit && (
+          <div className="board-empty-state">
+            <p className="board-empty-icon" aria-hidden="true">✦</p>
+            <h2 className="board-empty-title">Your board is empty</h2>
+            <p className="board-empty-body">Add your first task to get started.</p>
+            <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
           </div>
         )}
 
@@ -171,7 +247,11 @@ export default function Board() {
                   column={col}
                   tasks={displayByStatus[col.id] ?? []}
                   canEdit={canEdit}
-                  onDelete={deleteTask}
+                  hasFilter={hasFilter}
+                  onDelete={async (id) => {
+                    try { await deleteTask(id); toast.success('Task deleted') }
+                    catch (err) { toast.error(err.message || 'Failed to delete task') }
+                  }}
                   onOpen={setSelectedTaskId}
                 />
               ))}
@@ -187,7 +267,10 @@ export default function Board() {
       {showModal && canEdit && (
         <AddTaskModal
           onClose={() => setShowModal(false)}
-          onSave={async (data) => { await addTask(data); setShowModal(false) }}
+          onSave={async (data) => {
+            try { await addTask(data); toast.success('Task added'); setShowModal(false) }
+            catch (err) { toast.error(err.message || 'Failed to add task') }
+          }}
         />
       )}
 
@@ -199,6 +282,8 @@ export default function Board() {
           onClose={() => setSelectedTaskId(null)}
         />
       )}
+
+      {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
     </div>
   )
 }
