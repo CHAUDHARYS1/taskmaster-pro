@@ -730,6 +730,25 @@ ul, ol { list-style: none; }
 .ws-name { font-size: var(--text-body); color: var(--ink-2); flex: 1; }
 .ws-check { font-size: var(--text-xs); color: var(--accent); }
 
+.ws-list-item { position: relative; display: flex; align-items: center; }
+.ws-list-item .ws-item { flex: 1; }
+
+.ws-delete-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.1s, background-color 0.1s;
+  flex-shrink: 0;
+}
+.ws-list-item:hover .ws-delete-btn { opacity: 1; }
+.ws-delete-btn:hover { color: var(--red); background-color: var(--red-tint); }
+
 .ws-new-btn {
   font-size: var(--text-body);
   color: var(--ink-3);
@@ -2314,6 +2333,53 @@ ul, ol { list-style: none; }
 .column--done .column-count {
   color: var(--green);
   background-color: var(--green-tint);
+}
+
+/* ── Delete workspace modal ──────────────────────────────── */
+.delete-ws-title { color: var(--red); }
+
+.delete-ws-warning {
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.delete-ws-instruction {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.delete-ws-confirm-word {
+  font-family: monospace;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background-color: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  user-select: all;
+}
+
+.delete-ws-input {
+  width: 100%;
+  font-size: var(--text-md);
+  font-family: monospace;
+  color: var(--ink);
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.delete-ws-input:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(185,28,28,0.12);
 }
 
 /* ── Profile settings ─────────────────────────────────────── */
