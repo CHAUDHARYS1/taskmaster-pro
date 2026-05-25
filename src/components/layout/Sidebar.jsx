@@ -6,12 +6,14 @@ import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import MembersList from '../workspace/MembersList'
 import InviteModal from '../workspace/InviteModal'
+import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
 export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
   const { user, displayName, signOut } = useAuth()
   const { currentWorkspace, userRole }  = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showInvite, setShowInvite]     = useState(false)
+  const [showInvite, setShowInvite]       = useState(false)
+  const [showProfile, setShowProfile]     = useState(false)
 
   const canEdit = userRole !== 'viewer'
 
@@ -49,7 +51,11 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
             </button>
           )}
 
-          <div className="sidebar-user-row">
+          <button
+            className="sidebar-user-row"
+            onClick={() => setShowProfile(true)}
+            title="Edit profile"
+          >
             <span
               className="sidebar-user-avatar"
               style={{ background: avatarColor }}
@@ -60,7 +66,8 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
             <span className="sidebar-user-name" title={user?.email}>
               {displayName || user?.email}
             </span>
-          </div>
+            <span className="sidebar-user-edit" aria-hidden="true">✎</span>
+          </button>
 
           <div className="sidebar-footer-row">
             <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
@@ -71,7 +78,8 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
         </div>
       </aside>
 
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showInvite   && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showProfile  && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </>
   )
 }

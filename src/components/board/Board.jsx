@@ -375,7 +375,15 @@ export default function Board() {
               </div>
 
               <DragOverlay dropAnimation={null}>
-                {activeTask ? <TaskCard task={activeTask} isDragging canEdit={canEdit} onOpen={() => {}} /> : null}
+                {activeTask ? (
+                  <TaskCard
+                    task={activeTask}
+                    isDragging
+                    canEdit={canEdit}
+                    onOpen={() => {}}
+                    editingUser={editingMap[activeTask.id] ?? null}
+                  />
+                ) : null}
               </DragOverlay>
             </DndContext>
           </div>

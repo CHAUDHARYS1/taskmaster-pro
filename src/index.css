@@ -285,6 +285,7 @@ ul, ol { list-style: none; }
 .task-card:hover .task-delete { opacity: 1; }
 
 .task-card--dragging { opacity: 0.35; }
+.task-card--dragging.task-card--locked { opacity: 1; }
 .task-card--ghost    { box-shadow: var(--shadow-float); cursor: grabbing; }
 
 .task-card--overdue  { background-color: var(--red-tint);   border-color: rgba(185,28,28,0.15); }
@@ -2066,6 +2067,82 @@ ul, ol { list-style: none; }
   border-top: none;
   margin-top: 0;
 }
+
+/* ── Drag handle ──────────────────────────────────────────── */
+.task-drag-handle {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  color: var(--ink-4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  line-height: 1;
+}
+
+.task-card:hover .task-drag-handle { opacity: 1; }
+.task-card--ghost .task-drag-handle { opacity: 1; }
+
+/* Indent card content when handle is visible */
+.task-card:hover .task-card-top,
+.task-card:hover .task-text,
+.task-card:hover .task-desc-preview,
+.task-card:hover .task-labels,
+.task-card:hover .task-card-footer {
+  padding-left: 14px;
+  transition: padding-left 0.15s ease;
+}
+
+/* ── Column color-coded count badges ─────────────────────── */
+.column--inProgress .column-count {
+  color: var(--accent);
+  background-color: var(--accent-tint);
+}
+
+.column--inReview .column-count {
+  color: var(--amber);
+  background-color: var(--amber-tint);
+}
+
+.column--done .column-count {
+  color: var(--green);
+  background-color: var(--green-tint);
+}
+
+/* ── Profile settings ─────────────────────────────────────── */
+.field-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--paper-2) !important;
+}
+
+/* ── Sidebar user row (clickable) ────────────────────────── */
+.sidebar-user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.sidebar-user-row:hover { background-color: var(--paper-2); }
+
+.sidebar-user-edit {
+  font-size: var(--text-body);
+  color: var(--ink-4);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.sidebar-user-row:hover .sidebar-user-edit { opacity: 1; }
 
 /* ── Task card quick-complete button ─────────────────────── */
 .task-complete-btn {
