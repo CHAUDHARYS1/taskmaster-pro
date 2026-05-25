@@ -150,7 +150,7 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 - **Toast notifications** — success/error feedback for actions (currently silent)
 - **Status + due date editing in panel** — change a task's column and due date from the detail panel, not just the board
 - **Empty states** — helpful UI for empty columns and new workspaces
-- **Keyboard shortcuts** — `N` new task, `Esc` close, `/` focus search, `?` cheatsheet
+- **Keyboard shortcuts** — full cheatsheet below; press `?` in-app to view
 - **Loading skeletons** — shimmer skeleton matching full board layout
 - **Mobile responsiveness** — off-canvas sidebar drawer, scroll-snap column carousel, bottom-sheet panel
 - **Dark mode** — full token set, system preference detection, flash-prevention script, sidebar toggle
@@ -216,6 +216,31 @@ Run in Supabase dashboard → SQL Editor in order:
 - [ ] Accept invite, verify role enforcement (viewer vs member)
 - [ ] Open board in two browser tabs — confirm real-time sync
 - [ ] Toggle dark mode, reload — confirm preference is remembered
+
+---
+
+## Keyboard Shortcuts
+
+Press `?` anywhere on the board to see the in-app cheatsheet.
+
+| Key | Action |
+|---|---|
+| **Navigation** | |
+| `N` | Add a new task |
+| `/` | Focus the search bar |
+| `F` | Focus the filter bar |
+| `B` | Switch to Board view |
+| `L` | Switch to List view |
+| `?` | Toggle the shortcuts cheatsheet |
+| `Esc` | Close the open panel, modal, or sheet |
+| **Board** | |
+| `D` | Toggle dark / light mode |
+| `Del` | Delete the currently-open task *(owners only — shows confirmation)* |
+| **Task panel** | |
+| `←` | Open the previous task |
+| `→` | Open the next task |
+| `Enter` | Submit a comment |
+| `Shift + Enter` | New line inside a comment |
 
 ---
 
