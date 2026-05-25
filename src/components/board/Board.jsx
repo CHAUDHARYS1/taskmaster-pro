@@ -12,6 +12,7 @@ import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
+import BoardSkeleton from './BoardSkeleton'
 import { useToast } from '../../contexts/ToastContext'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
@@ -155,7 +156,7 @@ export default function Board() {
     } catch { toast.error('Failed to delete tasks') }
   }
 
-  if (wsLoading || loading) return <div className="loading-screen">Loading board…</div>
+  if (wsLoading || loading) return <BoardSkeleton />
   if (error)                 return <div className="error-screen">Error: {error}</div>
 
   if (!currentWorkspace) return (

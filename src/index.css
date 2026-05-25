@@ -1470,6 +1470,66 @@ ul, ol { list-style: none; }
   -webkit-box-orient: vertical;
 }
 
+/* ── Skeleton / shimmer ───────────────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position:  400px 0; }
+}
+
+.skeleton-line,
+.skeleton-chip,
+.skeleton-avatar,
+.skeleton-card {
+  background: linear-gradient(
+    90deg,
+    var(--paper-2) 25%,
+    var(--paper-3) 50%,
+    var(--paper-2) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-line {
+  height: 14px;
+  display: block;
+}
+
+.skeleton-line--sm {
+  height: 11px;
+  margin-top: var(--space-1);
+}
+
+.skeleton-card {
+  list-style: none;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--radius);
+  min-height: 72px;
+}
+
+.skeleton-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+}
+
+.skeleton-chip {
+  width: 44px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.skeleton-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
 /* ── Loading / Error ──────────────────────────────────────── */
 .loading-screen,
 .error-screen {
