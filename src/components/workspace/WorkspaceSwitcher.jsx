@@ -1,7 +1,8 @@
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
+import ProjectSwitcher from './ProjectSwitcher'
 
-export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects }) {
+export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, viewMode, onViewChange }) {
   const { user } = useAuth()
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
 
@@ -40,6 +41,17 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects }) {
                   </span>
                 )}
               </button>
+
+              {/* Projects nested directly inside the active workspace item */}
+              {isActive && (
+                <div
+                  key={ws.id}
+                  className={`project-panel${projectsOpen ? '' : ' project-panel--closed'}`}
+                  aria-hidden={!projectsOpen}
+                >
+                  <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+                </div>
+              )}
             </li>
           )
         })}

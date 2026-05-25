@@ -4,7 +4,6 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
-import ProjectSwitcher from '../workspace/ProjectSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
@@ -12,14 +11,11 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showCreate,    setShowCreate]    = useState(false)
-  const [showProfile,   setShowProfile]   = useState(false)
-  const [projectsOpen,  setProjectsOpen]  = useState(true)
+  const [showCreate,   setShowCreate]   = useState(false)
+  const [showProfile,  setShowProfile]  = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(true)
 
-  // Re-open projects panel whenever the active workspace changes
-  useEffect(() => {
-    setProjectsOpen(true)
-  }, [currentWorkspace?.id])
+  useEffect(() => { setProjectsOpen(true) }, [currentWorkspace?.id])
 
   const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
   const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
@@ -35,20 +31,9 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           <WorkspaceSwitcher
             projectsOpen={projectsOpen}
             onToggleProjects={() => setProjectsOpen(p => !p)}
+            viewMode={viewMode}
+            onViewChange={onViewChange}
           />
-
-          {/* Project panel — always mounted when workspace selected,
-              animated via CSS max-height. key remounts on workspace switch
-              so the entrance animation replays. */}
-          {currentWorkspace && (
-            <div
-              key={currentWorkspace.id}
-              className={`project-panel${projectsOpen ? '' : ' project-panel--closed'}`}
-              aria-hidden={!projectsOpen}
-            >
-              <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
-            </div>
-          )}
         </div>
 
         <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
