@@ -23,6 +23,7 @@ import ShortcutsHelp from '../ui/ShortcutsHelp'
 import BugReportSheet from '../ui/BugReportSheet'
 import WelcomeModal from '../ui/WelcomeModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
+import ArchiveView from './ArchiveView'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -185,6 +186,7 @@ export default function Board() {
     '?': () => setShowShortcuts(prev => !prev),
     'b': (e) => { e.preventDefault(); setViewMode('board') },
     'l': (e) => { e.preventDefault(); setViewMode('list') },
+    'a': (e) => { e.preventDefault(); setViewMode('archive') },
     'd': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -300,7 +302,7 @@ export default function Board() {
           <div className="board-header-right">
             <PresenceAvatars users={present} />
 
-            {canEdit && (
+            {canEdit && viewMode !== 'archive' && (
               <button className="btn-primary btn-sm" onClick={() => setShowModal(true)}>
                 + Add Task
               </button>
@@ -323,6 +325,14 @@ export default function Board() {
                 title="List view (L)"
               >
                 <span aria-hidden="true">☰</span>
+              </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'archive' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('archive')}
+                aria-pressed={viewMode === 'archive'}
+                title="Archive (A)"
+              >
+                <span aria-hidden="true">🗂</span>
               </button>
             </div>
 
@@ -363,7 +373,7 @@ export default function Board() {
           </div>
         </div>
 
-        {totalTasks > 0 && (
+        {totalTasks > 0 && viewMode !== 'archive' && (
           <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
             <div
               className="board-progress-bar"
@@ -380,14 +390,16 @@ export default function Board() {
           </div>
         )}
 
-        <div ref={filterBarRef}>
-          <FilterBar
-            workspaceId={currentWorkspace?.id}
-            filters={filters}
-            onChange={setFilters}
-            searchRef={searchRef}
-          />
-        </div>
+        {viewMode !== 'archive' && (
+          <div ref={filterBarRef}>
+            <FilterBar
+              workspaceId={currentWorkspace?.id}
+              filters={filters}
+              onChange={setFilters}
+              searchRef={searchRef}
+            />
+          </div>
+        )}
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
@@ -395,7 +407,7 @@ export default function Board() {
           </div>
         )}
 
-        {userRole === 'owner' && totalTasks > 0 && (
+        {userRole === 'owner' && totalTasks > 0 && viewMode !== 'archive' && (
           <div className="board-danger-row">
             <button className="btn-ghost btn-sm btn-danger-ghost" onClick={handleDeleteAll}>
               Delete all tasks
@@ -403,7 +415,7 @@ export default function Board() {
           </div>
         )}
 
-        {totalTasks === 0 && !hasFilter && canEdit && (
+        {totalTasks === 0 && !hasFilter && canEdit && viewMode !== 'archive' && (
           <div className="board-empty-state">
             <p className="board-empty-icon" aria-hidden="true">✦</p>
             <h2 className="board-empty-title">Your board is empty</h2>
@@ -452,7 +464,7 @@ export default function Board() {
               </DragOverlay>
             </DndContext>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="list-view-wrap">
             <ListView
               tasksByStatus={displayByStatus}
@@ -467,6 +479,8 @@ export default function Board() {
               onComplete={handleComplete}
             />
           </div>
+        ) : (
+          <ArchiveView canEdit={canEdit} canDelete={canDelete} />
         )}
       </main>
 
