@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { LABELS } from '../../lib/labels'
 import { PRIORITIES } from '../../lib/priority'
 
-export default function FilterBar({ workspaceId, filters, onChange }) {
+export default function FilterBar({ workspaceId, filters, onChange, searchRef }) {
   const [members, setMembers] = useState([])
 
   useEffect(() => {
@@ -24,9 +24,10 @@ export default function FilterBar({ workspaceId, filters, onChange }) {
       <div className="filter-search-wrap">
         <span className="filter-search-icon" aria-hidden="true">⌕</span>
         <input
+          ref={searchRef}
           type="search"
           className="filter-search"
-          placeholder="Search tasks…"
+          placeholder="Search tasks… (/)"
           value={filters.search}
           onChange={e => set('search', e.target.value)}
           aria-label="Search tasks"

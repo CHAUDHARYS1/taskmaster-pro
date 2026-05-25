@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -13,6 +13,8 @@ import PresenceAvatars from './PresenceAvatars'
 import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
 import { useToast } from '../../contexts/ToastContext'
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
+import ShortcutsHelp from '../ui/ShortcutsHelp'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -38,10 +40,13 @@ export default function Board() {
   const present = usePresence(currentWorkspace?.id)
   const { toast } = useToast()
 
-  const [showModal, setShowModal]       = useState(false)
-  const [activeTask, setActiveTask]     = useState(null)
+  const [showModal, setShowModal]         = useState(false)
+  const [activeTask, setActiveTask]       = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
-  const [filters, setFilters] = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [filters, setFilters]             = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [showShortcuts, setShowShortcuts] = useState(false)
+
+  const searchRef = useRef(null)
 
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
@@ -82,6 +87,17 @@ export default function Board() {
       Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
     )
   }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
+
+  useKeyboardShortcuts({
+    'n': () => { if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
+    '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
+    '?': () => setShowShortcuts(prev => !prev),
+    'Escape': () => {
+      if (showShortcuts)   { setShowShortcuts(false); return }
+      if (selectedTaskId)  { setSelectedTaskId(null); return }
+      if (showModal)       { setShowModal(false) }
+    },
+  })
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -164,13 +180,24 @@ export default function Board() {
       <main className="board-main">
         <div className="board-header">
           <span className="board-header-title">{currentWorkspace?.name}</span>
-          <PresenceAvatars users={present} />
+          <div className="board-header-right">
+            <PresenceAvatars users={present} />
+            <button
+              className="shortcuts-hint-btn"
+              onClick={() => setShowShortcuts(true)}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              ?
+            </button>
+          </div>
         </div>
 
         <FilterBar
           workspaceId={currentWorkspace?.id}
           filters={filters}
           onChange={setFilters}
+          searchRef={searchRef}
         />
 
         {userRole === 'viewer' && (
@@ -236,6 +263,8 @@ export default function Board() {
           onClose={() => setSelectedTaskId(null)}
         />
       )}
+
+      {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
     </div>
   )
 }
