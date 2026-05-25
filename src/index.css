@@ -2646,3 +2646,95 @@ ul, ol { list-style: none; }
   color: var(--green);
   letter-spacing: 0.04em;
 }
+
+/* ── Workspace settings button ───────────────────────────────────────────── */
+.ws-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.ws-settings-btn:hover { background-color: var(--paper-2); color: var(--ink); }
+
+/* ── Workspace settings modal ─────────────────────────────────────────────── */
+.ws-settings-modal {
+  width: min(400px, 92vw);
+}
+
+.ws-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.ws-settings-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ws-settings-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.ws-settings-desc {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+/* ── Toggle switch ────────────────────────────────────────────────────────── */
+.toggle-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--ink-faint);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+.toggle-btn::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.toggle-btn--on { background-color: var(--accent); }
+.toggle-btn--on::after { transform: translateX(20px); }
+.toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Task panel header right cluster ─────────────────────────────────────── */
+.task-panel-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.task-panel-save-btn {
+  font-size: var(--text-xs);
+  padding: 4px 10px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

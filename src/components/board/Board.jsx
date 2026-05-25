@@ -22,6 +22,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
 import BugReportSheet from '../ui/BugReportSheet'
 import WelcomeModal from '../ui/WelcomeModal'
+import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -38,7 +39,7 @@ const COLUMNS = [
 ]
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
   const { user } = useAuth()
   const { toggle: toggleTheme } = useTheme()
   const canEdit   = userRole !== 'viewer'
@@ -58,6 +59,7 @@ export default function Board() {
     () => localStorage.getItem('tm_view_mode') ?? 'board'
   )
   const [welcomeData, setWelcomeData]       = useState(null)
+  const [showWsSettings, setShowWsSettings] = useState(false)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -344,6 +346,20 @@ export default function Board() {
                 <path d="M18 16v-5a6 6 0 00-4-5.66V5a2 2 0 10-4 0v.34A6 6 0 006 11v5l-2 2h16l-2-2z"/>
               </svg>
             </button>
+
+            {canDelete && (
+              <button
+                className="ws-settings-btn"
+                onClick={() => setShowWsSettings(true)}
+                aria-label="Workspace settings"
+                title="Workspace settings"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -468,6 +484,7 @@ export default function Board() {
         <TaskDetailPanel
           task={selectedTask}
           canEdit={canEdit}
+          autoSave={autoSave}
           onUpdate={updateTask}
           onClose={() => setSelectedTaskId(null)}
         />
@@ -475,6 +492,7 @@ export default function Board() {
 
       {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
       {showBugReport  && <BugReportSheet onClose={() => setShowBugReport(false)} />}
+      {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} />}
       {welcomeData    && (
         <WelcomeModal
           workspaceName={welcomeData.workspace_name}

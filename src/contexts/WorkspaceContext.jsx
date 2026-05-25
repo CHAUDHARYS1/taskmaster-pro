@@ -72,6 +72,13 @@ export function WorkspaceProvider({ children }) {
     setCurrentWorkspace(prev => prev?.id === id ? { ...prev, name } : prev)
   }
 
+  const updateWorkspaceSettings = async (id, settings) => {
+    const { error } = await supabase.from('workspaces').update(settings).eq('id', id)
+    if (error) throw error
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, ...settings } : w))
+    setCurrentWorkspace(prev => prev?.id === id ? { ...prev, ...settings } : prev)
+  }
+
   const deleteWorkspace = async (id) => {
     const { error } = await supabase.from('workspaces').delete().eq('id', id)
     if (error) throw error
@@ -90,7 +97,9 @@ export function WorkspaceProvider({ children }) {
   return (
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
+      autoSave: currentWorkspace?.auto_save ?? false,
       switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
+      updateWorkspaceSettings,
       refetch: fetchWorkspaces,
     }}>
       {children}

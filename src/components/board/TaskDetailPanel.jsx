@@ -36,7 +36,7 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
+export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpdate, onClose }) {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
@@ -68,17 +68,30 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
       .then(({ data }) => { if (data) setMembers(data) })
   }, [currentWorkspace?.id])
 
+  const titleChanged = title.trim() !== task.text
+  const descChanged  = description.trim() !== (task.description ?? '').trim()
+  const hasPending   = !autoSave && canEdit && (titleChanged || descChanged)
+
   const saveTitle = () => {
     const trimmed = title.trim()
-    if (trimmed && trimmed !== task.text) onUpdate(task.id, { text: trimmed })
-    else setTitle(task.text)
+    if (!trimmed) { setTitle(task.text); return }
+    if (autoSave && trimmed !== task.text) onUpdate(task.id, { text: trimmed })
   }
 
   const saveDescription = () => {
     const trimmed = description.trim()
-    if (trimmed !== (task.description ?? '').trim()) {
+    if (autoSave && trimmed !== (task.description ?? '').trim()) {
       onUpdate(task.id, { description: trimmed || null })
     }
+  }
+
+  const handleSave = () => {
+    const updates = {}
+    const t = title.trim()
+    if (t && t !== task.text) updates.text = t
+    const d = description.trim()
+    if (d !== (task.description ?? '').trim()) updates.description = d || null
+    if (Object.keys(updates).length) onUpdate(task.id, updates)
   }
 
   const handleAddComment = async (e) => {
@@ -120,7 +133,14 @@ export default function TaskDetailPanel({ task, canEdit, onUpdate, onClose }) {
               </span>
             )}
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Close panel">×</button>
+          <div className="task-panel-hdr-right">
+            {hasPending && (
+              <button className="btn-primary btn-sm task-panel-save-btn" onClick={handleSave}>
+                Save
+              </button>
+            )}
+            <button className="modal-close" onClick={onClose} aria-label="Close panel">×</button>
+          </div>
         </div>
 
         <div className="task-panel-body">
