@@ -1,22 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
-import ProjectSwitcher from '../workspace/ProjectSwitcher'
-import MembersList from '../workspace/MembersList'
-import InviteModal from '../workspace/InviteModal'
+import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 
-export default function Sidebar({ isOpen }) {
+export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
-  const { currentWorkspace, userRole }  = useWorkspace()
+  const { currentWorkspace }    = useWorkspace()
   const { isDark, toggle: toggleTheme } = useTheme()
-  const [showInvite, setShowInvite]       = useState(false)
-  const [showProfile, setShowProfile]     = useState(false)
+  const [showCreate,   setShowCreate]   = useState(false)
+  const [showProfile,  setShowProfile]  = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(true)
 
-  const canEdit = userRole !== 'viewer'
+  useEffect(() => { setProjectsOpen(true) }, [currentWorkspace?.id])
 
   const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
   const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
@@ -28,19 +27,20 @@ export default function Sidebar({ isOpen }) {
           <h1 className="sidebar-title">Taskmaster Pro</h1>
         </div>
 
-        <WorkspaceSwitcher />
+        <div className="sidebar-nav">
+          <WorkspaceSwitcher
+            projectsOpen={projectsOpen}
+            onToggleProjects={() => setProjectsOpen(p => !p)}
+            viewMode={viewMode}
+            onViewChange={onViewChange}
+          />
+        </div>
 
-        <ProjectSwitcher />
-
-        <MembersList />
+        <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
+          + New workspace
+        </button>
 
         <div className="sidebar-footer">
-          {canEdit && (
-            <button className="btn-ghost sidebar-invite-btn" onClick={() => setShowInvite(true)}>
-              + Invite members
-            </button>
-          )}
-
           <button
             className="sidebar-user-row"
             onClick={() => setShowProfile(true)}
@@ -78,8 +78,8 @@ export default function Sidebar({ isOpen }) {
         </div>
       </aside>
 
-      {showInvite   && <InviteModal onClose={() => setShowInvite(false)} />}
-      {showProfile  && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
+      {showCreate  && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
+      {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </>
   )
 }

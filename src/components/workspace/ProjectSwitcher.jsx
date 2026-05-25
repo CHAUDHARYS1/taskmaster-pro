@@ -8,6 +8,8 @@ const COLOR_PALETTE = [
   '#d97706', '#0891b2', '#be185d', '#475569',
 ]
 
+const VIEW_ICONS = { board: '⊞', list: '☰', archive: '🗂' }
+
 function ColorDot({ color, size = 10 }) {
   return (
     <span
@@ -18,23 +20,20 @@ function ColorDot({ color, size = 10 }) {
   )
 }
 
-export default function ProjectSwitcher() {
-  const { projects, currentProject, switchProject, createProject, renameProject, removeProject } =
-    useProject()
+export default function ProjectSwitcher({ viewMode, onViewChange }) {
+  const { projects, currentProject, switchProject, createProject, renameProject } = useProject()
   const { userRole } = useWorkspace()
   const { toast }    = useToast()
   const canEdit      = userRole !== 'viewer'
-  const canDelete    = userRole === 'owner'
 
-  const [showNew,      setShowNew]      = useState(false)
-  const [newName,      setNewName]      = useState('')
-  const [newColor,     setNewColor]     = useState(COLOR_PALETTE[0])
-  const [renaming,     setRenaming]     = useState(null) // project id
-  const [renameVal,    setRenameVal]    = useState('')
-  const [saving,       setSaving]       = useState(false)
+  const [showNew,   setShowNew]   = useState(false)
+  const [newName,   setNewName]   = useState('')
+  const [newColor,  setNewColor]  = useState(COLOR_PALETTE[0])
+  const [renaming,  setRenaming]  = useState(null)
+  const [renameVal, setRenameVal] = useState('')
+  const [saving,    setSaving]    = useState(false)
 
-  const newInputRef    = useRef(null)
-  const renameInputRef = useRef(null)
+  const newInputRef = useRef(null)
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -65,16 +64,6 @@ export default function ProjectSwitcher() {
     }
   }
 
-  const handleDelete = async (project) => {
-    if (!window.confirm(`Delete "${project.name}"? All tasks in this project will be permanently deleted.`)) return
-    try {
-      await removeProject(project.id)
-      toast.success(`"${project.name}" deleted`)
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete project')
-    }
-  }
-
   return (
     <div className="project-switcher">
       <div className="project-switcher-hdr">
@@ -92,51 +81,46 @@ export default function ProjectSwitcher() {
       </div>
 
       <ul className="project-list" role="list">
-        {projects.map(p => (
-          <li key={p.id} className="project-list-item">
-            {renaming === p.id ? (
-              <form
-                className="project-rename-form"
-                onSubmit={e => { e.preventDefault(); handleRename(p.id) }}
-              >
-                <input
-                  ref={renameInputRef}
-                  className="project-rename-input"
-                  value={renameVal}
-                  onChange={e => setRenameVal(e.target.value)}
-                  onBlur={() => handleRename(p.id)}
-                  onKeyDown={e => { if (e.key === 'Escape') setRenaming(null) }}
-                  autoFocus
-                />
-              </form>
-            ) : (
-              <button
-                className={`project-item-btn${currentProject?.id === p.id ? ' project-item-btn--active' : ''}`}
-                onClick={() => switchProject(p)}
-                onDoubleClick={() => {
-                  if (!canEdit) return
-                  setRenaming(p.id)
-                  setRenameVal(p.name)
-                }}
-              >
-                <ColorDot color={p.color} />
-                <span className="project-item-name">{p.name}</span>
-                {canDelete && projects.length > 1 && (
-                  <span
-                    className="project-delete-btn"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Delete ${p.name}`}
-                    onClick={e => { e.stopPropagation(); handleDelete(p) }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); handleDelete(p) } }}
-                  >
-                    ×
-                  </span>
-                )}
-              </button>
-            )}
-          </li>
-        ))}
+        {projects.map(p => {
+          const isActive = currentProject?.id === p.id
+          return (
+            <li key={p.id} className="project-list-item">
+              {renaming === p.id ? (
+                <form
+                  className="project-rename-form"
+                  onSubmit={e => { e.preventDefault(); handleRename(p.id) }}
+                >
+                  <input
+                    className="project-rename-input"
+                    value={renameVal}
+                    onChange={e => setRenameVal(e.target.value)}
+                    onBlur={() => handleRename(p.id)}
+                    onKeyDown={e => { if (e.key === 'Escape') setRenaming(null) }}
+                    autoFocus
+                  />
+                </form>
+              ) : (
+                <button
+                  className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
+                  onClick={() => switchProject(p)}
+                  onDoubleClick={() => {
+                    if (!canEdit) return
+                    setRenaming(p.id)
+                    setRenameVal(p.name)
+                  }}
+                >
+                  <ColorDot color={p.color} />
+                  <span className="project-item-name">{p.name}</span>
+                  {isActive && viewMode && (
+                    <span className="project-view-icon" aria-label={`${viewMode} view`}>
+                      {VIEW_ICONS[viewMode]}
+                    </span>
+                  )}
+                </button>
+              )}
+            </li>
+          )
+        })}
       </ul>
 
       {showNew && canEdit && (
@@ -175,6 +159,28 @@ export default function ProjectSwitcher() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* View toggle in sidebar */}
+      {onViewChange && (
+        <div className="sidebar-view-toggle" role="group" aria-label="View mode">
+          <button
+            className={`sidebar-view-btn${viewMode === 'board' ? ' sidebar-view-btn--active' : ''}`}
+            onClick={() => onViewChange('board')}
+            aria-pressed={viewMode === 'board'}
+            title="Board view (B)"
+          >
+            <span aria-hidden="true">⊞</span> Board
+          </button>
+          <button
+            className={`sidebar-view-btn${viewMode === 'list' ? ' sidebar-view-btn--active' : ''}`}
+            onClick={() => onViewChange('list')}
+            aria-pressed={viewMode === 'list'}
+            title="List view (L)"
+          >
+            <span aria-hidden="true">☰</span> List
+          </button>
+        </div>
       )}
     </div>
   )

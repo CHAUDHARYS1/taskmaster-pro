@@ -47,10 +47,16 @@ export function ProjectProvider({ children }) {
     }
   }, [currentProject, projects, deleteProject, currentWorkspace?.id])
 
+  const patchProject = useCallback(async (id, name, extra = {}) => {
+    await renameProject(id, name, extra)
+    if (currentProject?.id === id)
+      setCurrentProject(prev => prev ? { ...prev, name: name.trim(), ...extra } : prev)
+  }, [renameProject, currentProject])
+
   return (
     <ProjectContext.Provider value={{
       projects, currentProject, loading,
-      switchProject, createProject, renameProject, removeProject,
+      switchProject, createProject, renameProject: patchProject, removeProject,
     }}>
       {children}
     </ProjectContext.Provider>

@@ -25,7 +25,9 @@ export function useProjects(workspaceId) {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'projects',
         filter: `workspace_id=eq.${workspaceId}`,
-      }, ({ new: p }) => setProjects(prev => [...prev, p].sort((a, b) => a.position - b.position)))
+      }, ({ new: p }) => setProjects(prev =>
+        prev.some(x => x.id === p.id) ? prev : [...prev, p].sort((a, b) => a.position - b.position)
+      ))
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'projects',
         filter: `workspace_id=eq.${workspaceId}`,
@@ -47,13 +49,17 @@ export function useProjects(workspaceId) {
       .select()
       .single()
     if (error) throw error
+    setProjects(prev =>
+      prev.some(x => x.id === data.id) ? prev : [...prev, data].sort((a, b) => a.position - b.position)
+    )
     return data
   }
 
-  const renameProject = async (id, name) => {
-    const { error } = await supabase.from('projects').update({ name: name.trim() }).eq('id', id)
+  const renameProject = async (id, name, extra = {}) => {
+    const patch = { name: name.trim(), ...extra }
+    const { error } = await supabase.from('projects').update(patch).eq('id', id)
     if (error) throw error
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, name: name.trim() } : p))
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
   }
 
   const deleteProject = async (id) => {

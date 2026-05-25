@@ -5,7 +5,6 @@ import { renderWithProviders } from '../helpers/renderWithProviders'
 
 const switchProject = vi.fn()
 const createProject = vi.fn(async () => ({ id: 'proj-new', name: 'New Project', color: '#2563EB' }))
-const removeProject = vi.fn(async () => {})
 const renameProject = vi.fn(async () => {})
 
 const projects = [
@@ -21,7 +20,7 @@ vi.mock('../../contexts/ProjectContext', () => ({
     switchProject,
     createProject,
     renameProject,
-    removeProject,
+    removeProject: vi.fn(async () => {}),
   }),
 }))
 vi.mock('../../contexts/WorkspaceContext', () => ({
@@ -38,36 +37,35 @@ describe('ProjectSwitcher', () => {
   beforeEach(() => {
     switchProject.mockClear()
     createProject.mockClear()
-    removeProject.mockClear()
   })
 
   it('renders all projects', () => {
-    renderWithProviders(<ProjectSwitcher />)
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
     expect(screen.getByText('General')).toBeInTheDocument()
     expect(screen.getByText('Marketing')).toBeInTheDocument()
   })
 
   it('marks the active project', () => {
-    renderWithProviders(<ProjectSwitcher />)
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
     const activeBtn = screen.getByText('General').closest('button')
     expect(activeBtn.className).toContain('project-item-btn--active')
   })
 
   it('calls switchProject when a project is clicked', () => {
-    renderWithProviders(<ProjectSwitcher />)
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
     fireEvent.click(screen.getByText('Marketing').closest('button'))
     expect(switchProject).toHaveBeenCalledWith(projects[1])
   })
 
   it('shows create form when + is clicked', async () => {
-    renderWithProviders(<ProjectSwitcher />)
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /add project/i }))
     expect(screen.getByPlaceholderText('Project name…')).toBeInTheDocument()
   })
 
   it('calls createProject when form is submitted', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<ProjectSwitcher />)
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /add project/i }))
     await user.type(screen.getByPlaceholderText('Project name…'), 'New Project')
     fireEvent.click(screen.getByRole('button', { name: /^create$/i }))
@@ -76,19 +74,14 @@ describe('ProjectSwitcher', () => {
     })
   })
 
-  it('shows delete button for owners on non-last projects', () => {
-    renderWithProviders(<ProjectSwitcher />)
-    // 2 projects → delete buttons visible
-    const deleteBtns = document.querySelectorAll('.project-delete-btn')
-    expect(deleteBtns.length).toBe(2)
+  it('shows view mode icon on active project', () => {
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
+    expect(screen.getByLabelText('board view')).toBeInTheDocument()
   })
 
-  it('calls removeProject after confirm on delete click', async () => {
-    renderWithProviders(<ProjectSwitcher />)
-    const deleteBtn = document.querySelectorAll('.project-delete-btn')[1]
-    fireEvent.click(deleteBtn)
-    await waitFor(() => {
-      expect(removeProject).toHaveBeenCalledWith('proj-2')
-    })
+  it('renders view toggle buttons in sidebar', () => {
+    renderWithProviders(<ProjectSwitcher viewMode="board" onViewChange={() => {}} />)
+    expect(screen.getByTitle('Board view (B)')).toBeInTheDocument()
+    expect(screen.getByTitle('List view (L)')).toBeInTheDocument()
   })
 })

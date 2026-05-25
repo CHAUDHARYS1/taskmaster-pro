@@ -41,10 +41,13 @@ export function useLabels(workspaceId) {
   }, [workspaceId, fetch])
 
   const addLabel = async ({ name, color }) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('workspace_labels')
       .insert({ workspace_id: workspaceId, name: name.trim(), color })
+      .select()
+      .single()
     if (error) throw error
+    setLabels(prev => prev.some(l => l.id === data.id) ? prev : [...prev, data])
   }
 
   const deleteLabel = async (id) => {
