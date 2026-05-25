@@ -53,10 +53,13 @@ export function useTaskDetail(taskId) {
   }, [taskId, fetchComments, fetchWithProfile])
 
   const addComment = async (body) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('comments')
       .insert({ task_id: taskId, user_id: user.id, body })
+      .select('*, profiles(email)')
+      .single()
     if (error) throw error
+    if (data) setComments(prev => prev.some(c => c.id === data.id) ? prev : [...prev, data])
   }
 
   const deleteComment = async (commentId) => {

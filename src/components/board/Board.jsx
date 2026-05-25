@@ -33,7 +33,8 @@ const COLUMNS = [
 
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading } = useWorkspace()
-  const canEdit = userRole !== 'viewer'
+  const canEdit   = userRole !== 'viewer'
+  const canDelete = userRole === 'owner'
 
   const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
     useTasks(currentWorkspace?.id)
@@ -91,7 +92,7 @@ export default function Board() {
   }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
 
   useKeyboardShortcuts({
-    'n': () => { if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
+    'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
     '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
     '?': () => setShowShortcuts(prev => !prev),
     'Escape': () => {
@@ -248,6 +249,7 @@ export default function Board() {
                   tasks={displayByStatus[col.id] ?? []}
                   canEdit={canEdit}
                   hasFilter={hasFilter}
+                  canDelete={canDelete}
                   onDelete={async (id) => {
                     try { await deleteTask(id); toast.success('Task deleted') }
                     catch (err) { toast.error(err.message || 'Failed to delete task') }

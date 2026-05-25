@@ -31,9 +31,11 @@ export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
             <button className="btn-primary btn-block" onClick={onAddTask}>
               + Add Task
             </button>
-            <button className="btn-danger btn-block" onClick={onDeleteAll}>
-              🗑 Delete All Tasks
-            </button>
+            {userRole === 'owner' && (
+              <button className="btn-danger btn-block" onClick={onDeleteAll}>
+                Delete All Tasks
+              </button>
+            )}
           </div>
         )}
 

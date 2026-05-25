@@ -12,7 +12,7 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDragging = false }) {
+export default function TaskCard({ task, canEdit = true, canDelete = false, onDelete, onOpen, isDragging = false }) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging: isSortableDragging,
@@ -89,7 +89,7 @@ export default function TaskCard({ task, canEdit = true, onDelete, onOpen, isDra
         </div>
       )}
 
-      {canEdit && (
+      {canDelete && (
         <button
           className="task-delete"
           aria-label="Delete task"

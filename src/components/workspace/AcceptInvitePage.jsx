@@ -37,7 +37,12 @@ export default function AcceptInvitePage() {
       // Refresh workspaces and switch to the newly joined one
       await refetch()
       if (data?.workspace_id) {
-        switchWorkspace({ id: data.workspace_id })
+        const { data: ws } = await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('id', data.workspace_id)
+          .single()
+        if (ws) switchWorkspace(ws)
       }
 
       setStatus('success')

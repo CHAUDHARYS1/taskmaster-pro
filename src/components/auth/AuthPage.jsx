@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function AuthPage() {
@@ -9,6 +10,9 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const { signIn, signUp } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect')
 
   const switchMode = (next) => {
     setMode(next)
@@ -25,6 +29,7 @@ export default function AuthPage() {
       if (mode === 'login') {
         const { error } = await signIn(email, password)
         if (error) throw error
+        navigate(redirectTo || '/', { replace: true })
       } else {
         const { error } = await signUp(email, password)
         if (error) throw error
