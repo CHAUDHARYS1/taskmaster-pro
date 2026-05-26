@@ -1960,7 +1960,7 @@ ul, ol { list-style: none; }
   font-size: var(--text-body);
   color: var(--ink-4);
   line-height: 1.45;
-  max-height: 3.6em;
+  max-height: 7.25em; /* ~5 lines */
   overflow: hidden;
   position: relative;
 }
@@ -1969,7 +1969,7 @@ ul, ol { list-style: none; }
   content: '';
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 1.2em;
+  height: 1.6em;
   background: linear-gradient(transparent, var(--card));
   pointer-events: none;
 }
