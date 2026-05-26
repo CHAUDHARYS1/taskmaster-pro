@@ -1,3 +1,4 @@
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 import ProjectSwitcher from './ProjectSwitcher'
@@ -5,6 +6,8 @@ import ProjectSwitcher from './ProjectSwitcher'
 export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, viewMode, onViewChange }) {
   const { user } = useAuth()
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
+  const navigate  = useNavigate()
+  const location  = useLocation()
 
   return (
     <div className="ws-switcher">
@@ -23,6 +26,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                     onToggleProjects?.()
                   } else {
                     switchWorkspace(ws)
+                    if (location.pathname === '/dashboard') navigate('/')
                   }
                 }}
               >
