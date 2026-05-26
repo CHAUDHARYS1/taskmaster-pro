@@ -62,7 +62,7 @@ export default function TaskCard({
       style={style}
       className={[
         'task-card',
-        urgencyClass(task.due_date),
+        task.status !== 'done' ? urgencyClass(task.due_date) : '',
         task.status === 'done'            ? 'task-card--done'     : '',
         !isOverlay && isSortableDragging  ? 'task-card--dragging' : '',
         isOverlay                         ? 'task-card--ghost'    : '',
