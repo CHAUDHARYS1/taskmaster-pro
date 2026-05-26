@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useProject } from '../../contexts/ProjectContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -24,6 +25,8 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
   const { projects, currentProject, switchProject, createProject, renameProject } = useProject()
   const { userRole } = useWorkspace()
   const { toast }    = useToast()
+  const navigate     = useNavigate()
+  const location     = useLocation()
   const canEdit      = userRole !== 'viewer'
 
   const [showNew,   setShowNew]   = useState(false)
@@ -102,7 +105,10 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
               ) : (
                 <button
                   className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
-                  onClick={() => switchProject(p)}
+                  onClick={() => {
+                    switchProject(p)
+                    if (location.pathname === '/dashboard') navigate('/')
+                  }}
                   onDoubleClick={() => {
                     if (!canEdit) return
                     setRenaming(p.id)
