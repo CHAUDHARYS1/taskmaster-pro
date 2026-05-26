@@ -295,6 +295,7 @@ export default function Board() {
       }
     }
 
+    if (targetColumnId === 'done' && draggedTask.status !== 'done') playDoneSound()
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
@@ -526,7 +527,10 @@ export default function Board() {
           task={selectedTask}
           canEdit={canEdit}
           autoSave={autoSave}
-          onUpdate={updateTask}
+          onUpdate={(id, changes) => {
+            if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+            return updateTask(id, changes)
+          }}
           onClose={() => setSelectedTaskId(null)}
         />
       )}
