@@ -1240,7 +1240,7 @@ ul, ol { list-style: none; }
 
 .filter-clear:hover { color: var(--red); background-color: var(--red-tint); }
 
-.filter-add-btn { margin-left: auto; white-space: nowrap; }
+.filter-add-btn { margin-left: auto; white-space: nowrap; min-height: unset; padding: 5px var(--space-3); }
 
 /* ── Task Detail Panel ────────────────────────────────────── */
 .panel-backdrop {
@@ -3319,6 +3319,40 @@ ul, ol { list-style: none; }
   background-color: var(--accent-tint);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ── Drag-to-trash zone ───────────────────────────────────── */
+.trash-zone {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--red);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 4px 20px rgba(185,28,28,0.35);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s var(--ease-spring);
+}
+
+.trash-zone--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.trash-zone--over {
+  background: #991b1b;
+  transform: translateX(-50%) translateY(0) scale(1.07);
+  box-shadow: 0 6px 28px rgba(185,28,28,0.5);
 }
 
 /* ── Help FAB — fixed bottom-right ───────────────────────── */
