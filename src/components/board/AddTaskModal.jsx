@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
+import { PRIORITIES } from '../../lib/priority'
+import { supabase } from '../../lib/supabase'
 
 const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
@@ -9,17 +13,44 @@ const DEFAULT_COLS = [
   { id: 'done',       label: 'Done' },
 ]
 
+function memberDisplayName(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  return full || m.email?.split('@')[0] || m.email
+}
+
 export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
 
-  const [title,   setTitle]   = useState('')
-  const [desc,    setDesc]    = useState('')
-  const [dueDate, setDueDate] = useState(today)
-  const [status,  setStatus]  = useState(columns[0]?.id ?? 'toDo')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState('')
+  const { currentWorkspace } = useWorkspace()
+  const { labels } = useLabelsCtx()
+
+  const [title,       setTitle]       = useState('')
+  const [desc,        setDesc]        = useState('')
+  const [dueDate,     setDueDate]     = useState(today)
+  const [status,      setStatus]      = useState(columns[0]?.id ?? 'toDo')
+  const [priority,    setPriority]    = useState(null)
+  const [assigneeId,  setAssigneeId]  = useState('')
+  const [selectedLabels, setSelectedLabels] = useState([])
+  const [members,     setMembers]     = useState([])
+  const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState('')
+
+  useEffect(() => {
+    if (!currentWorkspace?.id) return
+    supabase
+      .from('workspace_members_view')
+      .select('user_id, email, first_name, last_name')
+      .eq('workspace_id', currentWorkspace.id)
+      .then(({ data }) => { if (data) setMembers(data) })
+  }, [currentWorkspace?.id])
+
+  const toggleLabel = (id) => {
+    setSelectedLabels(prev =>
+      prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -27,7 +58,15 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
     setError('')
     try {
       const text = title.trim() || desc.trim().split('\n')[0].slice(0, 80) || 'Untitled'
-      await onSave({ text, description: desc.trim() || null, due_date: dueDate || null, status })
+      await onSave({
+        text,
+        description:  desc.trim() || null,
+        due_date:     dueDate || null,
+        status,
+        priority:     priority || null,
+        assignee_id:  assigneeId || null,
+        labels:       selectedLabels,
+      })
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -87,6 +126,23 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               </div>
 
               <div className="field-block" style={{ flex: 1 }}>
+                <label htmlFor="task-assignee">Assignee</label>
+                <select
+                  id="task-assignee"
+                  className="field-select"
+                  value={assigneeId}
+                  onChange={e => setAssigneeId(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="add-task-row">
+              <div className="field-block" style={{ flex: 1 }}>
                 <label htmlFor="task-date">Due date</label>
                 <input
                   id="task-date"
@@ -104,6 +160,53 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               <button type="button" className={`quick-date-btn${dueDate === nextWeek ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(nextWeek)}>Next week</button>
               <button type="button" className={`quick-date-btn${!dueDate            ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate('')}>None</button>
             </div>
+
+            <div className="field-block">
+              <label>Priority</label>
+              <div className="priority-picker">
+                {PRIORITIES.map(p => {
+                  const active = priority === p.id
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`priority-btn${active ? ' priority-btn--active' : ''}`}
+                      style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                      onClick={() => setPriority(active ? null : p.id)}
+                      title={active ? 'Click to clear' : undefined}
+                    >
+                      <span className="priority-icon">{p.icon}</span>
+                      {p.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {labels.length > 0 && (
+              <div className="field-block">
+                <label>Labels</label>
+                <div className="label-picker">
+                  {labels.map(label => {
+                    const active = selectedLabels.includes(label.id)
+                    const rgb = label.color.length === 7
+                      ? `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+                      : '37,99,235'
+                    return (
+                      <button
+                        key={label.id}
+                        type="button"
+                        className={`label-chip${active ? ' label-chip--active' : ''}`}
+                        style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
+                        onClick={() => toggleLabel(label.id)}
+                      >
+                        {label.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {error && <p className="form-error">{error}</p>}
           </div>
