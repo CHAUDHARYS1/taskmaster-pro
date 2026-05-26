@@ -11,11 +11,6 @@ const COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
-function stripHtml(html) {
-  if (!html) return ''
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-}
-
 function urgencyClass(due_date) {
   if (!due_date) return ''
   const diff = dayjs(due_date).diff(dayjs(), 'day')
@@ -90,7 +85,10 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                   )}
                   <span className="list-task-text">{task.text}</span>
                   {task.description && (
-                    <span className="list-task-desc">{stripHtml(task.description)}</span>
+                    <span
+                      className="list-task-desc"
+                      dangerouslySetInnerHTML={{ __html: task.description }}
+                    />
                   )}
                 </td>
 

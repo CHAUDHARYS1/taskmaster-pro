@@ -6,11 +6,6 @@ import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 
-function stripHtml(html) {
-  if (!html) return ''
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-}
-
 function urgencyClass(due_date) {
   if (!due_date) return ''
   const diff = dayjs(due_date).diff(dayjs(), 'day')
@@ -111,7 +106,10 @@ export default function TaskCard({
       <p className="task-text">{task.text}</p>
 
       {task.description && (
-        <p className="task-desc-preview">{stripHtml(task.description)}</p>
+        <div
+          className="task-desc-preview"
+          dangerouslySetInnerHTML={{ __html: task.description }}
+        />
       )}
 
       {task.labels?.length > 0 && (
