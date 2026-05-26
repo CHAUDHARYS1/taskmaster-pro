@@ -418,6 +418,10 @@ export default function Board() {
                     }}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
+                    onQuickAdd={col.id === 'toDo' ? async (text) => {
+                      try { await addTask({ text, status: 'toDo' }); toast.success('Task added') }
+                      catch (err) { toast.error(err.message || 'Failed to add task') }
+                    } : undefined}
                   />
                 ))}
               </div>

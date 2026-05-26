@@ -275,6 +275,45 @@ ul, ol { list-style: none; }
   margin: var(--space-2);
 }
 
+/* ── Quick Add ───────────────────────────────────────────── */
+.quick-add {
+  padding: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.quick-add-btn {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-4);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.quick-add-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-muted, rgba(37,99,235,0.06));
+}
+
+.quick-add-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-muted, rgba(37,99,235,0.15));
+  box-sizing: border-box;
+}
+
 /* ── Task Card ────────────────────────────────────────────── */
 .task-card {
   position: relative;
