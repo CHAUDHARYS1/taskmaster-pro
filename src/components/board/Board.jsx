@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Archive, Bug } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -328,11 +329,7 @@ export default function Board() {
               aria-pressed={viewMode === 'archive'}
               title="Archive (A)"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="21 8 21 21 3 21 3 8"/>
-                <rect x="1" y="3" width="22" height="5"/>
-                <line x1="10" y1="12" x2="14" y2="12"/>
-              </svg>
+              <Archive size={16} aria-hidden="true" />
             </button>
 
             <button
@@ -341,18 +338,7 @@ export default function Board() {
               aria-label="Report a bug or request a feature"
               title="Report a bug / request a feature"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <ellipse cx="12" cy="14" rx="4" ry="5"/>
-                <circle cx="12" cy="6.5" r="2"/>
-                <path d="M10.5 5 8 2.5"/>
-                <path d="M13.5 5 16 2.5"/>
-                <path d="M8 11H4"/>
-                <path d="M20 11h-4"/>
-                <path d="M8 15H5"/>
-                <path d="M19 15h-3"/>
-                <path d="M8 19H6"/>
-                <path d="M18 19h-2"/>
-              </svg>
+              <Bug size={16} aria-hidden="true" />
             </button>
 
             <button
