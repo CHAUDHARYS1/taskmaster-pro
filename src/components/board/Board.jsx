@@ -328,7 +328,11 @@ export default function Board() {
               aria-pressed={viewMode === 'archive'}
               title="Archive (A)"
             >
-              <span aria-hidden="true">🗂</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="21 8 21 21 3 21 3 8"/>
+                <rect x="1" y="3" width="22" height="5"/>
+                <line x1="10" y1="12" x2="14" y2="12"/>
+              </svg>
             </button>
 
             <button
@@ -338,8 +342,16 @@ export default function Board() {
               title="Report a bug / request a feature"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 22c1.1 0 2-.9 2-2H10c0 1.1.9 2 2 2z"/>
-                <path d="M18 16v-5a6 6 0 00-4-5.66V5a2 2 0 10-4 0v.34A6 6 0 006 11v5l-2 2h16l-2-2z"/>
+                <ellipse cx="12" cy="14" rx="4" ry="5"/>
+                <circle cx="12" cy="6.5" r="2"/>
+                <path d="M10.5 5 8 2.5"/>
+                <path d="M13.5 5 16 2.5"/>
+                <path d="M8 11H4"/>
+                <path d="M20 11h-4"/>
+                <path d="M8 15H5"/>
+                <path d="M19 15h-3"/>
+                <path d="M8 19H6"/>
+                <path d="M18 19h-2"/>
               </svg>
             </button>
 
