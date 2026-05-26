@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSixVertical, Check, X } from '@phosphor-icons/react'
+import { DotsSixVertical, Check, X, ChatCircle } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -133,15 +133,26 @@ export default function TaskCard({
         </div>
       )}
 
-      {task.assignee && (
+      {(task.assignee || Number(task.comments?.[0]?.count ?? 0) > 0) && (
         <div className="task-card-footer">
-          <span
-            className="task-assignee-avatar"
-            style={{ background: userColor(task.assignee_id), color: '#fff' }}
-            title={task.assignee.email}
-          >
-            {task.assignee.email.slice(0, 2).toUpperCase()}
-          </span>
+          {task.assignee && (
+            <span
+              className="task-assignee-avatar"
+              style={{ background: userColor(task.assignee_id), color: '#fff' }}
+              title={task.assignee.email}
+            >
+              {task.assignee.email.slice(0, 2).toUpperCase()}
+            </span>
+          )}
+          {Number(task.comments?.[0]?.count ?? 0) > 0 && (
+            <span
+              className="task-comment-count"
+              title={`${Number(task.comments[0].count)} comment${Number(task.comments[0].count) !== 1 ? 's' : ''}`}
+            >
+              <ChatCircle size={13} weight="regular" aria-hidden="true" />
+              {Number(task.comments[0].count)}
+            </span>
+          )}
         </div>
       )}
 

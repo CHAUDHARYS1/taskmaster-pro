@@ -12,7 +12,7 @@ export function useTasks(workspaceId, projectId) {
     if (!workspaceId || !projectId) return
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, assignee:profiles!assignee_id(email)')
+      .select('*, assignee:profiles!assignee_id(email), comments(count)')
       .eq('workspace_id', workspaceId)
       .eq('project_id', projectId)
       .order('position', { ascending: true })

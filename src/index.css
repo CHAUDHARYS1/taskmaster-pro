@@ -1846,8 +1846,17 @@ ul, ol { list-style: none; }
 .task-card-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: var(--space-1);
+}
+
+.task-comment-count {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  margin-left: auto;
 }
 
 .task-assignee-avatar {
