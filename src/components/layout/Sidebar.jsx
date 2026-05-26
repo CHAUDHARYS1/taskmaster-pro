@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Gear } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear, Coffee } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -91,6 +91,22 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           </div>
 
           <p className="sidebar-version">v1.0.01</p>
+          <p className="sidebar-credit">
+            Designed and built by{' '}
+            <a href="https://chaudharys1.netlify.app" target="_blank" rel="noreferrer" className="sidebar-credit-link">
+              SC Design and Consultation
+            </a>
+          </p>
+          <a
+            href="https://buymeacoffee.com/schaudhary"
+            target="_blank"
+            rel="noreferrer"
+            className="sidebar-coffee-btn"
+            aria-label="Buy me a coffee"
+          >
+            <Coffee size={14} weight="bold" aria-hidden="true" />
+            Buy me a coffee
+          </a>
         </div>
       </aside>
 
