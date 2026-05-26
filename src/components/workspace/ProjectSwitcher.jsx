@@ -16,7 +16,15 @@ const COLOR_PALETTE = [
   '#d97706', '#0891b2', '#be185d', '#475569',
 ]
 
-const VIEW_ICONS = { board: '⊞', list: '☰', archive: '🗂' }
+const ArchiveIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="21 8 21 21 3 21 3 8"/>
+    <rect x="1" y="3" width="22" height="5"/>
+    <line x1="10" y1="12" x2="14" y2="12"/>
+  </svg>
+)
+
+const VIEW_ICONS = { board: '⊞', list: '☰', archive: <ArchiveIcon /> }
 
 function ColorDot({ color, size = 10 }) {
   return (
