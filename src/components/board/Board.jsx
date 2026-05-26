@@ -45,6 +45,15 @@ export default function Board() {
   const { currentProject, loading: projLoading } = useProject()
   const { user } = useAuth()
   const { toggle: toggleTheme } = useTheme()
+
+  // Keep the URL bar in sync so members can copy/share the direct link
+  useEffect(() => {
+    if (!currentWorkspace?.id) return
+    const path = currentProject?.id
+      ? `/workspace/${currentWorkspace.id}/project/${currentProject.id}`
+      : `/workspace/${currentWorkspace.id}`
+    window.history.replaceState(null, '', path)
+  }, [currentWorkspace?.id, currentProject?.id])
   const canEdit   = userRole !== 'viewer'
   const canDelete = userRole === 'owner'
 

@@ -4,6 +4,13 @@ import { useProject } from '../../contexts/ProjectContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 
+const LinkIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M7 9a3 3 0 0 0 4.243.121l1.5-1.5a3 3 0 0 0-4.243-4.242l-.86.859"/>
+    <path d="M9 7a3 3 0 0 0-4.243-.121l-1.5 1.5a3 3 0 0 0 4.243 4.242l.859-.86"/>
+  </svg>
+)
+
 const COLOR_PALETTE = [
   '#2563EB', '#16a34a', '#7c3aed', '#dc2626',
   '#d97706', '#0891b2', '#be185d', '#475569',
@@ -23,7 +30,7 @@ function ColorDot({ color, size = 10 }) {
 
 export default function ProjectSwitcher({ viewMode, onViewChange }) {
   const { projects, currentProject, switchProject, createProject, renameProject } = useProject()
-  const { userRole } = useWorkspace()
+  const { userRole, currentWorkspace } = useWorkspace()
   const { toast }    = useToast()
   const navigate     = useNavigate()
   const location     = useLocation()
@@ -103,26 +110,40 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
                   />
                 </form>
               ) : (
-                <button
-                  className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
-                  onClick={() => {
-                    switchProject(p)
-                    if (location.pathname === '/dashboard') navigate('/')
-                  }}
-                  onDoubleClick={() => {
-                    if (!canEdit) return
-                    setRenaming(p.id)
-                    setRenameVal(p.name)
-                  }}
-                >
-                  <ColorDot color={p.color} />
-                  <span className="project-item-name">{p.name}</span>
-                  {isActive && viewMode && (
-                    <span className="project-view-icon" aria-label={`${viewMode} view`}>
-                      {VIEW_ICONS[viewMode]}
-                    </span>
-                  )}
-                </button>
+                <div className="project-item-row">
+                  <button
+                    className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
+                    onClick={() => {
+                      switchProject(p)
+                      if (location.pathname === '/dashboard') navigate('/')
+                    }}
+                    onDoubleClick={() => {
+                      if (!canEdit) return
+                      setRenaming(p.id)
+                      setRenameVal(p.name)
+                    }}
+                  >
+                    <ColorDot color={p.color} />
+                    <span className="project-item-name">{p.name}</span>
+                    {isActive && viewMode && (
+                      <span className="project-view-icon" aria-label={`${viewMode} view`}>
+                        {VIEW_ICONS[viewMode]}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    className="project-link-btn"
+                    onClick={() => {
+                      const url = `${window.location.origin}/workspace/${currentWorkspace.id}/project/${p.id}`
+                      navigator.clipboard.writeText(url)
+                      toast.success('Link copied')
+                    }}
+                    title="Copy project link"
+                    aria-label="Copy project link"
+                  >
+                    <LinkIcon />
+                  </button>
+                </div>
               )}
             </li>
           )
