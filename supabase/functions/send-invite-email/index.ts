@@ -59,30 +59,39 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // Use your verified Resend domain in production.
-        // During development, onboarding@resend.dev works for the account owner's email only.
-        // Use a verified domain in production (e.g. noreply@yourdomain.com).
-        // onboarding@resend.dev is Resend's shared sender — only delivers to
-        // the Resend account owner's email address during development.
+        // Replace with a verified Resend domain for reliable inbox delivery.
+        // onboarding@resend.dev only delivers to the Resend account owner's address.
         from: 'Taskmaster Pro <onboarding@resend.dev>',
         to: [email],
-        subject: `You've been invited to ${workspaceName}`,
+        subject: `You've been invited to ${workspaceName} on Taskmaster Pro`,
+        text: `You've been invited to ${workspaceName} on Taskmaster Pro.\n\nYou've been added as a ${roleLabel}.\n\nAccept your invitation:\n${inviteUrl}\n\nThis link expires in 7 days. If you weren't expecting this, you can ignore it.`,
         html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
-            <h2 style="margin:0 0 16px">You're invited to ${workspaceName}</h2>
-            <p style="margin:0 0 24px;color:#444">
-              You've been added as a <strong>${roleLabel}</strong> on
-              <strong>Taskmaster Pro</strong>.
-            </p>
-            <a href="${inviteUrl}"
-               style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;
-                      padding:12px 24px;border-radius:6px;font-weight:600">
-              Accept invitation
-            </a>
-            <p style="margin:24px 0 0;color:#888;font-size:13px">
-              This link expires in 7 days. If you weren't expecting this, you can ignore it.
-            </p>
-          </div>
+          <!DOCTYPE html>
+          <html lang="en">
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+          <body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+            <div style="max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+              <div style="background:#2563EB;padding:24px 32px">
+                <p style="margin:0;color:#fff;font-size:18px;font-weight:700">Taskmaster Pro</p>
+              </div>
+              <div style="padding:32px">
+                <h1 style="margin:0 0 8px;font-size:22px;color:#111">You've been invited</h1>
+                <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6">
+                  You've been added to <strong>${workspaceName}</strong> as a <strong>${roleLabel}</strong>.
+                </p>
+                <a href="${inviteUrl}"
+                   style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;
+                          padding:13px 28px;border-radius:8px;font-weight:600;font-size:15px">
+                  Accept invitation
+                </a>
+                <p style="margin:28px 0 0;color:#999;font-size:13px;line-height:1.5">
+                  This link expires in 7 days.<br>
+                  If you weren't expecting this invitation, you can safely ignore this email.
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
         `,
       }),
     })

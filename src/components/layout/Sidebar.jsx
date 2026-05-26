@@ -1,62 +1,103 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { SquaresFour, PencilSimple, Gear } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useTheme } from '../../contexts/ThemeContext'
+import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
-import MembersList from '../workspace/MembersList'
-import InviteModal from '../workspace/InviteModal'
+import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
+import ProfileSettingsModal from '../ui/ProfileSettingsModal'
+import GlobalSettingsModal from '../ui/GlobalSettingsModal'
+import BugReportSheet from '../ui/BugReportSheet'
 
-export default function Sidebar({ isOpen, onAddTask, onDeleteAll }) {
-  const { signOut }          = useAuth()
-  const { currentWorkspace, userRole } = useWorkspace()
-  const { isDark, toggle: toggleTheme } = useTheme()
-  const [showInvite, setShowInvite]    = useState(false)
+export default function Sidebar({ isOpen, viewMode, onViewChange }) {
+  const { user, profile, displayName, signOut } = useAuth()
+  const { currentWorkspace }    = useWorkspace()
+  const navigate   = useNavigate()
+  const location   = useLocation()
+  const onDashboard = location.pathname === '/dashboard'
+  const [showCreate,    setShowCreate]    = useState(false)
+  const [showProfile,   setShowProfile]   = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
+  const [showBugReport, setShowBugReport] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(true)
 
-  const canEdit = userRole !== 'viewer'
+  useEffect(() => { setProjectsOpen(true) }, [currentWorkspace?.id])
+
+  const avatarColor   = user ? userColor(user.id) : 'var(--accent)'
+  const avatarInitial = displayName ? displayName[0].toUpperCase() : '?'
 
   return (
     <>
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
-        {/* App title */}
         <div className="sidebar-top">
           <h1 className="sidebar-title">Taskmaster Pro</h1>
         </div>
 
-        {/* Workspace switcher */}
-        <WorkspaceSwitcher />
+        <div className="sidebar-nav">
+          <button
+            className={`sidebar-dash-btn${onDashboard ? ' sidebar-dash-btn--active' : ''}`}
+            onClick={() => navigate(onDashboard ? '/' : '/dashboard')}
+            aria-pressed={onDashboard}
+          >
+            <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
+            Dashboard
+          </button>
 
-        {/* Board actions — hidden for viewers */}
-        {canEdit && (
-          <div className="sidebar-actions">
-            <button className="btn-primary btn-block" onClick={onAddTask}>
-              + Add Task
-            </button>
-            <button className="btn-danger btn-block" onClick={onDeleteAll}>
-              🗑 Delete All Tasks
-            </button>
-          </div>
-        )}
+          <WorkspaceSwitcher
+            projectsOpen={projectsOpen}
+            onToggleProjects={() => setProjectsOpen(p => !p)}
+            viewMode={viewMode}
+            onViewChange={onViewChange}
+          />
+        </div>
 
-        {/* Members list */}
-        <MembersList />
+        <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
+          + New workspace
+        </button>
 
-        {/* Invite + sign out */}
         <div className="sidebar-footer">
-          {canEdit && (
-            <button className="btn-ghost sidebar-invite-btn" onClick={() => setShowInvite(true)}>
-              + Invite members
-            </button>
-          )}
+          <button
+            className="sidebar-user-row"
+            onClick={() => setShowProfile(true)}
+            title="Edit profile"
+          >
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="sidebar-user-avatar sidebar-user-avatar--photo"
+              />
+            ) : (
+              <span
+                className="sidebar-user-avatar"
+                style={{ background: avatarColor }}
+                aria-hidden="true"
+              >
+                {avatarInitial}
+              </span>
+            )}
+            <span className="sidebar-user-name" title={user?.email}>
+              {displayName || user?.email}
+            </span>
+            <PencilSimple size={18} className="sidebar-user-edit" aria-hidden="true" />
+          </button>
+
           <div className="sidebar-footer-row">
-            <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
-              {isDark ? '☀ Light' : '☾ Dark'}
+            <button className="btn-ghost sidebar-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
+              <Gear size={18} aria-hidden="true" />
             </button>
             <button className="btn-ghost" onClick={signOut}>Sign out</button>
           </div>
+
+          <p className="sidebar-version">v1.0.01</p>
         </div>
       </aside>
 
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showCreate   && <CreateWorkspaceModal  onClose={() => setShowCreate(false)} />}
+      {showProfile  && <ProfileSettingsModal  onClose={() => setShowProfile(false)} />}
+      {showSettings && <GlobalSettingsModal   onClose={() => setShowSettings(false)} onBugReport={() => { setShowSettings(false); setShowBugReport(true) }} />}
+      {showBugReport && <BugReportSheet onClose={() => setShowBugReport(false)} />}
     </>
   )
 }

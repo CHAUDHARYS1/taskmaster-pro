@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from '@phosphor-icons/react'
 import { useMembers } from '../../hooks/useMembers'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -39,7 +40,7 @@ export default function InviteModal({ onClose }) {
       <div className="modal-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-hdr">
           <h2 className="modal-ttl">Invite to {currentWorkspace?.name}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         {!inviteLink ? (

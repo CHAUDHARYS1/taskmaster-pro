@@ -150,7 +150,7 @@ Key tokens: `--accent` (#2563EB), `--font-body` (IBM Plex Sans), `--font-mono` (
 - **Toast notifications** — success/error feedback for actions (currently silent)
 - **Status + due date editing in panel** — change a task's column and due date from the detail panel, not just the board
 - **Empty states** — helpful UI for empty columns and new workspaces
-- **Keyboard shortcuts** — `N` new task, `Esc` close, `/` focus search, `?` cheatsheet
+- **Keyboard shortcuts** — full cheatsheet below; press `?` in-app to view
 - **Loading skeletons** — shimmer skeleton matching full board layout
 - **Mobile responsiveness** — off-canvas sidebar drawer, scroll-snap column carousel, bottom-sheet panel
 - **Dark mode** — full token set, system preference detection, flash-prevention script, sidebar toggle
@@ -216,6 +216,53 @@ Run in Supabase dashboard → SQL Editor in order:
 - [ ] Accept invite, verify role enforcement (viewer vs member)
 - [ ] Open board in two browser tabs — confirm real-time sync
 - [ ] Toggle dark mode, reload — confirm preference is remembered
+
+---
+
+## Quality of Life Updates
+
+### QoL 1
+- **Collaborative editing lock** — task cards glow in the editing user's unique color with their initials badge while another user has the panel open; the card is unclickable and un-draggable for others; lock clears instantly via Supabase Broadcast (no page reload required)
+- **List view** — toggle between Kanban board (⊞) and flat table view (☰) from the board header; editing lock indicators appear in both views
+- **Bug report / feature request** — bell icon in the header opens a bottom sheet that submits directly to GitHub Issues via a Netlify function (`netlify/functions/create-github-issue.js`); requires `GITHUB_TOKEN` env var in Netlify and a `user-report` label in the repo
+- **Signup name capture** — first and last name fields on registration; stored in `profiles` via Supabase trigger; used throughout the UI instead of email addresses
+- **Expanded keyboard shortcuts** — `D` dark mode, `F` filter bar, `B`/`L` view toggle, `←`/`→` prev/next task in panel, `Del` delete open task (owners)
+
+### QoL 2
+- **Assignee avatar color** — the assignee bubble on task cards uses the same deterministic color as that user's presence avatar (derived from `src/lib/userColor.js`)
+- **Sidebar user identity** — logged-in user's avatar (in their unique color) and display name shown above the sign-out button in the sidebar footer
+- **Quick-complete button** — a ✓ button appears on task card hover (board and list view) to instantly move a task to Done without opening the detail panel; shows a toast confirmation
+
+### QoL 3
+- **Drag glow fix** — editing lock glow now persists correctly on task cards while dragging to a new column; the DragOverlay card receives the live `editingUser` prop and the dragging ghost stays fully opaque when locked
+- **Drag handle indicator** — a 6-dot grip icon appears on the left edge of task cards on hover, giving clear affordance that cards are draggable; automatically hidden on locked cards
+- **Color-coded column counts** — the task count badge in each column header is color-coded: blue for In Progress, amber for In Review, green for Done
+- **Profile settings** — click the user row in the sidebar footer to open a Profile Settings modal; edit first and last name inline without leaving the board; changes persist to Supabase and update the display name everywhere immediately
+
+---
+
+## Keyboard Shortcuts
+
+Press `?` anywhere on the board to see the in-app cheatsheet.
+
+| Key | Action |
+|---|---|
+| **Navigation** | |
+| `N` | Add a new task |
+| `/` | Focus the search bar |
+| `F` | Focus the filter bar |
+| `B` | Switch to Board view |
+| `L` | Switch to List view |
+| `?` | Toggle the shortcuts cheatsheet |
+| `Esc` | Close the open panel, modal, or sheet |
+| **Board** | |
+| `D` | Toggle dark / light mode |
+| `Del` | Delete the currently-open task *(owners only — shows confirmation)* |
+| **Task panel** | |
+| `←` | Open the previous task |
+| `→` | Open the next task |
+| `Enter` | Submit a comment |
+| `Shift + Enter` | New line inside a comment |
 
 ---
 

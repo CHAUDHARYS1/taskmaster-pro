@@ -20,13 +20,25 @@ export function WorkspaceProvider({ children }) {
 
     if (!error && data) {
       setWorkspaces(data)
-      // Default to personal workspace (id === user.id) unless one is already selected
-      setCurrentWorkspace(prev => prev ?? (data.find(w => w.id === user.id) ?? data[0] ?? null))
+      setCurrentWorkspace(prev => {
+        if (prev) return prev  // already set (e.g. after invite accept)
+        // Restore last-used workspace, fall back to personal then first
+        const lastId = localStorage.getItem('tm_last_workspace')
+        return (lastId && data.find(w => w.id === lastId))
+          ?? data.find(w => w.id === user.id)
+          ?? data[0]
+          ?? null
+      })
     }
     setLoading(false)
   }, [user])
 
   useEffect(() => { fetchWorkspaces() }, [fetchWorkspaces])
+
+  // Keep localStorage in sync whenever currentWorkspace changes
+  useEffect(() => {
+    if (currentWorkspace?.id) localStorage.setItem('tm_last_workspace', currentWorkspace.id)
+  }, [currentWorkspace])
 
   // Resolve the user's role in the active workspace
   useEffect(() => {
@@ -40,7 +52,10 @@ export function WorkspaceProvider({ children }) {
       .then(({ data }) => setUserRole(data?.role ?? 'member'))
   }, [currentWorkspace, user])
 
-  const switchWorkspace = (workspace) => setCurrentWorkspace(workspace)
+  const switchWorkspace = useCallback((workspace) => {
+    if (workspace?.id) localStorage.setItem('tm_last_workspace', workspace.id)
+    setCurrentWorkspace(workspace)
+  }, [])
 
   const createWorkspace = async (name) => {
     const { data, error } = await supabase.rpc('create_workspace', { workspace_name: name })
@@ -57,10 +72,34 @@ export function WorkspaceProvider({ children }) {
     setCurrentWorkspace(prev => prev?.id === id ? { ...prev, name } : prev)
   }
 
+  const updateWorkspaceSettings = async (id, settings) => {
+    const { error } = await supabase.from('workspaces').update(settings).eq('id', id)
+    if (error) throw error
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, ...settings } : w))
+    setCurrentWorkspace(prev => prev?.id === id ? { ...prev, ...settings } : prev)
+  }
+
+  const deleteWorkspace = async (id) => {
+    const { error } = await supabase.from('workspaces').delete().eq('id', id)
+    if (error) throw error
+    if (localStorage.getItem('tm_last_workspace') === id) {
+      localStorage.removeItem('tm_last_workspace')
+    }
+    setWorkspaces(prev => {
+      const next = prev.filter(w => w.id !== id)
+      const fallback = next.find(w => w.id === user?.id) ?? next[0] ?? null
+      if (fallback?.id) localStorage.setItem('tm_last_workspace', fallback.id)
+      setCurrentWorkspace(fallback)
+      return next
+    })
+  }
+
   return (
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
-      switchWorkspace, createWorkspace, renameWorkspace,
+      autoSave: currentWorkspace?.auto_save ?? false,
+      switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
+      updateWorkspaceSettings,
       refetch: fetchWorkspaces,
     }}>
       {children}

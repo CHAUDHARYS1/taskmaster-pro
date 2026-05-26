@@ -1,20 +1,40 @@
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
 
-const COLORS = ['#2563EB', '#15803d', '#7c3aed', '#c2410c', '#be185d', '#0f766e']
 const MAX_VISIBLE = 4
 
-function colorFor(email) {
-  let hash = 0
-  for (const ch of email) hash = (hash * 31 + ch.charCodeAt(0)) | 0
-  return COLORS[Math.abs(hash) % COLORS.length]
+function initials(u) {
+  if (u.display_name) {
+    const parts = u.display_name.trim().split(/\s+/)
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase()
+  }
+  return u.email.split('@')[0].slice(0, 2).toUpperCase()
 }
 
-function initials(email) {
-  return email.split('@')[0].slice(0, 2).toUpperCase()
+function timeAgo(isoString) {
+  if (!isoString) return 'Active now'
+  const minutes = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000)
+  if (minutes < 2)  return 'Active just now'
+  if (minutes < 10) return 'Active a few minutes ago'
+  if (minutes < 30) return 'Active about 15 minutes ago'
+  if (minutes < 60) return 'Active about 30 minutes ago'
+  return 'Active over an hour ago'
 }
 
 export default function PresenceAvatars({ users }) {
-  const { user } = useAuth()
+  const { user }   = useAuth()
+  const [openId, setOpenId] = useState(null)
+  const wrapRef    = useRef(null)
+
+  useEffect(() => {
+    if (!openId) return
+    const close = (e) => { if (!wrapRef.current?.contains(e.target)) setOpenId(null) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [openId])
 
   if (!users || users.length < 2) return null
 
@@ -22,19 +42,48 @@ export default function PresenceAvatars({ users }) {
   const overflow = users.length - MAX_VISIBLE
 
   return (
-    <div className="presence-avatars" aria-label={`${users.length} people viewing`}>
-      {visible.map(u => (
-        <div
-          key={u.user_id}
-          className="presence-avatar"
-          style={{ background: colorFor(u.email) }}
-          title={u.user_id === user?.id ? `${u.email} (you)` : u.email}
-        >
-          {initials(u.email)}
-        </div>
-      ))}
+    <div className="presence-avatars" ref={wrapRef} aria-label={`${users.length} people viewing`}>
+      {visible.map(u => {
+        const isSelf = u.user_id === user?.id
+        const isOpen = openId === u.user_id
+        return (
+          <div
+            key={u.user_id}
+            className="presence-avatar-wrap"
+            onClick={() => setOpenId(isOpen ? null : u.user_id)}
+          >
+            {u.avatar_url ? (
+              <img
+                src={u.avatar_url}
+                alt={u.display_name || u.email}
+                className="presence-avatar presence-avatar--photo"
+              />
+            ) : (
+              <div
+                className="presence-avatar"
+                style={{ background: userColor(u.user_id) }}
+                aria-label={u.display_name || u.email}
+              >
+                {initials(u)}
+              </div>
+            )}
+
+            {isOpen && (
+              <div className="presence-tooltip" role="tooltip">
+                <span className="presence-tooltip-name">
+                  {u.display_name || u.email.split('@')[0]}
+                  {isSelf && <span className="presence-tooltip-you"> (you)</span>}
+                </span>
+                <span className="presence-tooltip-email">{u.email}</span>
+                <span className="presence-tooltip-time">{timeAgo(u.last_seen)}</span>
+              </div>
+            )}
+          </div>
+        )
+      })}
+
       {overflow > 0 && (
-        <div className="presence-avatar presence-avatar--overflow" title={`${overflow} more`}>
+        <div className="presence-avatar presence-avatar--overflow" aria-label={`${overflow} more people`}>
           +{overflow}
         </div>
       )}

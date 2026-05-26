@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Check } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -12,6 +13,7 @@ export default function AcceptInvitePage() {
 
   const [status, setStatus] = useState('idle') // idle | accepting | success | error
   const [error, setError]   = useState('')
+  const acceptedRef = useRef(false)
 
   useEffect(() => {
     // Wait for auth to resolve
@@ -22,6 +24,10 @@ export default function AcceptInvitePage() {
       navigate(`/login?redirect=/invite/${token}`, { replace: true })
       return
     }
+
+    // Guard against double-invocation (unstable context refs cause re-runs)
+    if (acceptedRef.current) return
+    acceptedRef.current = true
 
     // Logged in — accept the invitation
     const accept = async () => {
@@ -37,7 +43,20 @@ export default function AcceptInvitePage() {
       // Refresh workspaces and switch to the newly joined one
       await refetch()
       if (data?.workspace_id) {
-        switchWorkspace({ id: data.workspace_id })
+        const { data: ws } = await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('id', data.workspace_id)
+          .single()
+        if (ws) switchWorkspace(ws)
+      }
+
+      // Store welcome data so the board can show the modal after redirect
+      if (data?.workspace_name) {
+        localStorage.setItem('tm_welcome', JSON.stringify({
+          workspace_name:  data.workspace_name,
+          invited_by_name: data.invited_by_name ?? null,
+        }))
       }
 
       setStatus('success')
@@ -61,7 +80,7 @@ export default function AcceptInvitePage() {
     return (
       <div className="invite-page">
         <div className="invite-card">
-          <p className="invite-status invite-status--success">✓ You've joined the workspace! Redirecting…</p>
+          <p className="invite-status invite-status--success"><Check size={20} weight="bold" aria-hidden="true" /> You've joined the workspace! Redirecting…</p>
         </div>
       </div>
     )

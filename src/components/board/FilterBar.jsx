@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { MagnifyingGlass } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
-import { LABELS } from '../../lib/labels'
+import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
 
-export default function FilterBar({ workspaceId, filters, onChange, searchRef }) {
+export default function FilterBar({ workspaceId, filters, onChange, searchRef, onAdd, projects }) {
+  const { labels } = useLabelsCtx()
   const [members, setMembers] = useState([])
 
   useEffect(() => {
@@ -15,14 +17,14 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
       .then(({ data }) => { if (data) setMembers(data) })
   }, [workspaceId])
 
-  const isActive = filters.search || filters.assigneeId || filters.priority || filters.label || filters.due
+  const isActive = filters.search || filters.assigneeId || filters.priority || filters.label || filters.due || filters.project
   const set = (key, val) => onChange({ ...filters, [key]: val })
-  const clear = () => onChange({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const clear = () => onChange({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
 
   return (
     <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
       <div className="filter-search-wrap">
-        <span className="filter-search-icon" aria-hidden="true">⌕</span>
+        <MagnifyingGlass size={18} className="filter-search-icon" aria-hidden="true" />
         <input
           ref={searchRef}
           type="search"
@@ -33,6 +35,20 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
           aria-label="Search tasks"
         />
       </div>
+
+      {projects && (
+        <select
+          className={`filter-select${filters.project ? ' filter-select--active' : ''}`}
+          value={filters.project}
+          onChange={e => set('project', e.target.value)}
+          aria-label="Filter by project"
+        >
+          <option value="">Project</option>
+          {projects.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      )}
 
       <select
         className={`filter-select${filters.assigneeId ? ' filter-select--active' : ''}`}
@@ -67,7 +83,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
         aria-label="Filter by label"
       >
         <option value="">Label</option>
-        {LABELS.map(l => (
+        {labels.map(l => (
           <option key={l.id} value={l.id}>{l.name}</option>
         ))}
       </select>
@@ -88,6 +104,11 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
       {isActive && (
         <button className="filter-clear" onClick={clear} aria-label="Clear all filters">
           Clear
+        </button>
+      )}
+      {onAdd && (
+        <button className="btn-primary btn-sm filter-add-btn" onClick={onAdd}>
+          + Add Task
         </button>
       )}
     </div>
