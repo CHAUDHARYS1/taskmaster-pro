@@ -1402,6 +1402,88 @@ ul, ol { list-style: none; }
   border-radius: var(--radius);
 }
 
+/* ── Tiptap Editor ───────────────────────────────────────── */
+.tiptap-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tiptap-wrap--editable:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  background: var(--card);
+}
+
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.tiptap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tiptap-btn:hover    { background: var(--paper-2); color: var(--ink); }
+.tiptap-btn--active  { background: var(--accent-tint); color: var(--accent); }
+
+.tiptap-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  margin: 0 var(--space-1);
+}
+
+.tiptap-content {
+  padding: var(--space-2) var(--space-3);
+  min-height: 80px;
+  cursor: text;
+}
+
+.tiptap-content .ProseMirror {
+  outline: none;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.tiptap-content .ProseMirror p { margin: 0 0 var(--space-1); }
+.tiptap-content .ProseMirror p:last-child { margin-bottom: 0; }
+
+.tiptap-content .ProseMirror ul,
+.tiptap-content .ProseMirror ol {
+  padding-left: var(--space-5);
+  margin: 0 0 var(--space-1);
+}
+
+.tiptap-content .ProseMirror li { margin-bottom: 2px; }
+
+.tiptap-content .ProseMirror strong { font-weight: var(--weight-semibold); color: var(--ink); }
+.tiptap-content .ProseMirror em    { font-style: italic; }
+
+.tiptap-content .ProseMirror p.is-empty::before {
+  content: 'Add a description…';
+  color: var(--ink-4);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── Task description (legacy styles still used for read-only text) */
 .task-panel-desc-input {
   width: 100%;
   font-size: var(--text-md);

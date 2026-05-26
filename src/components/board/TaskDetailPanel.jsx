@@ -8,7 +8,14 @@ import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
+import TiptapEditor from '../ui/TiptapEditor'
 import { PRIORITIES } from '../../lib/priority'
+
+function toHtml(text) {
+  if (!text) return ''
+  if (text.trim().startsWith('<')) return text
+  return text.split('\n').filter(s => s.trim()).map(l => `<p>${l}</p>`).join('') || ''
+}
 
 function memberDisplayName(m) {
   const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
@@ -45,7 +52,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
 
   const [title, setTitle]           = useState(task.text)
-  const [description, setDescription] = useState(task.description ?? '')
+  const [description, setDescription] = useState(() => toHtml(task.description ?? ''))
   const [commentBody, setCommentBody]         = useState('')
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editingCommentBody, setEditingCommentBody] = useState('')
@@ -57,7 +64,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
 
   // Keep local title/description in sync if task updates from real-time
   useEffect(() => { setTitle(task.text) }, [task.text])
-  useEffect(() => { setDescription(task.description ?? '') }, [task.description])
+  useEffect(() => { setDescription(toHtml(task.description ?? '')) }, [task.description])
 
   // Fetch workspace members for the assignee dropdown
   useEffect(() => {
@@ -70,7 +77,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
   }, [currentWorkspace?.id])
 
   const titleChanged = title.trim() !== task.text
-  const descChanged  = description.trim() !== (task.description ?? '').trim()
+  const descChanged  = (description || null) !== (toHtml(task.description) || null)
   const hasPending   = !autoSave && canEdit && (titleChanged || descChanged)
 
   const saveTitle = () => {
@@ -80,9 +87,9 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
   }
 
   const saveDescription = () => {
-    const trimmed = description.trim()
-    if (autoSave && trimmed !== (task.description ?? '').trim()) {
-      onUpdate(task.id, { description: trimmed || null })
+    const newVal = description || null
+    if (autoSave && newVal !== (toHtml(task.description) || null)) {
+      onUpdate(task.id, { description: newVal })
     }
   }
 
@@ -90,8 +97,8 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
     const updates = {}
     const t = title.trim()
     if (t && t !== task.text) updates.text = t
-    const d = description.trim()
-    if (d !== (task.description ?? '').trim()) updates.description = d || null
+    const d = description || null
+    if (d !== (toHtml(task.description) || null)) updates.description = d
     if (Object.keys(updates).length) onUpdate(task.id, updates)
   }
 
@@ -160,19 +167,14 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
 
           <div className="task-panel-section">
             <p className="task-panel-label">Description</p>
-            {canEdit ? (
-              <textarea
-                className="task-panel-desc-input"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                onBlur={saveDescription}
-                placeholder="Add a description…"
-                rows={4}
-              />
-            ) : (
-              <p className="task-panel-desc-ro">
-                {task.description || <span className="task-panel-empty">No description.</span>}
-              </p>
+            <TiptapEditor
+              content={description}
+              onChange={setDescription}
+              onBlur={saveDescription}
+              editable={canEdit}
+            />
+            {!canEdit && !task.description && (
+              <span className="task-panel-empty">No description.</span>
             )}
           </div>
 
