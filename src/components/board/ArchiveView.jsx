@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
+import { Archive, X } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useArchive } from '../../hooks/useArchive'
 import { useToast } from '../../contexts/ToastContext'
@@ -93,7 +94,7 @@ export default function ArchiveView({ canEdit, canDelete }) {
 
       {groups.length === 0 ? (
         <div className="archive-empty">
-          <p className="archive-empty-icon" aria-hidden="true">🗂</p>
+          <Archive size={48} className="archive-empty-icon" aria-hidden="true" />
           <p className="archive-empty-text">Nothing archived yet.</p>
         </div>
       ) : (
@@ -129,7 +130,7 @@ export default function ArchiveView({ canEdit, canDelete }) {
                         onClick={() => handleDelete(task)}
                         aria-label="Permanently delete"
                       >
-                        ×
+                        <X size={18} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </div>

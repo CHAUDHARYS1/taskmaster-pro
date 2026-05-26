@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { X, Camera } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { userColor } from '../../lib/userColor'
@@ -70,7 +71,7 @@ export default function ProfileSettingsModal({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Profile settings</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="modal-body">
@@ -99,7 +100,7 @@ export default function ProfileSettingsModal({ onClose }) {
                 </span>
               )}
               <span className="avatar-upload-overlay" aria-hidden="true">
-                {uploading ? '…' : '📷'}
+                {uploading ? '…' : <Camera size={22} />}
               </span>
             </button>
             <input

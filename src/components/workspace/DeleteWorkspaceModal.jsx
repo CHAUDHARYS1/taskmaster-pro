@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { X } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -48,7 +49,7 @@ export default function DeleteWorkspaceModal({ workspace, onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl delete-ws-title">Delete workspace</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="modal-body">

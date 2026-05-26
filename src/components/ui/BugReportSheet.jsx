@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { X } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 
 export default function BugReportSheet({ onClose }) {
@@ -47,7 +48,7 @@ export default function BugReportSheet({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Report / Request a Feature</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <form className="modal-body" onSubmit={handleSubmit}>

@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
+import { DotsSixVertical, Check, X } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -69,16 +70,7 @@ export default function TaskCard({
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
       {canEdit && !isLockedByOther && (
-        <span className="task-drag-handle" aria-hidden="true">
-          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-            <circle cx="2.5" cy="2"  r="1.5"/>
-            <circle cx="7.5" cy="2"  r="1.5"/>
-            <circle cx="2.5" cy="7"  r="1.5"/>
-            <circle cx="7.5" cy="7"  r="1.5"/>
-            <circle cx="2.5" cy="12" r="1.5"/>
-            <circle cx="7.5" cy="12" r="1.5"/>
-          </svg>
-        </span>
+        <DotsSixVertical size={18} className="task-drag-handle" aria-hidden="true" />
       )}
 
       {isLockedByOther && (
@@ -160,7 +152,7 @@ export default function TaskCard({
           title="Mark as done"
           onClick={e => { e.stopPropagation(); onComplete(task.id) }}
         >
-          ✓
+          <Check size={16} weight="bold" aria-hidden="true" />
         </button>
       )}
 
@@ -170,7 +162,7 @@ export default function TaskCard({
           aria-label="Delete task"
           onClick={e => { e.stopPropagation(); onDelete(task.id) }}
         >
-          ×
+          <X size={16} weight="bold" aria-hidden="true" />
         </button>
       )}
     </li>

@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { Check } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
 
 const HEATMAP_LEVELS = [
@@ -122,7 +123,7 @@ function RecentCompletions({ items }) {
     <ul className="recent-list">
       {items.map(t => (
         <li key={t.id} className="recent-item">
-          <span className="recent-check" aria-hidden="true">✓</span>
+          <Check size={18} weight="bold" className="recent-check" aria-hidden="true" />
           <span className="recent-text">{t.text}</span>
           <span className="recent-date">
             {t.completed_at

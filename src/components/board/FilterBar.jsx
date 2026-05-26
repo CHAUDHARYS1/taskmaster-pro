@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MagnifyingGlass } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
@@ -23,7 +24,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
   return (
     <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
       <div className="filter-search-wrap">
-        <span className="filter-search-icon" aria-hidden="true">⌕</span>
+        <MagnifyingGlass size={18} className="filter-search-icon" aria-hidden="true" />
         <input
           ref={searchRef}
           type="search"

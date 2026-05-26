@@ -1,15 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { Link, CaretDown } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 import ProjectSwitcher from './ProjectSwitcher'
-
-const LinkIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M7 9a3 3 0 0 0 4.243.121l1.5-1.5a3 3 0 0 0-4.243-4.242l-.86.859"/>
-    <path d="M9 7a3 3 0 0 0-4.243-.121l-1.5 1.5a3 3 0 0 0 4.243 4.242l.859-.86"/>
-  </svg>
-)
 
 export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, viewMode, onViewChange }) {
   const { user }   = useAuth()
@@ -52,12 +46,11 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                     {isPersonal ? 'My Workspace' : ws.name}
                   </span>
                   {isActive && (
-                    <span
+                    <CaretDown
+                      size={16}
                       className={`ws-chevron${projectsOpen ? ' ws-chevron--open' : ''}`}
                       aria-hidden="true"
-                    >
-                      ▾
-                    </span>
+                    />
                   )}
                 </button>
                 <button
@@ -66,7 +59,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                   title="Copy workspace link"
                   aria-label="Copy workspace link"
                 >
-                  <LinkIcon />
+                  <Link size={16} aria-hidden="true" />
                 </button>
               </div>
 

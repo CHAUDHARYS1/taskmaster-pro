@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, Bug } from '@phosphor-icons/react'
+import { Archive, Bug, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -257,7 +257,7 @@ export default function Board() {
       <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
       <main className="board-main">
         <div className="board-empty-state">
-          <p className="board-empty-icon" aria-hidden="true">📋</p>
+          <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
           <h2 className="board-empty-title">No workspace selected</h2>
           <p className="board-empty-body">Create a workspace from the sidebar to get started.</p>
         </div>
@@ -284,7 +284,7 @@ export default function Board() {
               onClick={() => setShowSidebar(prev => !prev)}
               aria-label="Toggle sidebar"
             >
-              ☰
+              <List size={22} aria-hidden="true" />
             </button>
             <span className="board-header-title">
               {currentWorkspace?.name}
@@ -310,7 +310,7 @@ export default function Board() {
                 aria-pressed={viewMode === 'board'}
                 title="Board view (B)"
               >
-                <span aria-hidden="true">⊞</span>
+                <SquaresFour size={20} aria-hidden="true" />
               </button>
               <button
                 className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
@@ -318,7 +318,7 @@ export default function Board() {
                 aria-pressed={viewMode === 'list'}
                 title="List view (L)"
               >
-                <span aria-hidden="true">☰</span>
+                <Rows size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -329,7 +329,7 @@ export default function Board() {
               aria-pressed={viewMode === 'archive'}
               title="Archive (A)"
             >
-              <Archive size={16} aria-hidden="true" />
+              <Archive size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -338,7 +338,7 @@ export default function Board() {
               aria-label="Report a bug or request a feature"
               title="Report a bug / request a feature"
             >
-              <Bug size={16} aria-hidden="true" />
+              <Bug size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -347,10 +347,7 @@ export default function Board() {
               aria-label="Workspace settings"
               title="Workspace settings"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
+              <GearSix size={20} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -391,7 +388,7 @@ export default function Board() {
 
         {totalTasks === 0 && !hasFilter && canEdit && viewMode !== 'archive' && (
           <div className="board-empty-state">
-            <p className="board-empty-icon" aria-hidden="true">✦</p>
+            <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
             <h2 className="board-empty-title">Your board is empty</h2>
             <p className="board-empty-body">Add your first task to get started.</p>
             <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
