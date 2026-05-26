@@ -296,12 +296,6 @@ export default function Board() {
           <div className="board-header-right">
             <PresenceAvatars users={present} />
 
-            {canEdit && viewMode !== 'archive' && (
-              <button className="btn-primary btn-sm" onClick={() => setShowModal(true)}>
-                + Add Task
-              </button>
-            )}
-
             {/* Board / List toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
@@ -376,6 +370,7 @@ export default function Board() {
               filters={filters}
               onChange={setFilters}
               searchRef={searchRef}
+              onAdd={canEdit && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
             />
           </div>
         )}
