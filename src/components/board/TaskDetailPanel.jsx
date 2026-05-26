@@ -61,6 +61,15 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
   const [showManageLabels, setShowManageLabels] = useState(false)
 
   const commentInputRef = useRef(null)
+  const titleRef = useRef(null)
+
+  // Auto-resize title textarea to fit content
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [title])
 
   // Keep local title/description in sync if task updates from real-time
   useEffect(() => { setTitle(task.text) }, [task.text])
@@ -154,12 +163,14 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
         <div className="task-panel-body">
           {canEdit ? (
             <textarea
+              ref={titleRef}
               className="task-panel-title-input"
               value={title}
               onChange={e => setTitle(e.target.value)}
               onBlur={saveTitle}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.blur() } }}
               aria-label="Task title"
+              rows={1}
             />
           ) : (
             <h2 className="task-panel-title-ro">{task.text}</h2>

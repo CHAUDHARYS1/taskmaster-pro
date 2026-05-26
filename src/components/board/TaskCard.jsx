@@ -5,6 +5,7 @@ import { DotsSixVertical, Check, X, ChatCircle } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
+import { stripHtml, truncateText } from '../../utils/text'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -114,10 +115,9 @@ export default function TaskCard({
       )}
 
       {task.description && (
-        <div
-          className="task-desc-preview"
-          dangerouslySetInnerHTML={{ __html: task.description }}
-        />
+        <p className="task-desc-preview">
+          {truncateText(stripHtml(task.description))}
+        </p>
       )}
 
       {task.labels?.length > 0 && (
@@ -167,26 +167,30 @@ export default function TaskCard({
         </div>
       )}
 
-      {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
-        <button
-          className="task-complete-btn"
-          aria-label="Mark as done"
-          title="Mark as done"
-          onClick={e => { e.stopPropagation(); onComplete(task.id) }}
-        >
-          <Check size={16} weight="bold" aria-hidden="true" />
-        </button>
-      )}
-
-      {canDelete && !isLockedByOther && (
-        <button
-          className="task-delete"
-          aria-label="Delete task"
-          onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-        >
-          <X size={16} weight="bold" aria-hidden="true" />
-        </button>
-      )}
+      {(canEdit && onComplete && task.status !== 'done' && !isLockedByOther) || (canDelete && !isLockedByOther) ? (
+        <div className="task-card-actions">
+          {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
+            <button
+              className="task-complete-btn"
+              aria-label="Mark as done"
+              title="Mark as done"
+              onClick={e => { e.stopPropagation(); onComplete(task.id) }}
+            >
+              <Check size={13} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+          {canDelete && !isLockedByOther && (
+            <button
+              className="task-delete"
+              aria-label="Delete task"
+              title="Delete task"
+              onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+            >
+              <X size={13} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      ) : null}
     </li>
   )
 }
