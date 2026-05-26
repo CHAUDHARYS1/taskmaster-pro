@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
 
-export default function FilterBar({ workspaceId, filters, onChange, searchRef }) {
+export default function FilterBar({ workspaceId, filters, onChange, searchRef, onAdd }) {
   const { labels } = useLabelsCtx()
   const [members, setMembers] = useState([])
 
@@ -90,6 +90,11 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
       {isActive && (
         <button className="filter-clear" onClick={clear} aria-label="Clear all filters">
           Clear
+        </button>
+      )}
+      {onAdd && (
+        <button className="btn-primary btn-sm filter-add-btn" onClick={onAdd}>
+          + Add Task
         </button>
       )}
     </div>

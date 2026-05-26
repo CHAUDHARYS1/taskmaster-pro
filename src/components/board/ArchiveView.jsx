@@ -38,7 +38,7 @@ function groupByWeek(archives) {
   return groups
 }
 
-export default function ArchiveView({ canEdit, canDelete }) {
+export default function ArchiveView({ canEdit, canDelete, canArchiveNow }) {
   const { currentWorkspace } = useWorkspace()
   const { archives, loading, restoreTask, deleteArchive, archiveNow } =
     useArchive(currentWorkspace?.id)
@@ -85,7 +85,7 @@ export default function ArchiveView({ canEdit, canDelete }) {
             Done tasks are archived automatically every Friday at 9 PM and purged after 30 days.
           </p>
         </div>
-        {canDelete && (
+        {canArchiveNow && (
           <button className="btn-ghost btn-sm" onClick={handleArchiveNow}>
             Archive done tasks now
           </button>

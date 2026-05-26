@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, Bug, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle } from '@phosphor-icons/react'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { createPortal } from 'react-dom'
+import { Archive, Bug, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple } from '@phosphor-icons/react'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -41,6 +42,21 @@ export const DEFAULT_COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
+function TrashZone({ visible }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'trash-zone' })
+  return createPortal(
+    <div
+      ref={setNodeRef}
+      className={['trash-zone', visible && 'trash-zone--visible', isOver && 'trash-zone--over'].filter(Boolean).join(' ')}
+      aria-label="Drop here to delete task"
+    >
+      <TrashSimple size={22} weight="bold" aria-hidden="true" />
+      <span>Drop to delete</span>
+    </div>,
+    document.body
+  )
+}
+
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
   const { currentProject, loading: projLoading } = useProject()
@@ -56,7 +72,8 @@ export default function Board() {
     window.history.replaceState(null, '', path)
   }, [currentWorkspace?.id, currentProject?.id])
   const canEdit   = userRole !== 'viewer'
-  const canDelete = userRole === 'owner'
+  const canDelete = userRole !== 'viewer'   // members can delete individual tasks
+  const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
   const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
     useTasks(currentWorkspace?.id, currentProject?.id)
@@ -73,6 +90,7 @@ export default function Board() {
   )
   const [welcomeData, setWelcomeData]       = useState(null)
   const [showWsSettings, setShowWsSettings] = useState(false)
+  const [isDragging, setIsDragging]         = useState(false)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -83,6 +101,23 @@ export default function Board() {
       const audio = new Audio('/sound/done.mp3')
       audio.volume = 0.5
       audio.play().catch(() => {})
+    } catch { /* silently skip */ }
+  }
+
+  const playDeleteSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc  = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(300, ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.25)
+      gain.gain.setValueAtTime(0.25, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.25)
     } catch { /* silently skip */ }
   }
 
@@ -210,11 +245,26 @@ export default function Board() {
     if (!canEdit) return
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
+    setIsDragging(true)
   }
 
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
-    if (!canEdit || !over || active.id === over.id) return
+    setIsDragging(false)
+    if (!canEdit) return
+
+    // Trash zone drop
+    if (over?.id === 'trash-zone') {
+      const all = Object.values(tasksByStatus).flat()
+      const draggedTask = all.find(t => t.id === active.id)
+      if (draggedTask) {
+        playDeleteSound()
+        scheduleDelete(draggedTask.id, draggedTask.text)
+      }
+      return
+    }
+
+    if (!over || active.id === over.id) return
 
     const all = Object.values(tasksByStatus).flat()
     const draggedTask = all.find(t => t.id === active.id)
@@ -296,12 +346,6 @@ export default function Board() {
           <div className="board-header-right">
             <PresenceAvatars users={present} />
 
-            {canEdit && viewMode !== 'archive' && (
-              <button className="btn-primary btn-sm" onClick={() => setShowModal(true)}>
-                + Add Task
-              </button>
-            )}
-
             {/* Board / List toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
@@ -376,6 +420,7 @@ export default function Board() {
               filters={filters}
               onChange={setFilters}
               searchRef={searchRef}
+              onAdd={canEdit && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
             />
           </div>
         )}
@@ -426,6 +471,8 @@ export default function Board() {
                 ))}
               </div>
 
+              <TrashZone visible={isDragging && canEdit} />
+
               <DragOverlay dropAnimation={null}>
                 {activeTask ? (
                   <TaskCard
@@ -455,7 +502,7 @@ export default function Board() {
             />
           </div>
         ) : (
-          <ArchiveView canEdit={canEdit} canDelete={canDelete} />
+          <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
         )}
       </main>
 

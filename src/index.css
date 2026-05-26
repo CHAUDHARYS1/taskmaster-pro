@@ -1240,6 +1240,8 @@ ul, ol { list-style: none; }
 
 .filter-clear:hover { color: var(--red); background-color: var(--red-tint); }
 
+.filter-add-btn { margin-left: auto; white-space: nowrap; min-height: unset; padding: 5px var(--space-3); }
+
 /* ── Task Detail Panel ────────────────────────────────────── */
 .panel-backdrop {
   position: fixed;
@@ -1402,6 +1404,88 @@ ul, ol { list-style: none; }
   border-radius: var(--radius);
 }
 
+/* ── Tiptap Editor ───────────────────────────────────────── */
+.tiptap-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tiptap-wrap--editable:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  background: var(--card);
+}
+
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.tiptap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tiptap-btn:hover    { background: var(--paper-2); color: var(--ink); }
+.tiptap-btn--active  { background: var(--accent-tint); color: var(--accent); }
+
+.tiptap-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  margin: 0 var(--space-1);
+}
+
+.tiptap-content {
+  padding: var(--space-2) var(--space-3);
+  min-height: 80px;
+  cursor: text;
+}
+
+.tiptap-content .ProseMirror {
+  outline: none;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.tiptap-content .ProseMirror p { margin: 0 0 var(--space-1); }
+.tiptap-content .ProseMirror p:last-child { margin-bottom: 0; }
+
+.tiptap-content .ProseMirror ul,
+.tiptap-content .ProseMirror ol {
+  padding-left: var(--space-5);
+  margin: 0 0 var(--space-1);
+}
+
+.tiptap-content .ProseMirror li { margin-bottom: 2px; }
+
+.tiptap-content .ProseMirror strong { font-weight: var(--weight-semibold); color: var(--ink); }
+.tiptap-content .ProseMirror em    { font-style: italic; }
+
+.tiptap-content .ProseMirror p.is-empty::before {
+  content: 'Add a description…';
+  color: var(--ink-4);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── Task description (legacy styles still used for read-only text) */
 .task-panel-desc-input {
   width: 100%;
   font-size: var(--text-md);
@@ -1846,8 +1930,17 @@ ul, ol { list-style: none; }
 .task-card-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: var(--space-1);
+}
+
+.task-comment-count {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  margin-left: auto;
 }
 
 .task-assignee-avatar {
@@ -1869,11 +1962,27 @@ ul, ol { list-style: none; }
   font-size: var(--text-body);
   color: var(--ink-4);
   line-height: 1.45;
+  max-height: 7.25em; /* ~5 lines */
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  position: relative;
 }
+
+.task-desc-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1.6em;
+  background: linear-gradient(transparent, var(--card));
+  pointer-events: none;
+}
+
+.task-desc-preview p  { margin: 0 0 2px; }
+.task-desc-preview p:last-child { margin-bottom: 0; }
+.task-desc-preview ul,
+.task-desc-preview ol { margin: 0; padding-left: 1.2em; }
+.task-desc-preview li { margin-bottom: 1px; }
+.task-desc-preview strong { font-weight: var(--weight-semibold); color: var(--ink-2); }
+.task-desc-preview em    { font-style: italic; }
 
 /* ── Skeleton / shimmer ───────────────────────────────────── */
 @keyframes shimmer {
@@ -2331,12 +2440,17 @@ ul, ol { list-style: none; }
   font-size: var(--text-xs);
   color: var(--ink-4);
   display: block;
-  white-space: nowrap;
+  max-height: 2.6em;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 320px;
   margin-top: 2px;
 }
+
+.list-task-desc p  { margin: 0; }
+.list-task-desc ul,
+.list-task-desc ol { margin: 0; padding-left: 1.2em; }
+.list-task-desc strong { font-weight: var(--weight-semibold); color: var(--ink-2); }
+.list-task-desc em     { font-style: italic; }
 
 .list-status-pill {
   display: inline-block;
@@ -3205,6 +3319,40 @@ ul, ol { list-style: none; }
   background-color: var(--accent-tint);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ── Drag-to-trash zone ───────────────────────────────────── */
+.trash-zone {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--red);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 4px 20px rgba(185,28,28,0.35);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s var(--ease-spring);
+}
+
+.trash-zone--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.trash-zone--over {
+  background: #991b1b;
+  transform: translateX(-50%) translateY(0) scale(1.07);
+  box-shadow: 0 6px 28px rgba(185,28,28,0.5);
 }
 
 /* ── Help FAB — fixed bottom-right ───────────────────────── */

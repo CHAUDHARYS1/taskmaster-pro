@@ -85,7 +85,10 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                   )}
                   <span className="list-task-text">{task.text}</span>
                   {task.description && (
-                    <span className="list-task-desc">{task.description}</span>
+                    <span
+                      className="list-task-desc"
+                      dangerouslySetInnerHTML={{ __html: task.description }}
+                    />
                   )}
                 </td>
 
