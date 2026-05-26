@@ -59,7 +59,7 @@ function TrashZone({ visible }) {
 
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
-  const { currentProject, loading: projLoading } = useProject()
+  const { currentProject, projects, loading: projLoading } = useProject()
   const { user } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
@@ -71,6 +71,7 @@ export default function Board() {
       : `/workspace/${currentWorkspace.id}`
     window.history.replaceState(null, '', path)
   }, [currentWorkspace?.id, currentProject?.id])
+  const isGlobalBoard = !currentProject && !!currentWorkspace
   const canEdit   = userRole !== 'viewer'
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
@@ -81,7 +82,7 @@ export default function Board() {
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
-  const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
   const [showBugReport, setShowBugReport]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
@@ -146,8 +147,8 @@ export default function Board() {
     try { setWelcomeData(JSON.parse(raw)) } catch { /* ignore malformed */ }
   }, [])
 
-  const { search, assigneeId, priority, label, due } = filters
-  const hasFilter = !!(search || assigneeId || priority || label || due)
+  const { search, assigneeId, priority, label, due, project } = filters
+  const hasFilter = !!(search || assigneeId || priority || label || due || project)
 
   const displayByStatus = useMemo(() => {
     if (!hasFilter) return tasksByStatus
@@ -162,6 +163,7 @@ export default function Board() {
       if (assigneeId && task.assignee_id !== assigneeId) return false
       if (priority   && task.priority !== priority)       return false
       if (label      && !(task.labels ?? []).includes(label)) return false
+      if (project    && task.project_id !== project)      return false
       if (due) {
         const d = task.due_date ? dayjs(task.due_date) : null
         if (due === 'overdue' && (!d || !d.isBefore(today)))                                  return false
@@ -175,7 +177,7 @@ export default function Board() {
     return Object.fromEntries(
       Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
     )
-  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due])
+  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due, project])
 
   const navigateTask = (dir) => {
     if (!selectedTaskId) return
@@ -213,7 +215,7 @@ export default function Board() {
   }
 
   useKeyboardShortcuts({
-    'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId) setShowModal(true) },
+    'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
     '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
     'f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
     '?': () => setShowShortcuts(prev => !prev),
@@ -338,9 +340,10 @@ export default function Board() {
             </button>
             <span className="board-header-title">
               {currentWorkspace?.name}
-              {currentProject && (
-                <span className="board-header-project"> / {currentProject.name}</span>
-              )}
+              {isGlobalBoard
+                ? <span className="board-header-project"> / All Projects</span>
+                : currentProject && <span className="board-header-project"> / {currentProject.name}</span>
+              }
             </span>
           </div>
           <div className="board-header-right">
@@ -420,7 +423,8 @@ export default function Board() {
               filters={filters}
               onChange={setFilters}
               searchRef={searchRef}
-              onAdd={canEdit && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
+              onAdd={canEdit && !isGlobalBoard && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
+              projects={isGlobalBoard ? projects : undefined}
             />
           </div>
         )}
@@ -431,7 +435,7 @@ export default function Board() {
           </div>
         )}
 
-        {totalTasks === 0 && !hasFilter && canEdit && viewMode !== 'archive' && (
+        {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'archive' && (
           <div className="board-empty-state">
             <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
             <h2 className="board-empty-title">Your board is empty</h2>
@@ -457,13 +461,14 @@ export default function Board() {
                     hasFilter={hasFilter}
                     canDelete={canDelete}
                     editingMap={editingMap}
+                    showProject={isGlobalBoard}
                     onDelete={(id) => {
                       const task = allTasks.find(t => t.id === id)
                       scheduleDelete(id, task?.text ?? 'Task')
                     }}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' ? async (text) => {
+                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text) => {
                       try { await addTask({ text, status: 'toDo' }); toast.success('Task added') }
                       catch (err) { toast.error(err.message || 'Failed to add task') }
                     } : undefined}
@@ -493,6 +498,7 @@ export default function Board() {
               canEdit={canEdit}
               canDelete={canDelete}
               editingMap={editingMap}
+              showProject={isGlobalBoard}
               onDelete={(id) => {
                 const task = allTasks.find(t => t.id === id)
                 scheduleDelete(id, task?.text ?? 'Task')

@@ -89,6 +89,20 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
       </div>
 
       <ul className="project-list" role="list">
+        <li className="project-list-item">
+          <div className="project-item-row">
+            <button
+              className={`project-item-btn${!currentProject ? ' project-item-btn--active' : ''}`}
+              onClick={() => {
+                switchProject(null)
+                if (location.pathname === '/dashboard') navigate('/')
+              }}
+            >
+              <SquaresFour size={15} className="project-all-icon" aria-hidden="true" />
+              <span className="project-item-name">All Projects</span>
+            </button>
+          </div>
+        </li>
         {projects.map(p => {
           const isActive = currentProject?.id === p.id
           return (

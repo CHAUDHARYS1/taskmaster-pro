@@ -11,19 +11,27 @@ export function ProjectProvider({ children }) {
 
   const [currentProject, setCurrentProject] = useState(null)
 
-  // When workspace changes, pick the right project
+  // When workspace changes, pick the right project (or global board)
   useEffect(() => {
-    if (!currentWorkspace?.id || loading || projects.length === 0) return
+    if (!currentWorkspace?.id || loading) return
     const storageKey = `tm_last_project_${currentWorkspace.id}`
     const lastId = localStorage.getItem(storageKey)
+    if (lastId === '__global__') { setCurrentProject(null); return }
+    if (projects.length === 0) return
     setCurrentProject(
       (lastId && projects.find(p => p.id === lastId)) ?? projects[0] ?? null
     )
   }, [currentWorkspace?.id, loading, projects])
 
   const switchProject = useCallback((project) => {
-    if (!project || !currentWorkspace?.id) return
-    localStorage.setItem(`tm_last_project_${currentWorkspace.id}`, project.id)
+    if (!currentWorkspace?.id) return
+    const storageKey = `tm_last_project_${currentWorkspace.id}`
+    if (!project) {
+      localStorage.setItem(storageKey, '__global__')
+      setCurrentProject(null)
+      return
+    }
+    localStorage.setItem(storageKey, project.id)
     setCurrentProject(project)
   }, [currentWorkspace?.id])
 
@@ -37,13 +45,16 @@ export function ProjectProvider({ children }) {
 
   const removeProject = useCallback(async (id) => {
     await deleteProject(id)
-    // If the deleted project was current, fall back to first remaining
     if (currentProject?.id === id) {
       const remaining = projects.filter(p => p.id !== id)
       const fallback  = remaining[0] ?? null
       setCurrentProject(fallback)
-      if (fallback && currentWorkspace?.id)
-        localStorage.setItem(`tm_last_project_${currentWorkspace.id}`, fallback.id)
+      if (currentWorkspace?.id) {
+        localStorage.setItem(
+          `tm_last_project_${currentWorkspace.id}`,
+          fallback ? fallback.id : '__global__'
+        )
+      }
     }
   }, [currentProject, projects, deleteProject, currentWorkspace?.id])
 

@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
 
-export default function FilterBar({ workspaceId, filters, onChange, searchRef, onAdd }) {
+export default function FilterBar({ workspaceId, filters, onChange, searchRef, onAdd, projects }) {
   const { labels } = useLabelsCtx()
   const [members, setMembers] = useState([])
 
@@ -17,9 +17,9 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef, o
       .then(({ data }) => { if (data) setMembers(data) })
   }, [workspaceId])
 
-  const isActive = filters.search || filters.assigneeId || filters.priority || filters.label || filters.due
+  const isActive = filters.search || filters.assigneeId || filters.priority || filters.label || filters.due || filters.project
   const set = (key, val) => onChange({ ...filters, [key]: val })
-  const clear = () => onChange({ search: '', assigneeId: '', priority: '', label: '', due: '' })
+  const clear = () => onChange({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
 
   return (
     <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
@@ -35,6 +35,20 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef, o
           aria-label="Search tasks"
         />
       </div>
+
+      {projects && (
+        <select
+          className={`filter-select${filters.project ? ' filter-select--active' : ''}`}
+          value={filters.project}
+          onChange={e => set('project', e.target.value)}
+          aria-label="Filter by project"
+        >
+          <option value="">Project</option>
+          {projects.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      )}
 
       <select
         className={`filter-select${filters.assigneeId ? ' filter-select--active' : ''}`}
