@@ -1,9 +1,32 @@
+import { useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskCard from './TaskCard'
 
-export default function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap }) {
+export default function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
+
+  const [showInput, setShowInput] = useState(false)
+  const [text, setText]           = useState('')
+  const inputRef                  = useRef(null)
+
+  const openInput = () => {
+    setShowInput(true)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  const submit = async () => {
+    const trimmed = text.trim()
+    setText('')
+    if (!trimmed) { setShowInput(false); return }
+    await onQuickAdd(trimmed)
+    inputRef.current?.focus()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter')  { e.preventDefault(); submit() }
+    if (e.key === 'Escape') { setText(''); setShowInput(false) }
+  }
 
   let emptyText = null
   if (tasks.length === 0) {
@@ -43,6 +66,27 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
           )}
         </ul>
       </SortableContext>
+
+      {onQuickAdd && canEdit && (
+        <div className="quick-add">
+          {showInput ? (
+            <input
+              ref={inputRef}
+              className="quick-add-input"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => { if (!text.trim()) setShowInput(false) }}
+              placeholder="Task title… Enter to save"
+              aria-label="Quick add task"
+            />
+          ) : (
+            <button className="quick-add-btn" onClick={openInput} aria-label="Quick add task">
+              + Add task
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
