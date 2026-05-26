@@ -33,6 +33,7 @@ export default function TaskCard({
   onComplete,
   isOverlay = false,
   editingUser = null,
+  showProject = false,
 }) {
   const { labelMap } = useLabelsCtx()
   const isLockedByOther = editingUser != null
@@ -104,6 +105,13 @@ export default function TaskCard({
       </div>
 
       <p className="task-text">{task.text}</p>
+
+      {showProject && task.project && (
+        <div className="task-project-badge">
+          <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
+          <span className="task-project-name">{task.project.name}</span>
+        </div>
+      )}
 
       {task.description && (
         <div

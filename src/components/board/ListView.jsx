@@ -27,7 +27,7 @@ function displayName(u) {
   return u.email?.split('@')[0] ?? null
 }
 
-export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap }) {
+export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap, showProject }) {
   const { labelMap } = useLabelsCtx()
   const allTasks = COLUMNS.flatMap(col =>
     (tasksByStatus[col.id] ?? []).map(t => ({ ...t, _colLabel: col.label }))
@@ -43,6 +43,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
         <thead>
           <tr className="list-thead-row">
             <th className="list-th list-th--title">Task</th>
+            {showProject && <th className="list-th">Project</th>}
             <th className="list-th">Status</th>
             <th className="list-th">Priority</th>
             <th className="list-th">Assignee</th>
@@ -91,6 +92,17 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                     />
                   )}
                 </td>
+
+                {showProject && (
+                  <td className="list-td">
+                    {task.project ? (
+                      <div className="task-project-badge">
+                        <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
+                        <span>{task.project.name}</span>
+                      </div>
+                    ) : <span className="list-empty-cell">—</span>}
+                  </td>
+                )}
 
                 <td className="list-td">
                   <span className="list-status-pill">{task._colLabel}</span>

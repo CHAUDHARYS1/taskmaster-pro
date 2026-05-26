@@ -9,36 +9,37 @@ export function useTasks(workspaceId, projectId) {
   const [error, setError] = useState(null)
 
   const fetchTasks = useCallback(async () => {
-    if (!workspaceId || !projectId) return
-    const { data, error } = await supabase
+    if (!workspaceId) return
+    let query = supabase
       .from('tasks')
-      .select('*, assignee:profiles!assignee_id(email), comments(count)')
+      .select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color)')
       .eq('workspace_id', workspaceId)
-      .eq('project_id', projectId)
-      .order('position', { ascending: true })
-
+    if (projectId) query = query.eq('project_id', projectId)
+    const { data, error } = await query.order('position', { ascending: true })
     if (error) setError(error.message)
     else setTasks(data)
     setLoading(false)
   }, [workspaceId, projectId])
 
   useEffect(() => {
-    if (!workspaceId || !projectId) { setTasks([]); setLoading(false); return }
+    if (!workspaceId) { setTasks([]); setLoading(false); return }
     fetchTasks()
 
+    const channelName = projectId ? `project:${projectId}` : `workspace:${workspaceId}`
+    const filter      = projectId
+      ? `project_id=eq.${projectId}`
+      : `workspace_id=eq.${workspaceId}`
+
     const channel = supabase
-      .channel(`project:${projectId}`)
+      .channel(channelName)
       .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'tasks',
-        filter: `project_id=eq.${projectId}`,
-      }, ({ new: task }) => setTasks(prev => [...prev, task]))
+        event: 'INSERT', schema: 'public', table: 'tasks', filter,
+      }, () => fetchTasks())
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'tasks',
-        filter: `project_id=eq.${projectId}`,
-      }, ({ new: task }) => setTasks(prev => prev.map(t => t.id === task.id ? task : t)))
+        event: 'UPDATE', schema: 'public', table: 'tasks', filter,
+      }, ({ new: task }) => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t)))
       .on('postgres_changes', {
-        event: 'DELETE', schema: 'public', table: 'tasks',
-        filter: `project_id=eq.${projectId}`,
+        event: 'DELETE', schema: 'public', table: 'tasks', filter,
       }, ({ old: task }) => setTasks(prev => prev.filter(t => t.id !== task.id)))
       .subscribe()
 
@@ -60,7 +61,6 @@ export function useTasks(workspaceId, projectId) {
     if (error) throw error
   }
 
-  // Optimistic reorder — updates status and position together
   const reorderTask = async (taskId, newStatus, newPosition) => {
     setTasks(prev => prev.map(t =>
       t.id === taskId ? { ...t, status: newStatus, position: newPosition } : t
@@ -87,7 +87,6 @@ export function useTasks(workspaceId, projectId) {
     if (error) { fetchTasks(); throw error }
   }
 
-  // Always sorted by position so real-time updates and optimistic moves stay ordered
   const tasksByStatus = STATUSES.reduce((acc, status) => {
     acc[status] = tasks
       .filter(t => t.status === status)

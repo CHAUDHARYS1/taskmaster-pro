@@ -384,6 +384,22 @@ ul, ol { list-style: none; }
 .task-card--overdue  .task-text { color: var(--red);   }
 .task-card--due-soon .task-text { color: var(--amber); }
 
+.task-project-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+
+.task-project-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .task-edit-input {
   width: 100%;
   font-size: var(--text-md);
@@ -3066,6 +3082,8 @@ ul, ol { list-style: none; }
 }
 .project-item-btn:hover { background-color: var(--paper-2); color: var(--ink); }
 .project-item-btn--active { background-color: var(--paper-2); color: var(--ink); font-weight: var(--weight-semibold); }
+
+.project-all-icon { color: var(--ink-3); }
 
 .project-color-dot {
   display: inline-block;
