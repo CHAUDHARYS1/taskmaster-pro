@@ -752,6 +752,26 @@ ul, ol { list-style: none; }
 .ws-list-item:hover .ws-delete-btn { opacity: 1; }
 .ws-delete-btn:hover { color: var(--red); background-color: var(--red-tint); }
 
+.ws-item-row { display: flex; align-items: center; }
+.ws-item-row .ws-item { flex: 1; min-width: 0; }
+
+.ws-link-btn {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.1s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ws-item-row:hover .ws-link-btn { opacity: 1; }
+.ws-link-btn:hover { color: var(--accent); }
+
 .ws-new-btn {
   font-size: var(--text-body);
   color: var(--ink-3);
@@ -2919,6 +2939,26 @@ ul, ol { list-style: none; }
 }
 .project-item-btn:hover .project-delete-btn { opacity: 1; }
 .project-delete-btn:hover { color: var(--red); }
+
+.project-item-row { display: flex; align-items: center; }
+.project-item-row .project-item-btn { flex: 1; min-width: 0; }
+
+.project-link-btn {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.project-item-row:hover .project-link-btn { opacity: 1; }
+.project-link-btn:hover { color: var(--accent); }
 
 .project-rename-form { padding: 2px var(--space-2); }
 .project-rename-input {

@@ -8,6 +8,8 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
+import WorkspaceDeepLink from './components/workspace/WorkspaceDeepLink'
+import ProjectDeepLink from './components/workspace/ProjectDeepLink'
 import DashboardPage from './components/dashboard/DashboardPage'
 import ToastContainer from './components/ui/ToastContainer'
 
@@ -38,8 +40,11 @@ export default function App() {
           <ProjectProvider>
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
-            <Route path="/invite/:token"  element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
-            <Route path="/dashboard"      element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/invite/:token"        element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
+            <Route path="/workspace/:workspaceId"                        element={<ProtectedRoute><WorkspaceDeepLink /></ProtectedRoute>} />
+            <Route path="/workspace/:workspaceId/project/:projectId"  element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
+            <Route path="/project/:projectId"                         element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
+            <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
