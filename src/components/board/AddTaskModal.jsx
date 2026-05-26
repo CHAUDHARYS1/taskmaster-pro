@@ -39,7 +39,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
       <div className="modal-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
         <div className="modal-hdr">
           <h2 className="modal-ttl">Add New Task</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={handleSubmit}>

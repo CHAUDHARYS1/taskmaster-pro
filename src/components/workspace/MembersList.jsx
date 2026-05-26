@@ -53,7 +53,7 @@ export default function MembersList() {
                 onClick={() => handleRemove(m)}
                 aria-label={`Remove ${memberDisplayName(m)}`}
               >
-                <X size={12} weight="bold" aria-hidden="true" />
+                <X size={16} weight="bold" aria-hidden="true" />
               </button>
             )}
           </li>

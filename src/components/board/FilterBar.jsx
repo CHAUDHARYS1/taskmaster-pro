@@ -24,7 +24,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef })
   return (
     <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
       <div className="filter-search-wrap">
-        <MagnifyingGlass size={14} className="filter-search-icon" aria-hidden="true" />
+        <MagnifyingGlass size={18} className="filter-search-icon" aria-hidden="true" />
         <input
           ref={searchRef}
           type="search"

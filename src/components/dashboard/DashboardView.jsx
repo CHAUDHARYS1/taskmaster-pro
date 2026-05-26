@@ -123,7 +123,7 @@ function RecentCompletions({ items }) {
     <ul className="recent-list">
       {items.map(t => (
         <li key={t.id} className="recent-item">
-          <Check size={14} weight="bold" className="recent-check" aria-hidden="true" />
+          <Check size={18} weight="bold" className="recent-check" aria-hidden="true" />
           <span className="recent-text">{t.text}</span>
           <span className="recent-date">
             {t.completed_at

@@ -2,9 +2,9 @@ import { Check, X, Info } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 
 const ICONS = {
-  success: <Check size={14} weight="bold" aria-hidden="true" />,
-  error:   <X    size={14} weight="bold" aria-hidden="true" />,
-  info:    <Info size={14}               aria-hidden="true" />,
+  success: <Check size={18} weight="bold" aria-hidden="true" />,
+  error:   <X    size={18} weight="bold" aria-hidden="true" />,
+  info:    <Info size={18}               aria-hidden="true" />,
 }
 
 export default function ToastContainer() {
@@ -25,7 +25,7 @@ export default function ToastContainer() {
               {t.action.label}
             </button>
           )}
-          <button className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss"><X size={12} weight="bold" aria-hidden="true" /></button>
+          <button className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss"><X size={16} weight="bold" aria-hidden="true" /></button>
         </div>
       ))}
     </div>

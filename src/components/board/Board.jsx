@@ -284,7 +284,7 @@ export default function Board() {
               onClick={() => setShowSidebar(prev => !prev)}
               aria-label="Toggle sidebar"
             >
-              <List size={18} aria-hidden="true" />
+              <List size={22} aria-hidden="true" />
             </button>
             <span className="board-header-title">
               {currentWorkspace?.name}
@@ -310,7 +310,7 @@ export default function Board() {
                 aria-pressed={viewMode === 'board'}
                 title="Board view (B)"
               >
-                <SquaresFour size={16} aria-hidden="true" />
+                <SquaresFour size={20} aria-hidden="true" />
               </button>
               <button
                 className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
@@ -318,7 +318,7 @@ export default function Board() {
                 aria-pressed={viewMode === 'list'}
                 title="List view (L)"
               >
-                <Rows size={16} aria-hidden="true" />
+                <Rows size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -329,7 +329,7 @@ export default function Board() {
               aria-pressed={viewMode === 'archive'}
               title="Archive (A)"
             >
-              <Archive size={16} aria-hidden="true" />
+              <Archive size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -338,7 +338,7 @@ export default function Board() {
               aria-label="Report a bug or request a feature"
               title="Report a bug / request a feature"
             >
-              <Bug size={16} aria-hidden="true" />
+              <Bug size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -347,7 +347,7 @@ export default function Board() {
               aria-label="Workspace settings"
               title="Workspace settings"
             >
-              <GearSix size={16} aria-hidden="true" />
+              <GearSix size={20} aria-hidden="true" />
             </button>
           </div>
         </div>

@@ -27,7 +27,7 @@ export default function CreateWorkspaceModal({ onClose }) {
       <div className="modal-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-hdr">
           <h2 className="modal-ttl">New Workspace</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">

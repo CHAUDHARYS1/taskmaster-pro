@@ -154,7 +154,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                         title="Mark as done"
                         onClick={() => onComplete(task.id)}
                       >
-                        <Check size={12} weight="bold" aria-hidden="true" />
+                        <Check size={16} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                     {canDelete && !isLockedByOther && (
@@ -164,7 +164,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                         aria-label="Delete task"
                         onClick={() => onDelete(task.id)}
                       >
-                        <X size={12} weight="bold" aria-hidden="true" />
+                        <X size={16} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </div>

@@ -48,7 +48,7 @@ export default function BugReportSheet({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Report / Request a Feature</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <form className="modal-body" onSubmit={handleSubmit}>

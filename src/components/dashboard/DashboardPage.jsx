@@ -25,7 +25,7 @@ export default function DashboardPage() {
               onClick={() => setShowSidebar(p => !p)}
               aria-label="Toggle sidebar"
             >
-              <List size={18} aria-hidden="true" />
+              <List size={22} aria-hidden="true" />
             </button>
             <span className="board-header-title">
               {currentWorkspace?.name && (

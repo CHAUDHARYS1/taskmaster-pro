@@ -70,7 +70,7 @@ export default function TaskCard({
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
       {canEdit && !isLockedByOther && (
-        <DotsSixVertical size={14} className="task-drag-handle" aria-hidden="true" />
+        <DotsSixVertical size={18} className="task-drag-handle" aria-hidden="true" />
       )}
 
       {isLockedByOther && (
@@ -152,7 +152,7 @@ export default function TaskCard({
           title="Mark as done"
           onClick={e => { e.stopPropagation(); onComplete(task.id) }}
         >
-          <Check size={12} weight="bold" aria-hidden="true" />
+          <Check size={16} weight="bold" aria-hidden="true" />
         </button>
       )}
 
@@ -162,7 +162,7 @@ export default function TaskCard({
           aria-label="Delete task"
           onClick={e => { e.stopPropagation(); onDelete(task.id) }}
         >
-          <X size={12} weight="bold" aria-hidden="true" />
+          <X size={16} weight="bold" aria-hidden="true" />
         </button>
       )}
     </li>

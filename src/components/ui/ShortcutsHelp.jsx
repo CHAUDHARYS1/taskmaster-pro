@@ -43,7 +43,7 @@ export default function ShortcutsHelp({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Keyboard shortcuts</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         {SHORTCUT_GROUPS.map(group => (

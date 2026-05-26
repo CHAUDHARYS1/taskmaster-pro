@@ -71,7 +71,7 @@ export default function ProfileSettingsModal({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Profile settings</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="modal-body">
@@ -100,7 +100,7 @@ export default function ProfileSettingsModal({ onClose }) {
                 </span>
               )}
               <span className="avatar-upload-overlay" aria-hidden="true">
-                {uploading ? '…' : <Camera size={18} />}
+                {uploading ? '…' : <Camera size={22} />}
               </span>
             </button>
             <input

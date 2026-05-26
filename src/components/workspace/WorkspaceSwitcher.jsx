@@ -47,7 +47,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                   </span>
                   {isActive && (
                     <CaretDown
-                      size={12}
+                      size={16}
                       className={`ws-chevron${projectsOpen ? ' ws-chevron--open' : ''}`}
                       aria-hidden="true"
                     />
@@ -59,7 +59,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                   title="Copy workspace link"
                   aria-label="Copy workspace link"
                 >
-                  <Link size={12} aria-hidden="true" />
+                  <Link size={16} aria-hidden="true" />
                 </button>
               </div>
 

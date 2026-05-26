@@ -146,7 +146,7 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Workspace Settings</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="ws-settings-tabs" role="tablist">
@@ -232,7 +232,7 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                         onClick={() => handleRemoveMember(m)}
                         aria-label={`Remove ${memberDisplayName(m)}`}
                       >
-                        <X size={12} weight="bold" aria-hidden="true" />
+                        <X size={16} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </li>

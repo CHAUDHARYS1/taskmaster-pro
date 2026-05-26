@@ -140,7 +140,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
                 Save
               </button>
             )}
-            <button className="modal-close" onClick={onClose} aria-label="Close panel"><X size={14} weight="bold" aria-hidden="true" /></button>
+            <button className="modal-close" onClick={onClose} aria-label="Close panel"><X size={18} weight="bold" aria-hidden="true" /></button>
           </div>
         </div>
 
@@ -216,7 +216,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
                     onClick={() => onUpdate(task.id, { due_date: null })}
                     aria-label="Clear due date"
                   >
-                    <X size={12} weight="bold" aria-hidden="true" />
+                    <X size={16} weight="bold" aria-hidden="true" />
                   </button>
                 )}
               </div>

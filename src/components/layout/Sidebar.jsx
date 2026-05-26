@@ -38,7 +38,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             onClick={() => navigate(onDashboard ? '/' : '/dashboard')}
             aria-pressed={onDashboard}
           >
-            <SquaresFour size={14} className="sidebar-dash-icon" aria-hidden="true" />
+            <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
             Dashboard
           </button>
 
@@ -78,12 +78,12 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             <span className="sidebar-user-name" title={user?.email}>
               {displayName || user?.email}
             </span>
-            <PencilSimple size={14} className="sidebar-user-edit" aria-hidden="true" />
+            <PencilSimple size={18} className="sidebar-user-edit" aria-hidden="true" />
           </button>
 
           <div className="sidebar-footer-row">
             <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
-              {isDark ? <><Sun size={14} aria-hidden="true" /> Light</> : <><Moon size={14} aria-hidden="true" /> Dark</>}
+              {isDark ? <><Sun size={18} aria-hidden="true" /> Light</> : <><Moon size={18} aria-hidden="true" /> Dark</>}
             </button>
             <button className="btn-ghost" onClick={signOut}>Sign out</button>
           </div>

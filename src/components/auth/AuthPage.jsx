@@ -55,7 +55,7 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo-row">
-          <Check size={22} weight="bold" className="auth-icon" aria-hidden="true" />
+          <Check size={26} weight="bold" className="auth-icon" aria-hidden="true" />
           <h1 className="auth-app-name">Taskmaster Pro</h1>
         </div>
         <p className="auth-subtitle">

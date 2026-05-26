@@ -10,7 +10,7 @@ export default function WelcomeModal({ workspaceName, invitedByName, onClose }) 
         aria-modal="true"
         aria-label="Welcome to workspace"
       >
-        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
+        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
 
         <div className="welcome-modal-body">
           <div className="welcome-modal-icon" aria-hidden="true">🎉</div>

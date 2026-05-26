@@ -11,9 +11,9 @@ const COLOR_PALETTE = [
 ]
 
 const VIEW_ICONS = {
-  board:   <SquaresFour size={11} aria-hidden="true" />,
-  list:    <Rows        size={11} aria-hidden="true" />,
-  archive: <Archive     size={11} aria-hidden="true" />,
+  board:   <SquaresFour size={15} aria-hidden="true" />,
+  list:    <Rows        size={15} aria-hidden="true" />,
+  archive: <Archive     size={15} aria-hidden="true" />,
 }
 
 function ColorDot({ color, size = 10 }) {
@@ -139,7 +139,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
                     title="Copy project link"
                     aria-label="Copy project link"
                   >
-                    <Link size={12} aria-hidden="true" />
+                    <Link size={16} aria-hidden="true" />
                   </button>
                 </div>
               )}

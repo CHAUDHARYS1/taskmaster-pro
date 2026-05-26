@@ -130,7 +130,7 @@ export default function ArchiveView({ canEdit, canDelete }) {
                         onClick={() => handleDelete(task)}
                         aria-label="Permanently delete"
                       >
-                        <X size={14} weight="bold" aria-hidden="true" />
+                        <X size={18} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </div>
