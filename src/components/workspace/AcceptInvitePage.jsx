@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Check } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -79,7 +80,7 @@ export default function AcceptInvitePage() {
     return (
       <div className="invite-page">
         <div className="invite-card">
-          <p className="invite-status invite-status--success">✓ You've joined the workspace! Redirecting…</p>
+          <p className="invite-status invite-status--success"><Check size={16} weight="bold" aria-hidden="true" /> You've joined the workspace! Redirecting…</p>
         </div>
       </div>
     )

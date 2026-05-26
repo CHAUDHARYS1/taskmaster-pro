@@ -1,23 +1,20 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Archive } from '@phosphor-icons/react'
+import { Archive, Link, SquaresFour, Rows } from '@phosphor-icons/react'
 import { useProject } from '../../contexts/ProjectContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
-
-const LinkIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M7 9a3 3 0 0 0 4.243.121l1.5-1.5a3 3 0 0 0-4.243-4.242l-.86.859"/>
-    <path d="M9 7a3 3 0 0 0-4.243-.121l-1.5 1.5a3 3 0 0 0 4.243 4.242l.859-.86"/>
-  </svg>
-)
 
 const COLOR_PALETTE = [
   '#2563EB', '#16a34a', '#7c3aed', '#dc2626',
   '#d97706', '#0891b2', '#be185d', '#475569',
 ]
 
-const VIEW_ICONS = { board: '⊞', list: '☰', archive: <Archive size={11} aria-hidden="true" /> }
+const VIEW_ICONS = {
+  board:   <SquaresFour size={11} aria-hidden="true" />,
+  list:    <Rows        size={11} aria-hidden="true" />,
+  archive: <Archive     size={11} aria-hidden="true" />,
+}
 
 function ColorDot({ color, size = 10 }) {
   return (
@@ -142,7 +139,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
                     title="Copy project link"
                     aria-label="Copy project link"
                   >
-                    <LinkIcon />
+                    <Link size={12} aria-hidden="true" />
                   </button>
                 </div>
               )}

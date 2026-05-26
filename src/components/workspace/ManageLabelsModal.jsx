@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -57,7 +58,7 @@ export default function ManageLabelsModal({ onClose }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Manage Labels</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="modal-body">
@@ -82,7 +83,7 @@ export default function ManageLabelsModal({ onClose }) {
                     onClick={() => handleDelete(l.id, l.name)}
                     aria-label={`Delete label ${l.name}`}
                   >
-                    ×
+                    <X size={12} weight="bold" aria-hidden="true" />
                   </button>
                 </li>
               ))}

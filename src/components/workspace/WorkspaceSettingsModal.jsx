@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { X } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useMembers } from '../../hooks/useMembers'
@@ -145,7 +146,7 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
       >
         <div className="modal-hdr">
           <h2 className="modal-ttl">Workspace Settings</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={14} weight="bold" aria-hidden="true" /></button>
         </div>
 
         <div className="ws-settings-tabs" role="tablist">
@@ -231,7 +232,7 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                         onClick={() => handleRemoveMember(m)}
                         aria-label={`Remove ${memberDisplayName(m)}`}
                       >
-                        ×
+                        <X size={12} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </li>

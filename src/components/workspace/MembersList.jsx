@@ -1,4 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext'
+import { X } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useMembers } from '../../hooks/useMembers'
 import { useToast } from '../../contexts/ToastContext'
@@ -52,7 +53,7 @@ export default function MembersList() {
                 onClick={() => handleRemove(m)}
                 aria-label={`Remove ${memberDisplayName(m)}`}
               >
-                ×
+                <X size={12} weight="bold" aria-hidden="true" />
               </button>
             )}
           </li>

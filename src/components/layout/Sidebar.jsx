@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { SquaresFour, PencilSimple, Sun, Moon } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -37,14 +38,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             onClick={() => navigate(onDashboard ? '/' : '/dashboard')}
             aria-pressed={onDashboard}
           >
-            <span className="sidebar-dash-icon" aria-hidden="true">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="1" width="5" height="5" rx="1"/>
-                <rect x="8" y="1" width="5" height="5" rx="1"/>
-                <rect x="1" y="8" width="5" height="5" rx="1"/>
-                <rect x="8" y="8" width="5" height="5" rx="1"/>
-              </svg>
-            </span>
+            <SquaresFour size={14} className="sidebar-dash-icon" aria-hidden="true" />
             Dashboard
           </button>
 
@@ -84,12 +78,12 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             <span className="sidebar-user-name" title={user?.email}>
               {displayName || user?.email}
             </span>
-            <span className="sidebar-user-edit" aria-hidden="true">✎</span>
+            <PencilSimple size={14} className="sidebar-user-edit" aria-hidden="true" />
           </button>
 
           <div className="sidebar-footer-row">
             <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
-              {isDark ? '☀ Light' : '☾ Dark'}
+              {isDark ? <><Sun size={14} aria-hidden="true" /> Light</> : <><Moon size={14} aria-hidden="true" /> Dark</>}
             </button>
             <button className="btn-ghost" onClick={signOut}>Sign out</button>
           </div>

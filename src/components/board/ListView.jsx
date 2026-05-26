@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { Check, X } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -153,7 +154,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                         title="Mark as done"
                         onClick={() => onComplete(task.id)}
                       >
-                        ✓
+                        <Check size={12} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                     {canDelete && !isLockedByOther && (
@@ -163,7 +164,7 @@ export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, 
                         aria-label="Delete task"
                         onClick={() => onDelete(task.id)}
                       >
-                        ×
+                        <X size={12} weight="bold" aria-hidden="true" />
                       </button>
                     )}
                   </div>
