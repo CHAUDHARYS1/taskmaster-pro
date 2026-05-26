@@ -4,32 +4,47 @@ const SHORTCUT_GROUPS = [
   {
     label: 'Navigation',
     shortcuts: [
-      { keys: ['N'],       description: 'New task' },
-      { keys: ['/'],       description: 'Focus search' },
-      { keys: ['B'],       description: 'Board view' },
-      { keys: ['L'],       description: 'List view' },
-      { keys: ['?'],       description: 'Toggle shortcuts' },
-      { keys: ['Esc'],     description: 'Close panel / modal' },
+      { keys: ['Ctrl', 'N'],         description: 'New task' },
+      { keys: ['/'],                  description: 'Focus search' },
+      { keys: ['Ctrl', 'B'],         description: 'Board view' },
+      { keys: ['Ctrl', 'L'],         description: 'List view' },
+      { keys: ['Ctrl', 'Shift', 'A'], description: 'Archive view' },
+      { keys: ['?'],                  description: 'Toggle shortcuts' },
+      { keys: ['Esc'],               description: 'Close panel / modal' },
     ],
   },
   {
     label: 'Board',
     shortcuts: [
-      { keys: ['D'],       description: 'Toggle dark mode' },
-      { keys: ['F'],       description: 'Focus filter bar' },
-      { keys: ['Del'],     description: 'Delete open task (owner)' },
+      { keys: ['Ctrl', 'D'],         description: 'Toggle dark mode' },
+      { keys: ['Ctrl', 'F'],         description: 'Focus filter bar' },
+      { keys: ['Del'],               description: 'Delete open task (owner)' },
     ],
   },
   {
     label: 'Task panel',
     shortcuts: [
-      { keys: ['←'],       description: 'Previous task' },
-      { keys: ['→'],       description: 'Next task' },
-      { keys: ['Enter'],   description: 'Submit comment' },
-      { keys: ['⇧', '+', 'Enter'], description: 'New line in comment' },
+      { keys: ['←'],                 description: 'Previous task' },
+      { keys: ['→'],                 description: 'Next task' },
+      { keys: ['Enter'],             description: 'Submit comment' },
+      { keys: ['⇧', 'Enter'],       description: 'New line in comment' },
     ],
   },
 ]
+
+export { SHORTCUT_GROUPS }
+
+function ShortcutKeys({ keys }) {
+  return (
+    <span className="shortcut-keys">
+      {keys.flatMap((k, i) =>
+        i === 0
+          ? [<kbd key={k} className="shortcut-kbd">{k}</kbd>]
+          : [<span key={`sep-${i}`} className="shortcut-sep">+</span>, <kbd key={k} className="shortcut-kbd">{k}</kbd>]
+      )}
+    </span>
+  )
+}
 
 export default function ShortcutsHelp({ onClose }) {
   return (
@@ -53,11 +68,7 @@ export default function ShortcutsHelp({ onClose }) {
               {group.shortcuts.map(({ keys, description }) => (
                 <li key={description} className="shortcut-row">
                   <span className="shortcut-desc">{description}</span>
-                  <span className="shortcut-keys">
-                    {keys.map((k, i) => (
-                      <kbd key={i} className="shortcut-kbd">{k}</kbd>
-                    ))}
-                  </span>
+                  <ShortcutKeys keys={keys} />
                 </li>
               ))}
             </ul>

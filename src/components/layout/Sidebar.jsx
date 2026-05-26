@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Sun, Moon } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
+import GlobalSettingsModal from '../ui/GlobalSettingsModal'
+import BugReportSheet from '../ui/BugReportSheet'
 
 export default function Sidebar({ isOpen, viewMode, onViewChange }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
-  const { isDark, toggle: toggleTheme } = useTheme()
   const navigate   = useNavigate()
   const location   = useLocation()
   const onDashboard = location.pathname === '/dashboard'
-  const [showCreate,   setShowCreate]   = useState(false)
-  const [showProfile,  setShowProfile]  = useState(false)
+  const [showCreate,    setShowCreate]    = useState(false)
+  const [showProfile,   setShowProfile]   = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
+  const [showBugReport, setShowBugReport] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(true)
 
   useEffect(() => { setProjectsOpen(true) }, [currentWorkspace?.id])
@@ -82,8 +84,8 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           </button>
 
           <div className="sidebar-footer-row">
-            <button className="btn-ghost theme-toggle" onClick={toggleTheme} aria-label="Toggle dark mode">
-              {isDark ? <><Sun size={18} aria-hidden="true" /> Light</> : <><Moon size={18} aria-hidden="true" /> Dark</>}
+            <button className="btn-ghost sidebar-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
+              <Gear size={18} aria-hidden="true" />
             </button>
             <button className="btn-ghost" onClick={signOut}>Sign out</button>
           </div>
@@ -92,8 +94,10 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
         </div>
       </aside>
 
-      {showCreate  && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
-      {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
+      {showCreate   && <CreateWorkspaceModal  onClose={() => setShowCreate(false)} />}
+      {showProfile  && <ProfileSettingsModal  onClose={() => setShowProfile(false)} />}
+      {showSettings && <GlobalSettingsModal   onClose={() => setShowSettings(false)} onBugReport={() => { setShowSettings(false); setShowBugReport(true) }} />}
+      {showBugReport && <BugReportSheet onClose={() => setShowBugReport(false)} />}
     </>
   )
 }

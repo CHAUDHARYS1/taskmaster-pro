@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, Bug, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple } from '@phosphor-icons/react'
+import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -23,7 +23,6 @@ import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
-import BugReportSheet from '../ui/BugReportSheet'
 import WelcomeModal from '../ui/WelcomeModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 import ArchiveView from './ArchiveView'
@@ -84,7 +83,6 @@ export default function Board() {
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
-  const [showBugReport, setShowBugReport]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
   const [viewMode, setViewMode]             = useState(
     () => localStorage.getItem('tm_view_mode') ?? 'board'
@@ -215,14 +213,14 @@ export default function Board() {
   }
 
   useKeyboardShortcuts({
-    'n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
-    '/': (e) => { e.preventDefault(); searchRef.current?.focus() },
-    'f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
-    '?': () => setShowShortcuts(prev => !prev),
-    'b': (e) => { e.preventDefault(); setViewMode('board') },
-    'l': (e) => { e.preventDefault(); setViewMode('list') },
-    'a': (e) => { e.preventDefault(); setViewMode('archive') },
-    'd': (e) => { e.preventDefault(); toggleTheme() },
+    'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
+    '/':      (e) => { e.preventDefault(); searchRef.current?.focus() },
+    'ctrl+f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
+    '?':      () => setShowShortcuts(prev => !prev),
+    'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
+    'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
+    'ctrl+shift+a': (e) => { e.preventDefault(); setViewMode('archive') },
+    'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
     'Delete': () => {
@@ -232,7 +230,6 @@ export default function Board() {
       }
     },
     'Escape': () => {
-      if (showBugReport)  { setShowBugReport(false); return }
       if (showShortcuts)  { setShowShortcuts(false); return }
       if (selectedTaskId) { setSelectedTaskId(null); return }
       if (showModal)      { setShowModal(false) }
@@ -377,15 +374,6 @@ export default function Board() {
               title="Archive (A)"
             >
               <Archive size={20} aria-hidden="true" />
-            </button>
-
-            <button
-              className="bug-report-btn"
-              onClick={() => setShowBugReport(true)}
-              aria-label="Report a bug or request a feature"
-              title="Report a bug / request a feature"
-            >
-              <Bug size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -544,7 +532,6 @@ export default function Board() {
       )}
 
       {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-      {showBugReport  && <BugReportSheet onClose={() => setShowBugReport(false)} />}
       {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
       {welcomeData    && (
         <WelcomeModal

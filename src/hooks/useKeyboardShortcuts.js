@@ -11,7 +11,14 @@ export function useKeyboardShortcuts(map) {
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) ||
         document.activeElement?.isContentEditable
 
-      const fn = mapRef.current[e.key]
+      // Build a normalized combo: 'ctrl+n', 'ctrl+shift+a', 'Escape', etc.
+      const mods = []
+      if (e.ctrlKey || e.metaKey) mods.push('ctrl')
+      if (e.shiftKey) mods.push('shift')
+      const combo = mods.length ? `${mods.join('+')}+${e.key}` : e.key
+
+      // Try full combo first, then bare key (handles '?', '/', special keys)
+      const fn = mapRef.current[combo] ?? mapRef.current[e.key]
       if (!fn) return
       // Always honour Escape; skip all other shortcuts while typing
       if (isEditing && e.key !== 'Escape') return
