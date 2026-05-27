@@ -42,6 +42,7 @@ function calcStreak(completedDates) {
 
 export function useMondayStats(workspaceId) {
   const [lastWeekCount,    setLastWeekCount]    = useState(0)
+  const [lastWeekDays,     setLastWeekDays]     = useState([])
   const [miniHeatmapCells, setMiniHeatmapCells] = useState([])
   const [currentStreak,    setCurrentStreak]    = useState(0)
   const [loading,          setLoading]          = useState(true)
@@ -91,12 +92,27 @@ export function useMondayStats(workspaceId) {
       const recentDates     = [...(recent.data ?? []), ...(archivedRecent.data ?? [])].map(r => r.completed_at)
       const historicalDates = [...(historical.data ?? []), ...(archivedHistorical.data ?? [])].map(r => r.completed_at)
 
+      // Build a per-day count map for the last 14 days
+      const recentCountMap = {}
+      for (const d of recentDates) {
+        const key = dayjs(d).format('YYYY-MM-DD')
+        recentCountMap[key] = (recentCountMap[key] ?? 0) + 1
+      }
+
       const lastWeekCount = recentDates.filter(d => {
         const day = dayjs(d)
         return !day.isBefore(lastWeekStart) && !day.isAfter(lastWeekEnd)
       }).length
 
+      // Per-day breakdown for last week (Sun → Sat)
+      const lastWeekDays = Array.from({ length: 7 }, (_, i) => {
+        const day = lastWeekStart.add(i, 'day')
+        const key = day.format('YYYY-MM-DD')
+        return { dayLabel: day.format('ddd'), date: key, count: recentCountMap[key] ?? 0 }
+      })
+
       setLastWeekCount(lastWeekCount)
+      setLastWeekDays(lastWeekDays)
       setMiniHeatmapCells(buildMiniHeatmap(historicalDates, 12))
       setCurrentStreak(calcStreak(historicalDates))
       setLoading(false)
@@ -105,5 +121,5 @@ export function useMondayStats(workspaceId) {
     load()
   }, [workspaceId])
 
-  return { lastWeekCount, miniHeatmapCells, currentStreak, loading }
+  return { lastWeekCount, lastWeekDays, miniHeatmapCells, currentStreak, loading }
 }

@@ -17,14 +17,14 @@ function heatLevel(count) {
 
 function motivationMessage(count) {
   const s = count === 1 ? '' : 's'
-  if (count === 0) return { main: "Fresh start this week — let's make it count 💪", showCount: false }
-  if (count <= 3)  return { main: `Every task counts 🌱`, showCount: true }
-  if (count <= 9)  return { main: `Nice work! 🚀`, showCount: true }
-  return               { main: `Way to go! 🔥`, showCount: true }
+  if (count === 0) return { main: "Fresh start this week — let's make it count.", showCount: false }
+  if (count <= 3)  return { main: `Every task counts.`, showCount: true }
+  if (count <= 9)  return { main: `Nice work!`, showCount: true }
+  return               { main: `Way to go!`, showCount: true }
 }
 
 export default function MondayMotivationModal({ workspaceId, firstName, onClose }) {
-  const { lastWeekCount, miniHeatmapCells, currentStreak, loading } = useMondayStats(workspaceId)
+  const { lastWeekCount, lastWeekDays, miniHeatmapCells, currentStreak, loading } = useMondayStats(workspaceId)
 
   const greeting = firstName ? `Good morning, ${firstName}!` : 'Good morning!'
   const { main, showCount } = motivationMessage(lastWeekCount)
@@ -44,7 +44,7 @@ export default function MondayMotivationModal({ workspaceId, firstName, onClose 
         </button>
 
         <div className="monday-modal-body">
-          <p className="monday-modal-greeting">🌅 {greeting}</p>
+          <p className="monday-modal-greeting">{greeting}</p>
 
           {loading ? (
             <div className="monday-loading" aria-label="Loading stats" />
@@ -63,6 +63,28 @@ export default function MondayMotivationModal({ workspaceId, firstName, onClose 
                 <p className="monday-modal-message monday-modal-message--solo">{main}</p>
               )}
 
+              {lastWeekDays.length > 0 && (() => {
+                const maxCount = Math.max(...lastWeekDays.map(d => d.count), 1)
+                return (
+                  <div className="monday-week-bars" aria-label="Last week daily breakdown">
+                    <p className="monday-heatmap-label">Last week by day</p>
+                    <div className="monday-week-bar-row">
+                      {lastWeekDays.map(({ dayLabel, date, count }) => (
+                        <div key={date} className="monday-bar-col">
+                          {count > 0 && <span className="monday-bar-count">{count}</span>}
+                          <div
+                            className={`monday-bar${count === 0 ? ' monday-bar--empty' : ''}`}
+                            style={{ height: `${Math.max((count / maxCount) * 48, count > 0 ? 6 : 0)}px` }}
+                            title={`${dayLabel}: ${count} task${count !== 1 ? 's' : ''}`}
+                          />
+                          <span className="monday-bar-label">{dayLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {miniHeatmapCells.length > 0 && (
                 <div className="monday-heatmap-section">
                   <p className="monday-heatmap-label">Your last 12 weeks</p>
@@ -80,7 +102,7 @@ export default function MondayMotivationModal({ workspaceId, firstName, onClose 
 
               {currentStreak > 0 && (
                 <div className="monday-streak" aria-label={`${currentStreak}-day streak`}>
-                  🔥 {currentStreak}-day streak
+                  {currentStreak}-day streak
                 </div>
               )}
             </>
