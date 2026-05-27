@@ -65,7 +65,7 @@ export default function ListView({ columns = DEFAULT_COLS, tasksByStatus, canEdi
                 key={task.id}
                 className={[
                   'list-row',
-                  urgencyClass(task.due_date),
+                  task.status !== 'done' ? urgencyClass(task.due_date) : '',
                   isLockedByOther ? 'list-row--editing' : '',
                 ].filter(Boolean).join(' ')}
                 style={glowColor ? { '--editing-color': glowColor } : undefined}

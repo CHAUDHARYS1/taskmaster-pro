@@ -134,7 +134,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           <div className="task-panel-meta">
             {canEdit ? (
               <select
-                className={`task-panel-status-select ${urgencyClass(task.due_date)}`}
+                className={`task-panel-status-select ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}
                 value={task.status}
                 onChange={e => onUpdate(task.id, { status: e.target.value })}
                 aria-label="Task status"
@@ -144,7 +144,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                 ))}
               </select>
             ) : (
-              <span className={`task-panel-status ${urgencyClass(task.due_date)}`}>
+              <span className={`task-panel-status ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
                 {columns.find(s => s.id === task.status)?.label ?? task.status}
               </span>
             )}
@@ -233,7 +233,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                 )}
               </div>
             ) : (
-              <p className={`task-panel-desc-ro ${urgencyClass(task.due_date)}`}>
+              <p className={`task-panel-desc-ro ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
                 {task.due_date
                   ? dayjs(task.due_date).format('MMM D, YYYY')
                   : <span className="task-panel-empty">No due date.</span>
