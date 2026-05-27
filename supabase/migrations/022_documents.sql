@@ -3,7 +3,7 @@ create table if not exists documents (
   workspace_id uuid not null references workspaces(id) on delete cascade,
   title       text not null default 'Untitled',
   content     text,
-  created_by  uuid references profiles(user_id),
+  created_by  uuid references profiles(id),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
