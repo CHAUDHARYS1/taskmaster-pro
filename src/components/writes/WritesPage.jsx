@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -7,51 +8,52 @@ import Sidebar from '../layout/Sidebar'
 import WritesEditor from './WritesEditor'
 
 export default function WritesPage() {
+  const { docId }    = useParams()
+  const navigate     = useNavigate()
   const { currentWorkspace, loading: wsLoading } = useWorkspace()
-  const { toast }   = useToast()
+  const { toast }    = useToast()
   const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent } = useDocuments(currentWorkspace?.id)
 
-  const [selectedId,  setSelectedId]  = useState(null)
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const [docLoading,  setDocLoading]  = useState(false)
 
-  // Load full content when selection changes
+  // Load full content when docId changes
   useEffect(() => {
-    if (!selectedId) { setCurrentDoc(null); return }
+    if (!docId) { setCurrentDoc(null); return }
     setDocLoading(true)
-    fetchDocContent(selectedId)
+    fetchDocContent(docId)
       .then(setCurrentDoc)
       .catch(err => toast.error(err.message || 'Failed to load document'))
       .finally(() => setDocLoading(false))
-  }, [selectedId])
+  }, [docId])
 
-  // Auto-select first doc when list loads
+  // Auto-navigate to first doc when no docId in URL
   useEffect(() => {
-    if (!selectedId && docs.length > 0) setSelectedId(docs[0].id)
-  }, [docs])
+    if (!docId && docs.length > 0) navigate('/writes/' + docs[0].id, { replace: true })
+  }, [docs, docId])
 
   const handleNew = async () => {
     try {
       const doc = await createDoc()
-      setSelectedId(doc.id)
+      navigate('/writes/' + doc.id)
     } catch (err) {
       toast.error(err.message || 'Failed to create document')
     }
   }
 
   const handleSave = async (updates) => {
-    await updateDoc(selectedId, updates)
+    await updateDoc(docId, updates)
     setCurrentDoc(prev => ({ ...prev, ...updates }))
   }
 
   const handleDelete = async () => {
-    if (!selectedId) return
+    if (!docId) return
     const title = currentDoc?.title || 'Untitled'
     try {
-      await deleteDoc(selectedId)
+      await deleteDoc(docId)
       toast.success(`"${title}" deleted`)
-      setSelectedId(null)
+      navigate('/writes', { replace: true })
       setCurrentDoc(null)
     } catch (err) {
       toast.error(err.message || 'Failed to delete document')
@@ -86,8 +88,8 @@ export default function WritesPage() {
               {docs.map(doc => (
                 <li key={doc.id}>
                   <button
-                    className={`writes-list-item${selectedId === doc.id ? ' writes-list-item--active' : ''}`}
-                    onClick={() => setSelectedId(doc.id)}
+                    className={`writes-list-item${docId === doc.id ? ' writes-list-item--active' : ''}`}
+                    onClick={() => navigate('/writes/' + doc.id)}
                   >
                     <span className="writes-list-item-title">{doc.title || 'Untitled'}</span>
                     <span className="writes-list-item-date">{dayjs(doc.updated_at).format('MMM D')}</span>

@@ -1808,6 +1808,49 @@ ul, ol { list-style: none; }
 }
 .we-delete-btn:hover { color: var(--red); }
 
+.we-export-wrap {
+  position: relative;
+}
+
+.we-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  padding: 3px 8px;
+}
+.we-export-btn:hover { color: var(--accent); }
+
+.we-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 140px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.we-export-item {
+  display: block;
+  width: 100%;
+  padding: 9px var(--space-3);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.we-export-item:hover { background: var(--paper-2); }
+.we-export-item--disabled { opacity: 0.45; cursor: not-allowed; }
+.we-export-item--disabled:hover { background: none; }
+.we-export-soon { font-size: var(--text-xs); color: var(--ink-4); margin-left: 4px; }
+
 .we-toolbar {
   display: flex;
   align-items: center;
@@ -1874,6 +1917,11 @@ ul, ol { list-style: none; }
   max-width: 720px;
   margin: 0 auto;
   outline: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  min-height: 480px;
 }
 
 /* Prose styles inside the editor */
@@ -3604,6 +3652,176 @@ ul, ol { list-style: none; }
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Task linked documents ───────────────────────────────────────────────── */
+.task-doc-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-doc-add-btn {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+.task-doc-add-btn:hover { background: var(--accent-tint); }
+
+.task-doc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.task-doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  font-size: var(--text-xs);
+  overflow: hidden;
+}
+
+.task-doc-chip-title {
+  color: var(--accent);
+  padding: 3px 6px 3px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: var(--weight-medium);
+}
+.task-doc-chip-title:hover { text-decoration: underline; }
+
+.task-doc-chip-remove {
+  color: var(--ink-4);
+  padding: 3px 6px 3px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.task-doc-chip-remove:hover { color: var(--red); }
+
+.task-doc-picker {
+  position: relative;
+  margin-top: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.task-doc-picker-input {
+  width: 100%;
+  padding: 8px var(--space-3);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  outline: none;
+}
+
+.task-doc-picker-list {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.task-doc-picker-item {
+  display: block;
+  width: 100%;
+  padding: 8px var(--space-3);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.task-doc-picker-item:hover { background: var(--paper-2); }
+
+.task-doc-picker-empty {
+  padding: 10px var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+}
+
+/* ── Document drawer ─────────────────────────────────────────────────────── */
+.doc-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.doc-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(860px, calc(100vw - 64px));
+  z-index: 61;
+  background-color: var(--card);
+  border-left: 1px solid var(--line);
+  box-shadow: -4px 0 32px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  animation: panelSlideIn 0.22s var(--ease-enter);
+}
+
+.doc-drawer-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.doc-drawer-title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-drawer-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.doc-drawer-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  padding: 4px 10px;
+}
+.doc-drawer-open-btn:hover { color: var(--accent); }
+
+.doc-drawer-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide WritesEditor's own title bar inside the drawer — drawer header covers it */
+.doc-drawer-body .we-doc-hdr { display: none; }
 
 /* ── Presence avatar photo variant ───────────────────────────────────────── */
 .presence-avatar--photo {

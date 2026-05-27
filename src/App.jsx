@@ -46,7 +46,7 @@ export default function App() {
             <Route path="/workspace/:workspaceId/project/:projectId"  element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/project/:projectId"                         element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/writes"                element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
+            <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
