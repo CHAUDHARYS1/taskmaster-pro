@@ -1493,7 +1493,7 @@ ul, ol { list-style: none; }
   border-radius: var(--radius-sm);
   padding: 4px 8px;
   cursor: pointer;
-  width: 108px;
+  width: 136px;
 }
 .due-time-input:focus {
   outline: none;

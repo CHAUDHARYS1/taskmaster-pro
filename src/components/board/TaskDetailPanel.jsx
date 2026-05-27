@@ -223,10 +223,11 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                   aria-label="Due date"
                 />
                 <input
+                  key={task.due_time ?? 'no-time'}
                   type="time"
                   className="due-time-input"
-                  value={task.due_time ?? ''}
-                  onChange={e => onUpdate(task.id, { due_time: e.target.value || null })}
+                  defaultValue={task.due_time ?? ''}
+                  onBlur={e => { if (e.target.value !== (task.due_time ?? '')) onUpdate(task.id, { due_time: e.target.value || null }) }}
                   disabled={!task.due_date}
                   aria-label="Due time"
                 />
