@@ -7,7 +7,9 @@ import {
   ListBullets, ListNumbers,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
+  Export,
 } from '@phosphor-icons/react'
+import { useToast } from '../../contexts/ToastContext'
 
 function Btn({ onClick, active, label, children, disabled }) {
   return (
@@ -29,13 +31,69 @@ function Divider() {
 }
 
 export default function WritesEditor({ doc, onSave, onDelete }) {
+  const { toast } = useToast()
   const [title,      setTitle]      = useState(doc.title)
   const [saveStatus, setSaveStatus] = useState('saved')
   const [linkInput,  setLinkInput]  = useState('')
   const [showLink,   setShowLink]   = useState(false)
+  const [showExport, setShowExport] = useState(false)
 
-  const saveTimer = useRef(null)
-  const titleRef  = useRef(null)
+  const saveTimer   = useRef(null)
+  const titleRef    = useRef(null)
+  const exportRef   = useRef(null)
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    if (!showExport) return
+    const handler = (e) => { if (exportRef.current && !exportRef.current.contains(e.target)) setShowExport(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showExport])
+
+  const handleExportPDF = () => {
+    setShowExport(false)
+    const content = editor?.getHTML() || ''
+    const win = window.open('', '_blank')
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title || 'Untitled'}</title><style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.8; color: #111; max-width: 700px; margin: 48px auto; padding: 0 40px; }
+      h1.doc-title { font-size: 22pt; font-weight: 700; border-bottom: 1px solid #ccc; padding-bottom: 12px; margin-bottom: 24px; }
+      h1 { font-size: 18pt; font-weight: 700; margin: 1.2em 0 0.4em; }
+      h2 { font-size: 14pt; font-weight: 600; margin: 1em 0 0.3em; }
+      h3 { font-size: 12pt; font-weight: 600; margin: 0.9em 0 0.3em; }
+      p  { margin-bottom: 0.75em; }
+      ul, ol { padding-left: 1.5em; margin: 0.5em 0 0.75em; }
+      li { margin-bottom: 0.2em; }
+      blockquote { border-left: 3px solid #888; margin: 0.75em 0; padding: 0.25em 0 0.25em 1em; color: #444; font-style: italic; }
+      hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
+      a  { color: #1a56db; }
+      strong { font-weight: 700; }
+      em { font-style: italic; }
+      s  { text-decoration: line-through; }
+      @media print { body { margin: 0; } }
+    </style></head><body>
+      <h1 class="doc-title">${title || 'Untitled'}</h1>
+      ${content}
+    </body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
+  const handleExportGoogleDocs = async () => {
+    setShowExport(false)
+    const content = editor?.getHTML() || ''
+    const fullHtml = `<h1>${title || 'Untitled'}</h1>${content}`
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'text/html': new Blob([fullHtml], { type: 'text/html' }) }),
+      ])
+    } catch {
+      // Fallback to plain text if ClipboardItem not supported
+      await navigator.clipboard.writeText(`${title || 'Untitled'}\n\n${editor?.getText() || ''}`)
+    }
+    toast.success('Copied! Go to Google Docs → New doc → Paste (Ctrl+V)')
+  }
 
   // Sync title if doc changes (e.g. switched document)
   useEffect(() => {
@@ -118,6 +176,29 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
             {saveStatus === 'saving'  && 'Saving…'}
             {saveStatus === 'unsaved' && 'Unsaved'}
           </span>
+
+          <div className="we-export-wrap" ref={exportRef}>
+            <button
+              className="btn-ghost we-export-btn"
+              onClick={() => setShowExport(v => !v)}
+              aria-label="Export document"
+              title="Export"
+            >
+              <Export size={15} aria-hidden="true" />
+              Export
+            </button>
+            {showExport && (
+              <div className="we-export-menu" role="menu">
+                <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
+                  PDF
+                </button>
+                <button className="we-export-item" role="menuitem" onClick={handleExportGoogleDocs}>
+                  Google Docs
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             className="btn-ghost we-delete-btn"
             onClick={onDelete}
