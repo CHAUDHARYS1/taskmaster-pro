@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Gear, Coffee } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear, Coffee, SignOut } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -87,7 +87,9 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             <button className="btn-ghost sidebar-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
               <Gear size={18} aria-hidden="true" />
             </button>
-            <button className="btn-ghost" onClick={signOut}>Sign out</button>
+            <button className="btn-ghost sidebar-signout-btn" onClick={signOut} aria-label="Sign out" title="Sign out">
+              <SignOut size={18} aria-hidden="true" />
+            </button>
           </div>
 
           <p className="sidebar-version">v1.0.01</p>

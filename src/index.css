@@ -787,7 +787,10 @@ ul, ol { list-style: none; }
 .settings-shortcuts-list { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .settings-shortcuts-list .shortcut-row { padding: var(--space-2) var(--space-3); }
 
-.sidebar-settings-btn { padding: 4px 8px; }
+.sidebar-settings-btn,
+.sidebar-signout-btn {
+  padding: 4px 8px;
+}
 
 .settings-hdr-left { display: flex; align-items: center; gap: var(--space-1); }
 .settings-back-btn { display: flex; align-items: center; padding: 4px; color: var(--ink-3); }
