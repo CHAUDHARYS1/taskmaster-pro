@@ -23,7 +23,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
 
       <ul className="ws-list">
         {workspaces.map(ws => {
-          const isActive   = currentWorkspace?.id === ws.id && location.pathname !== '/dashboard'
+          const isActive   = currentWorkspace?.id === ws.id && location.pathname !== '/dashboard' && !location.pathname.startsWith('/writes')
           const isPersonal = ws.id === user?.id
           return (
             <li key={ws.id} className="ws-list-item">

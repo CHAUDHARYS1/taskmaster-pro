@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
   const navigate   = useNavigate()
   const location   = useLocation()
   const onDashboard = location.pathname === '/dashboard'
-  const onWrites    = location.pathname === '/writes'
+  const onWrites    = location.pathname.startsWith('/writes')
   const [showCreate,    setShowCreate]    = useState(false)
   const [showProfile,   setShowProfile]   = useState(false)
   const [showSettings,  setShowSettings]  = useState(false)
