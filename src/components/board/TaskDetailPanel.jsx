@@ -28,13 +28,12 @@ function commentAuthor(profiles) {
   return full || profiles.email?.split('@')[0] || 'Unknown'
 }
 
-const STATUS_OPTIONS = [
+const DEFAULT_STATUS_OPTIONS = [
   { id: 'toDo',       label: 'To Do' },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'inReview',   label: 'In Review' },
   { id: 'done',       label: 'Done' },
 ]
-const STATUS_LABELS = Object.fromEntries(STATUS_OPTIONS.map(s => [s.id, s.label]))
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -44,7 +43,7 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpdate, onClose }) {
+export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onClose }) {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
@@ -140,13 +139,13 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
                 onChange={e => onUpdate(task.id, { status: e.target.value })}
                 aria-label="Task status"
               >
-                {STATUS_OPTIONS.map(s => (
+                {columns.map(s => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
             ) : (
               <span className={`task-panel-status ${urgencyClass(task.due_date)}`}>
-                {STATUS_LABELS[task.status]}
+                {columns.find(s => s.id === task.status)?.label ?? task.status}
               </span>
             )}
           </div>

@@ -3676,6 +3676,32 @@ ul, ol { list-style: none; }
 }
 .ws-settings-col-row input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 15px; height: 15px; }
 
+/* Column rename inputs */
+.ws-col-rename-list { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+.ws-col-rename-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ws-col-rename-default {
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.ws-col-rename-input {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.ws-col-rename-input:focus { outline: none; border-color: var(--accent); }
+.ws-col-rename-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── Workspace folder-structure visual ───────────────────── */
 .ws-switcher { padding-bottom: 0; }
 
