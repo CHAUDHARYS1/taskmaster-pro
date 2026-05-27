@@ -24,6 +24,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
 import WelcomeModal from '../ui/WelcomeModal'
+import MondayMotivationModal from '../ui/MondayMotivationModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 import ArchiveView from './ArchiveView'
 
@@ -59,7 +60,7 @@ function TrashZone({ visible }) {
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -88,8 +89,9 @@ export default function Board() {
     () => localStorage.getItem('tm_view_mode') ?? 'board'
   )
   const [welcomeData, setWelcomeData]       = useState(null)
-  const [showWsSettings, setShowWsSettings] = useState(false)
-  const [isDragging, setIsDragging]         = useState(false)
+  const [showWsSettings, setShowWsSettings]     = useState(false)
+  const [isDragging, setIsDragging]             = useState(false)
+  const [showMondayModal, setShowMondayModal]   = useState(false)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -144,6 +146,14 @@ export default function Board() {
     if (!raw) return
     localStorage.removeItem('tm_welcome')
     try { setWelcomeData(JSON.parse(raw)) } catch { /* ignore malformed */ }
+  }, [])
+
+  useEffect(() => {
+    if (dayjs().day() !== 1) return  // only Monday (0 = Sun)
+    const weekKey = dayjs().format('YYYY-[W]WW')
+    if (localStorage.getItem('tm_monday_modal_week') === weekKey) return
+    localStorage.setItem('tm_monday_modal_week', weekKey)
+    setShowMondayModal(true)
   }, [])
 
   const { search, assigneeId, priority, label, due, project } = filters
@@ -545,6 +555,13 @@ export default function Board() {
           workspaceName={welcomeData.workspace_name}
           invitedByName={welcomeData.invited_by_name}
           onClose={() => setWelcomeData(null)}
+        />
+      )}
+      {showMondayModal && currentWorkspace && (
+        <MondayMotivationModal
+          workspaceId={currentWorkspace.id}
+          firstName={profile?.first_name}
+          onClose={() => setShowMondayModal(false)}
         />
       )}
     </div>

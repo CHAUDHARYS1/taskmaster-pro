@@ -2788,6 +2788,126 @@ ul, ol { list-style: none; }
   min-width: 140px;
 }
 
+/* ── Monday motivation modal ──────────────────────────────── */
+.monday-modal {
+  max-width: 420px;
+  position: relative;
+}
+
+.monday-modal .modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 1;
+}
+
+.monday-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  gap: var(--space-3);
+}
+
+.monday-modal-greeting {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+}
+
+.monday-modal-sub {
+  font-size: var(--text-body);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.monday-stat-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  line-height: 1;
+}
+
+.monday-stat-number {
+  font-size: 3.5rem;
+  font-weight: var(--weight-bold);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.monday-stat-unit {
+  font-size: var(--text-lg);
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+}
+
+.monday-modal-message {
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.monday-modal-message--solo {
+  font-size: var(--text-xl);
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  margin-top: var(--space-4);
+}
+
+.monday-heatmap-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.monday-heatmap-label {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.monday-heatmap-grid {
+  gap: 3px;
+}
+
+.monday-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--accent);
+  background: var(--accent-tint);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 99px;
+}
+
+.monday-loading {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: var(--space-6) 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.monday-modal-cta {
+  margin-top: var(--space-3);
+  min-width: 140px;
+}
+
 /* ── Sidebar user row (clickable) ────────────────────────── */
 .sidebar-user-row {
   display: flex;
