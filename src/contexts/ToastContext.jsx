@@ -14,11 +14,11 @@ export function ToastProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const addToast = useCallback((type, message, { duration, action } = {}) => {
+  const addToast = useCallback((type, message, { duration, action, actions, selectAction } = {}) => {
     const id = ++_id
     const ms = duration ?? (type === 'error' ? 5000 : 3500)
-    setToasts(prev => [...prev, { id, type, message, action }])
-    timers.current[id] = setTimeout(() => dismiss(id), ms)
+    setToasts(prev => [...prev, { id, type, message, action, actions, selectAction }])
+    if (ms > 0) timers.current[id] = setTimeout(() => dismiss(id), ms)
     return id
   }, [dismiss])
 

@@ -199,7 +199,7 @@ export default function Board() {
   }
 
   const { toast } = useToast()
-  useTaskReminders(allTasks, toast)
+  useTaskReminders(allTasks, toast, updateTask, columns)
 
   const handleComplete = async (id) => {
     const task = allTasks.find(t => t.id === id)

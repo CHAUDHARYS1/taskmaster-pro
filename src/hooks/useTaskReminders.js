@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
 import dayjs from 'dayjs'
 
-// Module-level maps persist for the page session without causing re-renders
-const reminded = new Map()   // taskId → timestamp when last reminded
-const snoozed  = new Map()   // taskId → snoozeUntil timestamp
+const reminded = new Map()  // taskId → dayjs when last reminded
+const snoozed  = new Map()  // taskId → dayjs snoozeUntil
 
-const REMIND_WINDOW_MIN = 10   // fire when ≤ 10 minutes until due
-const SNOOZE_MIN        = 10   // snooze delay in minutes
+const FIRE_WINDOW_MIN  = 2   // fire within ±2 min of due time
+const SNOOZE_MIN       = 15  // snooze delay
+const COOLDOWN_MIN     = 30  // don't re-fire for 30 min after a reminder
 
 function playReminderSound() {
   try {
@@ -27,17 +27,20 @@ function playReminderSound() {
   } catch { /* silently skip if audio unavailable */ }
 }
 
-export function useTaskReminders(tasks, toast) {
-  // Keep a stable ref to the latest tasks so the interval doesn't go stale
-  const tasksRef = useRef(tasks)
-  useEffect(() => { tasksRef.current = tasks }, [tasks])
+export function useTaskReminders(tasks, toast, updateTask, columns) {
+  const tasksRef      = useRef(tasks)
+  const toastRef      = useRef(toast)
+  const updateRef     = useRef(updateTask)
+  const columnsRef    = useRef(columns)
 
-  const toastRef = useRef(toast)
-  useEffect(() => { toastRef.current = toast }, [toast])
+  useEffect(() => { tasksRef.current   = tasks      }, [tasks])
+  useEffect(() => { toastRef.current   = toast      }, [toast])
+  useEffect(() => { updateRef.current  = updateTask }, [updateTask])
+  useEffect(() => { columnsRef.current = columns    }, [columns])
 
   useEffect(() => {
     function check() {
-      const now = dayjs()
+      const now   = dayjs()
       const today = now.format('YYYY-MM-DD')
 
       for (const task of tasksRef.current) {
@@ -45,44 +48,60 @@ export function useTaskReminders(tasks, toast) {
         if (task.status === 'done') continue
         if (task.due_date !== today) continue
 
-        const dueAt       = dayjs(`${task.due_date}T${task.due_time}`)
-        const minutesLeft = dueAt.diff(now, 'minute')
+        const dueAt      = dayjs(`${task.due_date}T${task.due_time}`)
+        const minutesOff = now.diff(dueAt, 'minute')  // positive = past due
 
-        if (minutesLeft < 0 || minutesLeft > REMIND_WINDOW_MIN) continue
+        // Only fire within FIRE_WINDOW_MIN minutes either side of due time
+        if (Math.abs(minutesOff) > FIRE_WINDOW_MIN) continue
 
-        // Skip if snoozed and snooze hasn't expired
+        // Skip if snoozed
         const snoozeUntil = snoozed.get(task.id)
         if (snoozeUntil && now.isBefore(snoozeUntil)) continue
 
-        // Skip if already reminded in the last REMIND_WINDOW_MIN minutes
-        // (prevents repeated firing during the same window)
+        // Skip if recently reminded (cooldown)
         const lastReminded = reminded.get(task.id)
-        if (lastReminded && now.diff(lastReminded, 'minute') < REMIND_WINDOW_MIN) continue
+        if (lastReminded && now.diff(lastReminded, 'minute') < COOLDOWN_MIN) continue
 
         reminded.set(task.id, now)
-        snoozed.delete(task.id)
 
         playReminderSound()
 
-        const dueLabel    = dueAt.format('h:mm A')
-        const timeLeft    = minutesLeft === 0 ? 'now' : `in ${minutesLeft} min`
-        const message     = `"${task.text}" is due ${timeLeft} (${dueLabel})`
+        const dueLabel  = dueAt.format('h:mm A')
+        const overdue   = minutesOff > 0
+        const message   = overdue
+          ? `"${task.text}" was due at ${dueLabel}`
+          : `"${task.text}" is due at ${dueLabel}`
+
+        const moveOptions = (columnsRef.current ?? [])
+          .filter(c => c.id !== task.status && c.id !== 'done')
+          .map(c => ({ value: c.id, label: c.label }))
 
         toastRef.current?.info(message, {
-          duration: 20000,
-          action: {
-            label: 'Snooze',
-            onClick: () => {
-              snoozed.set(task.id, dayjs().add(SNOOZE_MIN, 'minute'))
-              reminded.delete(task.id)
+          duration: 30000,
+          selectAction: moveOptions.length > 0 ? {
+            placeholder: 'Move to...',
+            options: moveOptions,
+            onChange: (newStatus) => updateRef.current?.(task.id, { status: newStatus }),
+          } : null,
+          actions: [
+            {
+              label: 'Snooze 15m',
+              onClick: () => {
+                snoozed.set(task.id, dayjs().add(SNOOZE_MIN, 'minute'))
+                reminded.delete(task.id)
+              },
             },
-          },
+            {
+              label: 'Done',
+              onClick: () => updateRef.current?.(task.id, { status: 'done' }),
+            },
+          ],
         })
       }
     }
 
-    check() // run once immediately on mount
+    check()
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
-  }, []) // empty deps — uses refs internally
+  }, [])
 }

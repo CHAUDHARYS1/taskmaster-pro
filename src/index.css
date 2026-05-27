@@ -2214,6 +2214,7 @@ ul, ol { list-style: none; }
 
 .toast {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   background-color: var(--card);
@@ -2223,7 +2224,7 @@ ul, ol { list-style: none; }
   box-shadow: var(--shadow-float);
   padding: 10px 14px;
   min-width: 240px;
-  max-width: 360px;
+  max-width: 400px;
   pointer-events: all;
   animation: toastIn 0.25s var(--ease-enter);
 }
@@ -3084,9 +3085,16 @@ ul, ol { list-style: none; }
   gap: var(--space-1);
 }
 
-/* ── Toast action (Undo) button ───────────────────────────── */
-.toast-action {
+/* ── Toast action buttons ─────────────────────────────────── */
+.toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.toast-action {
   background: none;
   border: 1px solid var(--accent);
   color: var(--accent);
@@ -3098,11 +3106,20 @@ ul, ol { list-style: none; }
   transition: background-color 0.15s, color 0.15s;
   white-space: nowrap;
 }
+.toast-action:hover { background-color: var(--accent); color: #fff; }
 
-.toast-action:hover {
-  background-color: var(--accent);
-  color: #fff;
+.toast-select {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  cursor: pointer;
+  white-space: nowrap;
 }
+.toast-select:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-tint); }
 
 /* ── Board progress indicator ─────────────────────────────── */
 .board-progress {
