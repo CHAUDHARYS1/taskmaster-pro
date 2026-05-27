@@ -152,7 +152,7 @@ export default function DashboardView({ workspaceId }) {
 
   if (!data) return null
 
-  const { stats, streak, heatmap, statusBreakdown, recentCompletions } = data
+  const { stats, heatmap, statusBreakdown, recentCompletions } = data
   const completionRate = stats.totalTasks > 0
     ? Math.round((stats.totalCompleted / stats.totalTasks) * 100)
     : 0
@@ -160,23 +160,8 @@ export default function DashboardView({ workspaceId }) {
   return (
     <div className="dashboard">
 
-      {/* ── Streak + Stats ─────────────────────────────── */}
+      {/* ── Stats ──────────────────────────────────────── */}
       <div className="dash-top-row">
-        <div className="dash-streak-card">
-          <div className="streak-flame" aria-hidden="true">🔥</div>
-          <div className="streak-body">
-            <div className="streak-current">
-              <span className="streak-number">{streak.current}</span>
-              <span className="streak-unit">day{streak.current !== 1 ? 's' : ''}</span>
-            </div>
-            <p className="streak-label">Current streak</p>
-            <p className="streak-best">Best: {streak.longest} day{streak.longest !== 1 ? 's' : ''}</p>
-          </div>
-          {streak.current === 0 && (
-            <p className="streak-nudge">Complete a task today to start your streak!</p>
-          )}
-        </div>
-
         <div className="dash-stats-grid">
           <StatCard label="Completed today"      value={stats.completedToday}     />
           <StatCard label="This week"            value={stats.completedThisWeek}  />
