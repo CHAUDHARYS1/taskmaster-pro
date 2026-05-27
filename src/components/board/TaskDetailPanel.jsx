@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
 import TiptapEditor from '../ui/TiptapEditor'
+import TimePicker from '../ui/TimePicker'
 import { PRIORITIES } from '../../lib/priority'
 
 function toHtml(text) {
@@ -222,14 +223,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                   onChange={e => onUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
                   aria-label="Due date"
                 />
-                <input
-                  key={task.due_time ?? 'no-time'}
-                  type="time"
-                  className="due-time-input"
-                  defaultValue={task.due_time ?? ''}
-                  onBlur={e => { if (e.target.value !== (task.due_time ?? '')) onUpdate(task.id, { due_time: e.target.value || null }) }}
+                <TimePicker
+                  value={task.due_time ?? ''}
+                  onChange={val => onUpdate(task.id, { due_time: val || null })}
                   disabled={!task.due_date}
-                  aria-label="Due time"
                 />
                 {task.due_date && (
                   <button
