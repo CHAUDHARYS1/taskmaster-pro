@@ -150,11 +150,6 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             )}
           </div>
           <div className="task-panel-hdr-right">
-            {hasPending && (
-              <button className="btn-primary btn-sm task-panel-save-btn" onClick={handleSave}>
-                Save
-              </button>
-            )}
             <button className="modal-close" onClick={onClose} aria-label="Close panel"><X size={18} weight="bold" aria-hidden="true" /></button>
           </div>
         </div>
@@ -462,6 +457,14 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             )}
           </div>
         </div>
+
+        {hasPending && (
+          <div className="task-panel-ftr">
+            <button className="btn-primary task-panel-save-btn" onClick={handleSave}>
+              Save
+            </button>
+          </div>
+        )}
       </aside>
 
       {showManageLabels && (

@@ -3234,9 +3234,15 @@ ul, ol { list-style: none; }
   gap: var(--space-2);
 }
 
+.task-panel-ftr {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
 .task-panel-save-btn {
-  font-size: var(--text-xs);
-  padding: 4px 10px;
   animation: fadeIn 0.15s ease;
 }
 
