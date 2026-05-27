@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import dayjs from 'dayjs'
 import { Check } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
+
+const AVAILABLE_YEARS = [2026]
 
 const HEATMAP_LEVELS = [
   { min: 0, cls: 'hm-0' },
@@ -38,16 +41,17 @@ function StatCard({ label, value, sub, highlight }) {
 function Heatmap({ cells }) {
   if (!cells?.length) return null
 
-  // Build month label positions: track when month changes across the columns
+  // Build month label positions — only track months for in-year cells
   const monthLabels = []
   let prevMonth = null
   let colIndex  = 0
   let dayInCol  = 0
 
   for (let i = 0; i < cells.length; i++) {
-    const month = dayjs(cells[i].date).month()
-    if (month !== prevMonth) {
-      monthLabels.push({ col: colIndex + 1, label: dayjs(cells[i].date).format('MMM') })
+    const cell  = cells[i]
+    const month = dayjs(cell.date).month()
+    if (!cell.faded && month !== prevMonth) {
+      monthLabels.push({ col: colIndex + 1, label: dayjs(cell.date).format('MMM') })
       prevMonth = month
     }
     dayInCol++
@@ -71,8 +75,8 @@ function Heatmap({ cells }) {
         {cells.map(cell => (
           <div
             key={cell.date}
-            className={`hm-cell ${heatLevel(cell.count)}`}
-            title={`${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''} completed`}
+            className={`hm-cell ${cell.faded ? 'hm-faded' : heatLevel(cell.count)}`}
+            title={cell.faded ? undefined : `${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''} completed`}
           />
         ))}
       </div>
@@ -138,7 +142,8 @@ function RecentCompletions({ items }) {
 }
 
 export default function DashboardView({ workspaceId }) {
-  const { data, loading, error } = useDashboard(workspaceId)
+  const [heatmapYear, setHeatmapYear] = useState(2026)
+  const { data, loading, error } = useDashboard(workspaceId, heatmapYear)
 
   if (loading) return (
     <div className="dash-loading">
@@ -174,7 +179,19 @@ export default function DashboardView({ workspaceId }) {
 
       {/* ── Activity heatmap ───────────────────────────── */}
       <section className="dash-section">
-        <h2 className="dash-section-title">Activity — last 12 months</h2>
+        <div className="dash-section-hdr">
+          <h2 className="dash-section-title">Activity — {heatmapYear}</h2>
+          <select
+            className="heatmap-year-select"
+            value={heatmapYear}
+            onChange={e => setHeatmapYear(Number(e.target.value))}
+            aria-label="Select year"
+          >
+            {AVAILABLE_YEARS.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
         <Heatmap cells={heatmap} />
       </section>
 

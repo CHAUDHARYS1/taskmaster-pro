@@ -2,23 +2,31 @@ import { useCallback, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { supabase } from '../lib/supabase'
 
-function buildHeatmap(completedDates) {
-  // Build a map of date → count
+function buildYearHeatmap(completedDates, year) {
   const countMap = {}
   for (const d of completedDates) {
     const key = dayjs(d).format('YYYY-MM-DD')
     countMap[key] = (countMap[key] ?? 0) + 1
   }
 
-  // Generate 371 cells: start from the Sunday of the week 52 weeks ago
-  const today = dayjs()
-  const startSunday = today.subtract(52, 'week').startOf('week')
+  const jan1        = dayjs(`${year}-01-01`)
+  const dec31       = dayjs(`${year}-12-31`)
+  const today       = dayjs()
+  const endDate     = dec31.isAfter(today) ? today : dec31
+  const startSunday = jan1.startOf('week')
+
   const cells = []
-  for (let i = 0; i < 371; i++) {
-    const date = startSunday.add(i, 'day')
-    const key  = date.format('YYYY-MM-DD')
-    if (date.isAfter(today)) break
-    cells.push({ date: key, count: countMap[key] ?? 0, dayOfWeek: date.day() })
+  let cursor = startSunday
+  while (!cursor.isAfter(endDate)) {
+    const key    = cursor.format('YYYY-MM-DD')
+    const inYear = cursor.year() === year
+    cells.push({
+      date:       key,
+      count:      inYear ? (countMap[key] ?? 0) : 0,
+      dayOfWeek:  cursor.day(),
+      faded:      !inYear,
+    })
+    cursor = cursor.add(1, 'day')
   }
   return cells
 }
@@ -58,7 +66,7 @@ function calculateStreak(completedDates) {
   return { current, longest }
 }
 
-export function useDashboard(workspaceId) {
+export function useDashboard(workspaceId, year = 2026) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
@@ -69,22 +77,24 @@ export function useDashboard(workspaceId) {
     setError(null)
 
     try {
-      const yearAgo = dayjs().subtract(1, 'year').toISOString()
+      const yearStart = `${year}-01-01T00:00:00.000Z`
+      const yearEnd   = `${year + 1}-01-01T00:00:00.000Z`
 
-      const [allTasks, completedRecent, recentDone] = await Promise.all([
+      const [allTasks, completedInYear, recentDone] = await Promise.all([
         // All tasks for status breakdown + totals
         supabase
           .from('tasks')
           .select('id, status, due_date, completed_at')
           .eq('workspace_id', workspaceId),
 
-        // Completed tasks in last year (for heatmap + streak)
+        // Completed tasks in the selected year (for heatmap + streak + year stats)
         supabase
           .from('tasks')
           .select('completed_at')
           .eq('workspace_id', workspaceId)
           .not('completed_at', 'is', null)
-          .gte('completed_at', yearAgo),
+          .gte('completed_at', yearStart)
+          .lt('completed_at', yearEnd),
 
         // Recent completions with text for the activity feed
         supabase
@@ -96,12 +106,12 @@ export function useDashboard(workspaceId) {
           .limit(8),
       ])
 
-      if (allTasks.error)      throw allTasks.error
-      if (completedRecent.error) throw completedRecent.error
-      if (recentDone.error)    throw recentDone.error
+      if (allTasks.error)       throw allTasks.error
+      if (completedInYear.error) throw completedInYear.error
+      if (recentDone.error)     throw recentDone.error
 
       const tasks     = allTasks.data ?? []
-      const doneItems = completedRecent.data ?? []
+      const doneItems = completedInYear.data ?? []
       const recent    = recentDone.data ?? []
 
       const today     = dayjs().startOf('day')
@@ -123,7 +133,7 @@ export function useDashboard(workspaceId) {
       }
 
       const completedDates = doneItems.map(t => t.completed_at)
-      const heatmap        = buildHeatmap(completedDates)
+      const heatmap        = buildYearHeatmap(completedDates, year)
       const streak         = calculateStreak(completedDates)
 
       setData({
@@ -138,7 +148,7 @@ export function useDashboard(workspaceId) {
     } finally {
       setLoading(false)
     }
-  }, [workspaceId])
+  }, [workspaceId, year])
 
   useEffect(() => { fetch() }, [fetch])
 
