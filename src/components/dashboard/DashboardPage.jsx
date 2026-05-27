@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { List, ChartBar } from '@phosphor-icons/react'
+import { List, ChartBar, Plus } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
+import DashboardAddTaskModal from './DashboardAddTaskModal'
 
 export default function DashboardPage() {
   const { currentWorkspace, loading } = useWorkspace()
-  const [showSidebar, setShowSidebar] = useState(false)
+  const [showSidebar,  setShowSidebar]  = useState(false)
+  const [showAddTask,  setShowAddTask]  = useState(false)
+  const [refreshKey,   setRefreshKey]   = useState(0)
 
   if (loading) return <div className="loading-screen">Loading…</div>
 
@@ -34,10 +37,16 @@ export default function DashboardPage() {
               Dashboard
             </span>
           </div>
+          <div className="board-header-right">
+            <button className="btn-primary" onClick={() => setShowAddTask(true)}>
+              <Plus size={16} weight="bold" aria-hidden="true" />
+              Add Task
+            </button>
+          </div>
         </div>
 
         {currentWorkspace ? (
-          <DashboardView workspaceId={currentWorkspace.id} />
+          <DashboardView key={`${currentWorkspace.id}-${refreshKey}`} workspaceId={currentWorkspace.id} />
         ) : (
           <div className="board-empty-state">
             <ChartBar size={48} className="board-empty-icon" aria-hidden="true" />
@@ -46,6 +55,13 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {showAddTask && (
+        <DashboardAddTaskModal
+          onClose={() => setShowAddTask(false)}
+          onSaved={() => setRefreshKey(prev => prev + 1)}
+        />
+      )}
     </div>
   )
 }
