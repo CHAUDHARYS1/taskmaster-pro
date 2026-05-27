@@ -1847,6 +1847,9 @@ ul, ol { list-style: none; }
   color: var(--ink);
 }
 .we-export-item:hover { background: var(--paper-2); }
+.we-export-item--disabled { opacity: 0.45; cursor: not-allowed; }
+.we-export-item--disabled:hover { background: none; }
+.we-export-soon { font-size: var(--text-xs); color: var(--ink-4); margin-left: 4px; }
 
 .we-toolbar {
   display: flex;

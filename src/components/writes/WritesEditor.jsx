@@ -192,8 +192,8 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
                 <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
                   PDF
                 </button>
-                <button className="we-export-item" role="menuitem" onClick={handleExportGoogleDocs}>
-                  Google Docs
+                <button className="we-export-item we-export-item--disabled" role="menuitem" disabled title="Coming soon">
+                  Google Docs <span className="we-export-soon">soon</span>
                 </button>
               </div>
             )}
