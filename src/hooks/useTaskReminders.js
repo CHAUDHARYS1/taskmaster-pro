@@ -4,9 +4,9 @@ import dayjs from 'dayjs'
 const reminded = new Map()  // taskId → dayjs when last reminded
 const snoozed  = new Map()  // taskId → dayjs snoozeUntil
 
-const FIRE_WINDOW_MIN  = 2   // fire within ±2 min of due time
-const SNOOZE_MIN       = 15  // snooze delay
-const COOLDOWN_MIN     = 30  // don't re-fire for 30 min after a reminder
+const FIRE_WINDOW_MIN = 2   // minutes around due time for initial fire
+const SNOOZE_MIN      = 15  // snooze / post-move re-notify delay
+const COOLDOWN_MIN    = 30  // prevent rapid re-fire after reminding
 
 function playReminderSound() {
   try {
@@ -28,10 +28,10 @@ function playReminderSound() {
 }
 
 export function useTaskReminders(tasks, toast, updateTask, columns) {
-  const tasksRef      = useRef(tasks)
-  const toastRef      = useRef(toast)
-  const updateRef     = useRef(updateTask)
-  const columnsRef    = useRef(columns)
+  const tasksRef   = useRef(tasks)
+  const toastRef   = useRef(toast)
+  const updateRef  = useRef(updateTask)
+  const columnsRef = useRef(columns)
 
   useEffect(() => { tasksRef.current   = tasks      }, [tasks])
   useEffect(() => { toastRef.current   = toast      }, [toast])
@@ -46,31 +46,39 @@ export function useTaskReminders(tasks, toast, updateTask, columns) {
       for (const task of tasksRef.current) {
         if (!task.due_date || !task.due_time) continue
         if (task.status === 'done') continue
-        if (task.due_date !== today) continue
+
+        const snoozeUntil   = snoozed.get(task.id)
+        const snoozePending = snoozeUntil && now.isBefore(snoozeUntil)
+        const snoozeDone    = snoozeUntil && !snoozePending
+
+        // Still in snooze window — skip
+        if (snoozePending) continue
 
         const dueAt      = dayjs(`${task.due_date}T${task.due_time}`)
         const minutesOff = now.diff(dueAt, 'minute')  // positive = past due
 
-        // Only fire within FIRE_WINDOW_MIN minutes either side of due time
-        if (Math.abs(minutesOff) > FIRE_WINDOW_MIN) continue
+        // For non-snoozed tasks: must be today and within the fire window
+        if (!snoozeDone) {
+          if (task.due_date !== today) continue
+          if (Math.abs(minutesOff) > FIRE_WINDOW_MIN) continue
+        }
 
-        // Skip if snoozed
-        const snoozeUntil = snoozed.get(task.id)
-        if (snoozeUntil && now.isBefore(snoozeUntil)) continue
-
-        // Skip if recently reminded (cooldown)
+        // Cooldown — don't re-fire too soon after last reminder
         const lastReminded = reminded.get(task.id)
         if (lastReminded && now.diff(lastReminded, 'minute') < COOLDOWN_MIN) continue
 
+        // Ready to fire
+        snoozed.delete(task.id)
         reminded.set(task.id, now)
 
         playReminderSound()
 
-        const dueLabel  = dueAt.format('h:mm A')
-        const overdue   = minutesOff > 0
-        const message   = overdue
-          ? `"${task.text}" was due at ${dueLabel}`
-          : `"${task.text}" is due at ${dueLabel}`
+        const dueLabel = dueAt.format('h:mm A')
+        const message  = snoozeDone
+          ? `Reminder: "${task.text}" (was due at ${dueLabel})`
+          : minutesOff > 0
+            ? `"${task.text}" was due at ${dueLabel}`
+            : `"${task.text}" is due at ${dueLabel}`
 
         const moveOptions = (columnsRef.current ?? [])
           .filter(c => c.id !== task.status && c.id !== 'done')
@@ -81,7 +89,12 @@ export function useTaskReminders(tasks, toast, updateTask, columns) {
           selectAction: moveOptions.length > 0 ? {
             placeholder: 'Move to...',
             options: moveOptions,
-            onChange: (newStatus) => updateRef.current?.(task.id, { status: newStatus }),
+            onChange: (newStatus) => {
+              updateRef.current?.(task.id, { status: newStatus })
+              // Re-queue a reminder after SNOOZE_MIN so the user gets nudged again
+              snoozed.set(task.id, dayjs().add(SNOOZE_MIN, 'minute'))
+              reminded.delete(task.id)
+            },
           } : null,
           actions: [
             {
