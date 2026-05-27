@@ -29,6 +29,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const [title,       setTitle]       = useState('')
   const [desc,        setDesc]        = useState('')
   const [dueDate,     setDueDate]     = useState(today)
+  const [dueTime,     setDueTime]     = useState('')
   const [status,      setStatus]      = useState(columns[0]?.id ?? 'toDo')
   const [priority,    setPriority]    = useState(null)
   const [assigneeId,  setAssigneeId]  = useState('')
@@ -62,6 +63,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
         text,
         description:  desc.trim() || null,
         due_date:     dueDate || null,
+        due_time:     dueTime || null,
         status,
         priority:     priority || null,
         assignee_id:  assigneeId || null,
@@ -142,7 +144,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
             </div>
 
             <div className="add-task-row">
-              <div className="field-block" style={{ flex: 1 }}>
+              <div className="field-block" style={{ flex: 2 }}>
                 <label htmlFor="task-date">Due date</label>
                 <input
                   id="task-date"
@@ -150,6 +152,17 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
                   className="quick-date-input"
+                />
+              </div>
+              <div className="field-block" style={{ flex: 1 }}>
+                <label htmlFor="task-time">Time <span className="field-optional">(optional)</span></label>
+                <input
+                  id="task-time"
+                  type="time"
+                  value={dueTime}
+                  onChange={e => setDueTime(e.target.value)}
+                  className="due-time-input"
+                  disabled={!dueDate}
                 />
               </div>
             </div>

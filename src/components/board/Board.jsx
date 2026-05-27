@@ -21,6 +21,7 @@ import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
+import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
 import WelcomeModal from '../ui/WelcomeModal'
@@ -198,6 +199,7 @@ export default function Board() {
   }
 
   const { toast } = useToast()
+  useTaskReminders(allTasks, toast)
 
   const handleComplete = async (id) => {
     const task = allTasks.find(t => t.id === id)
