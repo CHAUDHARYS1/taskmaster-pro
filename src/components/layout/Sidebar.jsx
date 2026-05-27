@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Gear, Coffee, SignOut, Keyboard } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear, Coffee, SignOut, Keyboard, NotePencil } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -17,6 +17,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
   const navigate   = useNavigate()
   const location   = useLocation()
   const onDashboard = location.pathname === '/dashboard'
+  const onWrites    = location.pathname === '/writes'
   const [showCreate,    setShowCreate]    = useState(false)
   const [showProfile,   setShowProfile]   = useState(false)
   const [showSettings,  setShowSettings]  = useState(false)
@@ -43,6 +44,15 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
           >
             <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
             Dashboard
+          </button>
+
+          <button
+            className={`sidebar-dash-btn${onWrites ? ' sidebar-dash-btn--active' : ''}`}
+            onClick={() => navigate('/writes')}
+            aria-pressed={onWrites}
+          >
+            <NotePencil size={18} className="sidebar-dash-icon" aria-hidden="true" />
+            Writes
           </button>
 
           <WorkspaceSwitcher
