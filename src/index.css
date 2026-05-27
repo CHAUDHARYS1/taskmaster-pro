@@ -3735,6 +3735,49 @@ ul, ol { list-style: none; }
 .sidebar-dash-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 /* ── Dashboard Layout ────────────────────────────────────── */
+.dash-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dash-form-panel {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-quick-add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dash-quick-add-title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.dash-quick-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dash-quick-add-success {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-body);
+  color: var(--green);
+  font-weight: var(--weight-medium);
+}
+
 .dashboard {
   flex: 1;
   overflow-y: auto;
@@ -3742,9 +3785,8 @@ ul, ol { list-style: none; }
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  max-width: 1100px;
+  max-width: none;
   width: 100%;
-  margin: 0 auto;
 }
 
 .dash-loading {
