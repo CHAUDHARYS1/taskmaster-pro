@@ -108,6 +108,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
     const d = description || null
     if (d !== (toHtml(task.description) || null)) updates.description = d
     if (Object.keys(updates).length) onUpdate(task.id, updates)
+    onClose()
   }
 
   const handleAddComment = async (e) => {
