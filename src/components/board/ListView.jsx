@@ -5,7 +5,7 @@ import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 import { stripHtml, truncateText } from '../../utils/text'
 
-const COLUMNS = [
+const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'inReview',   label: 'In Review' },
@@ -28,9 +28,9 @@ function displayName(u) {
   return u.email?.split('@')[0] ?? null
 }
 
-export default function ListView({ tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap, showProject }) {
+export default function ListView({ columns = DEFAULT_COLS, tasksByStatus, canEdit, canDelete, onDelete, onOpen, onComplete, editingMap, showProject }) {
   const { labelMap } = useLabelsCtx()
-  const allTasks = COLUMNS.flatMap(col =>
+  const allTasks = columns.flatMap(col =>
     (tasksByStatus[col.id] ?? []).map(t => ({ ...t, _colLabel: col.label }))
   )
 

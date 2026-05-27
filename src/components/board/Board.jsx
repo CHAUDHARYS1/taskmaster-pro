@@ -57,7 +57,7 @@ function TrashZone({ visible }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user } = useAuth()
   const { toggle: toggleTheme } = useTheme()
@@ -126,9 +126,10 @@ export default function Board() {
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
-  const columns = currentProject?.enabled_columns
+  const columns = (currentProject?.enabled_columns
     ? DEFAULT_COLUMNS.filter(c => currentProject.enabled_columns.includes(c.id))
     : DEFAULT_COLUMNS
+  ).map(c => ({ ...c, label: columnLabels[c.id] ?? c.label }))
 
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
@@ -483,6 +484,7 @@ export default function Board() {
         ) : viewMode === 'list' ? (
           <div className="list-view-wrap">
             <ListView
+              columns={columns}
               tasksByStatus={displayByStatus}
               canEdit={canEdit}
               canDelete={canDelete}
@@ -525,6 +527,7 @@ export default function Board() {
       {selectedTask && (
         <TaskDetailPanel
           task={selectedTask}
+          columns={columns}
           canEdit={canEdit}
           autoSave={autoSave}
           onUpdate={(id, changes) => {
