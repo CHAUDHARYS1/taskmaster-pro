@@ -212,20 +212,28 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           </div>
 
           <div className="task-panel-section">
-            <p className="task-panel-label">Due date</p>
+            <p className="task-panel-label">Due date &amp; time</p>
             {canEdit ? (
               <div className="due-date-row">
                 <input
                   type="date"
                   className="due-date-input"
                   value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
-                  onChange={e => onUpdate(task.id, { due_date: e.target.value || null })}
+                  onChange={e => onUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
                   aria-label="Due date"
+                />
+                <input
+                  type="time"
+                  className="due-time-input"
+                  value={task.due_time ?? ''}
+                  onChange={e => onUpdate(task.id, { due_time: e.target.value || null })}
+                  disabled={!task.due_date}
+                  aria-label="Due time"
                 />
                 {task.due_date && (
                   <button
                     className="due-date-clear"
-                    onClick={() => onUpdate(task.id, { due_date: null })}
+                    onClick={() => onUpdate(task.id, { due_date: null, due_time: null })}
                     aria-label="Clear due date"
                   >
                     <X size={16} weight="bold" aria-hidden="true" />
@@ -235,7 +243,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             ) : (
               <p className={`task-panel-desc-ro ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
                 {task.due_date
-                  ? dayjs(task.due_date).format('MMM D, YYYY')
+                  ? `${dayjs(task.due_date).format('MMM D, YYYY')}${task.due_time ? ` at ${dayjs(`2000-01-01T${task.due_time}`).format('h:mm A')}` : ''}`
                   : <span className="task-panel-empty">No due date.</span>
                 }
               </p>

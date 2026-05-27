@@ -1485,6 +1485,23 @@ ul, ol { list-style: none; }
 }
 .due-date-clear:hover { color: var(--red); }
 
+.due-time-input {
+  font-size: var(--text-body);
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  width: 108px;
+}
+.due-time-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.due-time-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .task-panel-body {
   flex: 1;
   overflow-y: auto;
