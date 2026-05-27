@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
-import TimePicker from '../ui/TimePicker'
 
 const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
@@ -30,7 +29,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const [title,       setTitle]       = useState('')
   const [desc,        setDesc]        = useState('')
   const [dueDate,     setDueDate]     = useState(today)
-  const [dueTime,     setDueTime]     = useState('')
+  const timeRef = useRef(null)
   const [status,      setStatus]      = useState(columns[0]?.id ?? 'toDo')
   const [priority,    setPriority]    = useState(null)
   const [assigneeId,  setAssigneeId]  = useState('')
@@ -64,7 +63,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
         text,
         description:  desc.trim() || null,
         due_date:     dueDate || null,
-        due_time:     dueTime || null,
+        due_time:     timeRef.current?.value || null,
         status,
         priority:     priority || null,
         assignee_id:  assigneeId || null,
@@ -156,8 +155,15 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 />
               </div>
               <div className="field-block" style={{ flex: 1 }}>
-                <label>Time <span className="field-optional">(optional)</span></label>
-                <TimePicker value={dueTime} onChange={setDueTime} disabled={!dueDate} />
+                <label htmlFor="task-time">Time <span className="field-optional">(optional)</span></label>
+                <input
+                  ref={timeRef}
+                  id="task-time"
+                  type="time"
+                  defaultValue=""
+                  className="due-time-input"
+                  disabled={!dueDate}
+                />
               </div>
             </div>
 
@@ -165,7 +171,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               <button type="button" className={`quick-date-btn${dueDate === today    ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(today)}>Today</button>
               <button type="button" className={`quick-date-btn${dueDate === tomorrow ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(tomorrow)}>Tomorrow</button>
               <button type="button" className={`quick-date-btn${dueDate === nextWeek ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(nextWeek)}>Next week</button>
-              <button type="button" className={`quick-date-btn${!dueDate            ? ' quick-date-btn--active' : ''}`} onClick={() => { setDueDate(''); setDueTime('') }}>None</button>
+              <button type="button" className={`quick-date-btn${!dueDate            ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate('')}>None</button>
             </div>
 
             <div className="field-block">

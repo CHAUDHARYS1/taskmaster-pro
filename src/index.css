@@ -1485,52 +1485,22 @@ ul, ol { list-style: none; }
 }
 .due-date-clear:hover { color: var(--red); }
 
-.time-picker {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.time-picker--disabled { opacity: 0.4; pointer-events: none; }
-.time-picker-select {
+.due-time-input {
   font-size: var(--text-body);
   color: var(--ink);
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  text-align: center;
-}
-.time-picker-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-tint);
-}
-.time-picker-sep {
-  color: var(--ink-3);
-  font-weight: var(--weight-medium);
-  user-select: none;
-}
-.time-picker-period {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--ink-2);
-  background: var(--paper-2);
+  background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
   cursor: pointer;
-  min-width: 44px;
-  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+  width: 136px;
 }
-.time-picker-period:hover:not(:disabled) {
-  background-color: var(--accent-tint);
-  color: var(--accent);
+.due-time-input:focus {
+  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
-.time-picker-period:disabled { opacity: 0.4; cursor: not-allowed; }
+.due-time-input:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .task-panel-body {
   flex: 1;
