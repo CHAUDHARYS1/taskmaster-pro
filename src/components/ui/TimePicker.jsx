@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-
 const HOURS   = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
@@ -25,48 +23,43 @@ function to24(h, m, period) {
 }
 
 export default function TimePicker({ value, onChange, disabled }) {
-  const [state, setState] = useState(() => parse(value))
-
-  useEffect(() => { setState(parse(value)) }, [value])
+  const { h, m, period } = parse(value)
 
   const update = (patch) => {
-    setState(prev => {
-      const next = { ...prev, ...patch }
-      onChange(to24(next.h, next.m, next.period))
-      return next
-    })
+    const next = { h, m, period, ...patch }
+    onChange(to24(next.h, next.m, next.period))
   }
 
   return (
     <div className={`time-picker${disabled ? ' time-picker--disabled' : ''}`} aria-label="Time">
       <select
         className="time-picker-select"
-        value={state.h}
+        value={h}
         onChange={e => update({ h: e.target.value })}
         disabled={disabled}
         aria-label="Hour"
       >
         <option value="">--</option>
-        {HOURS.map(h => <option key={h} value={String(h)}>{h}</option>)}
+        {HOURS.map(n => <option key={n} value={String(n)}>{n}</option>)}
       </select>
       <span className="time-picker-sep" aria-hidden="true">:</span>
       <select
         className="time-picker-select"
-        value={state.m}
+        value={m}
         onChange={e => update({ m: e.target.value })}
-        disabled={disabled || !state.h}
+        disabled={disabled || !h}
         aria-label="Minute"
       >
-        {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+        {MINUTES.map(min => <option key={min} value={min}>{min}</option>)}
       </select>
       <button
         type="button"
         className="time-picker-period"
-        onClick={() => update({ period: state.period === 'AM' ? 'PM' : 'AM' })}
-        disabled={disabled || !state.h}
-        aria-label={`Switch to ${state.period === 'AM' ? 'PM' : 'AM'}`}
+        onClick={() => update({ period: period === 'AM' ? 'PM' : 'AM' })}
+        disabled={disabled || !h}
+        aria-label={`Switch to ${period === 'AM' ? 'PM' : 'AM'}`}
       >
-        {state.period}
+        {period}
       </button>
     </div>
   )
