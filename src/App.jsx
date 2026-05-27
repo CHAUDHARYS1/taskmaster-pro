@@ -6,6 +6,7 @@ import { ProjectProvider } from './contexts/ProjectContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
+import SessionGuard from './components/auth/SessionGuard'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
 import WorkspaceDeepLink from './components/workspace/WorkspaceDeepLink'
@@ -39,6 +40,7 @@ export default function App() {
         <WorkspaceProvider>
           <LabelsProvider>
           <ProjectProvider>
+          <SessionGuard />
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/invite/:token"        element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple } from '@phosphor-icons/react'
+import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -312,6 +312,56 @@ export default function Board() {
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
+  const escHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+
+  const handlePrint = () => {
+    const colData = columns.map(col => ({
+      label: col.label,
+      tasks: displayByStatus[col.id] ?? [],
+    }))
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escHtml(currentWorkspace?.name)} — Task Board</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;color:#111}
+h1{font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{font-size:12px;color:#666;margin-bottom:20px}
+.cols{display:grid;grid-template-columns:repeat(${colData.length},1fr);gap:14px}
+.col{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+.col-hdr{background:#f3f4f6;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#374151}
+.col-body{padding:8px}
+.task{border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:6px}
+.task-text{font-size:13px;color:#111;margin-bottom:4px}
+.meta{display:flex;gap:8px;font-size:11px;color:#777;flex-wrap:wrap}
+.pri{font-weight:600}.high{color:#ef4444}.medium{color:#f59e0b}.low{color:#6b7280}
+.empty{font-size:12px;color:#9ca3af;padding:6px}
+@media print{body{padding:10px}@page{margin:.5in}}
+</style></head><body>
+<h1>${escHtml(currentWorkspace?.name)}</h1>
+<p class="sub">Printed ${dayjs().format('MMMM D, YYYY [at] h:mm A')}</p>
+<div class="cols">
+${colData.map(c => `<div class="col">
+  <div class="col-hdr">${escHtml(c.label)} (${c.tasks.length})</div>
+  <div class="col-body">
+    ${c.tasks.length === 0 ? '<p class="empty">No tasks</p>' : c.tasks.map(t => `<div class="task">
+      <div class="task-text">${escHtml(t.text)}</div>
+      ${t.priority || t.due_date ? `<div class="meta">
+        ${t.priority ? `<span class="pri ${t.priority}">${t.priority}</span>` : ''}
+        ${t.due_date ? `<span>Due ${dayjs(t.due_date).format('MMM D')}</span>` : ''}
+      </div>` : ''}
+    </div>`).join('')}
+  </div>
+</div>`).join('')}
+</div></body></html>`
+
+    const win = window.open('', '_blank')
+    if (!win) { toast.error('Pop-ups blocked — allow pop-ups to print.'); return }
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 300)
+  }
+
   if (wsLoading || projLoading || loading) return <BoardSkeleton />
   if (error)                 return <div className="error-screen">Error: {error}</div>
 
@@ -388,6 +438,15 @@ export default function Board() {
               title="Archive (A)"
             >
               <Archive size={20} aria-hidden="true" />
+            </button>
+
+            <button
+              className="ws-settings-btn"
+              onClick={handlePrint}
+              aria-label="Print task board"
+              title="Print board"
+            >
+              <Printer size={20} aria-hidden="true" />
             </button>
 
             <button
