@@ -1874,6 +1874,11 @@ ul, ol { list-style: none; }
   max-width: 720px;
   margin: 0 auto;
   outline: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  min-height: 480px;
 }
 
 /* Prose styles inside the editor */
