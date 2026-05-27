@@ -9,6 +9,7 @@ import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 import GlobalSettingsModal from '../ui/GlobalSettingsModal'
 import BugReportSheet from '../ui/BugReportSheet'
+import QuickLinks from '../ui/QuickLinks'
 
 export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcuts }) {
   const { user, profile, displayName, signOut } = useAuth()
@@ -93,6 +94,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
             <button className="btn-ghost sidebar-signout-btn" onClick={signOut} aria-label="Sign out" title="Sign out">
               <SignOut size={18} aria-hidden="true" />
             </button>
+            <QuickLinks />
           </div>
 
           <p className="sidebar-version">v1.0.01</p>
