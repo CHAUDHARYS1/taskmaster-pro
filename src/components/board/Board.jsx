@@ -317,7 +317,7 @@ export default function Board() {
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
       <main className="board-main">
         <div className="board-empty-state">
           <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
@@ -337,7 +337,7 @@ export default function Board() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main className="board-main">
         <div className="board-header">
@@ -514,16 +514,6 @@ export default function Board() {
           <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
         )}
       </main>
-
-      {/* Fixed help button — bottom right corner */}
-      <button
-        className="help-fab"
-        onClick={() => setShowShortcuts(true)}
-        aria-label="Keyboard shortcuts"
-        title="Keyboard shortcuts (?)"
-      >
-        ?
-      </button>
 
       {showModal && canEdit && (
         <AddTaskModal

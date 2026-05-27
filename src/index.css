@@ -3688,32 +3688,6 @@ ul, ol { list-style: none; }
   box-shadow: 0 6px 28px rgba(185,28,28,0.5);
 }
 
-/* ── Help FAB — fixed bottom-right ───────────────────────── */
-.help-fab {
-  position: fixed;
-  bottom: var(--space-5);
-  right: var(--space-5);
-  z-index: 800;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--ink-3);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
-}
-.help-fab:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: var(--shadow-pop);
-}
 
 /* ── AddTaskModal two-col row ─────────────────────────────── */
 .add-task-row {

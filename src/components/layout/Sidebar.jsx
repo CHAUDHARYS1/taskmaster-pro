@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Gear, Coffee, SignOut } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear, Coffee, SignOut, Keyboard } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -10,7 +10,7 @@ import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 import GlobalSettingsModal from '../ui/GlobalSettingsModal'
 import BugReportSheet from '../ui/BugReportSheet'
 
-export default function Sidebar({ isOpen, viewMode, onViewChange }) {
+export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcuts }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const navigate   = useNavigate()
@@ -84,6 +84,9 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           </button>
 
           <div className="sidebar-footer-row">
+            <button className="btn-ghost sidebar-settings-btn" onClick={onShowShortcuts} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
+              <Keyboard size={18} aria-hidden="true" />
+            </button>
             <button className="btn-ghost sidebar-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
               <Gear size={18} aria-hidden="true" />
             </button>
