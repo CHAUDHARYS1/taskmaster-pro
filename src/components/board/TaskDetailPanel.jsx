@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useAuth } from '../../contexts/AuthContext'
@@ -10,6 +11,8 @@ import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
 import TiptapEditor from '../ui/TiptapEditor'
 import { PRIORITIES } from '../../lib/priority'
+import TaskDocumentLink from './TaskDocumentLink'
+import DocDrawer from '../ui/DocDrawer'
 
 function toHtml(text) {
   if (!text) return ''
@@ -44,6 +47,7 @@ function urgencyClass(due_date) {
 }
 
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onClose }) {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
@@ -58,6 +62,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const [submitting, setSubmitting]  = useState(false)
   const [members, setMembers]        = useState([])
   const [showManageLabels, setShowManageLabels] = useState(false)
+  const [drawerDocId,     setDrawerDocId]     = useState(null)
 
   const commentInputRef = useRef(null)
   const titleRef = useRef(null)
@@ -338,6 +343,12 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             </div>
           </div>
 
+          <TaskDocumentLink
+            taskId={task.id}
+            workspaceId={task.workspace_id}
+            onOpenDoc={setDrawerDocId}
+          />
+
           <div className="task-panel-section">
             <p className="task-panel-label">
               Activity
@@ -470,6 +481,15 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
 
       {showManageLabels && (
         <ManageLabelsModal onClose={() => setShowManageLabels(false)} />
+      )}
+
+      {drawerDocId && (
+        <DocDrawer
+          docId={drawerDocId}
+          workspaceId={task.workspace_id}
+          onClose={() => setDrawerDocId(null)}
+          onOpenFull={() => { navigate('/writes/' + drawerDocId); setDrawerDocId(null); onClose() }}
+        />
       )}
     </>
   )

@@ -35,7 +35,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                       onToggleProjects?.()
                     } else {
                       switchWorkspace(ws)
-                      if (location.pathname === '/dashboard') navigate('/')
+                      if (location.pathname === '/dashboard' || location.pathname.startsWith('/writes')) navigate('/')
                     }
                   }}
                 >
