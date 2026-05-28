@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { Check } from '@phosphor-icons/react'
+import { Check, CalendarBlank } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
 
 const AVAILABLE_YEARS = [2026]
@@ -162,8 +162,16 @@ export default function DashboardView({ workspaceId }) {
     ? Math.round((stats.totalCompleted / stats.totalTasks) * 100)
     : 0
 
+  const todayLabel = dayjs().format('dddd, MMMM D')
+
   return (
     <div className="dashboard">
+
+      {/* ── Welcome bar ────────────────────────────────── */}
+      <div className="dash-welcome">
+        <CalendarBlank size={16} weight="bold" className="dash-welcome-icon" aria-hidden="true" />
+        <span className="dash-welcome-date">{todayLabel}</span>
+      </div>
 
       {/* ── Stats ──────────────────────────────────────── */}
       <div className="dash-top-row">
