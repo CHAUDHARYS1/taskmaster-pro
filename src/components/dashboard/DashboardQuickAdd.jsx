@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { CheckCircle } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useProjects } from '../../hooks/useProjects'
 import { supabase } from '../../lib/supabase'
 
 const COLUMNS = [
@@ -28,9 +27,18 @@ export default function DashboardQuickAdd({ onSaved }) {
   const [error,       setError]       = useState('')
   const [saved,       setSaved]       = useState(false)
 
-  const { projects } = useProjects(workspaceId)
+  const [projects, setProjects] = useState([])
 
-  useEffect(() => { setProjectId('') }, [workspaceId])
+  useEffect(() => {
+    setProjectId('')
+    if (!workspaceId) { setProjects([]); return }
+    supabase
+      .from('projects')
+      .select('id, name')
+      .eq('workspace_id', workspaceId)
+      .order('position', { ascending: true })
+      .then(({ data }) => { if (data) setProjects(data) })
+  }, [workspaceId])
 
   const reset = () => {
     setTitle('')
