@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
 const WorkspaceContext = createContext(null)
+
+const DEFAULT_LABEL_MAP = { toDo: 'To Do', inProgress: 'In Progress', inReview: 'In Review', done: 'Done' }
 
 export function WorkspaceProvider({ children }) {
   const { user } = useAuth()
@@ -65,6 +67,18 @@ export function WorkspaceProvider({ children }) {
     return data
   }
 
+  const columnLabels = useMemo(() => ({
+    ...DEFAULT_LABEL_MAP,
+    ...(currentWorkspace?.column_labels ?? {}),
+  }), [currentWorkspace?.column_labels])
+
+  const updateColumnLabels = async (id, labels) => {
+    const { error } = await supabase.from('workspaces').update({ column_labels: labels }).eq('id', id)
+    if (error) throw error
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, column_labels: labels } : w))
+    setCurrentWorkspace(prev => prev?.id === id ? { ...prev, column_labels: labels } : prev)
+  }
+
   const renameWorkspace = async (id, name) => {
     const { error } = await supabase.from('workspaces').update({ name }).eq('id', id)
     if (error) throw error
@@ -98,8 +112,9 @@ export function WorkspaceProvider({ children }) {
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
       autoSave: currentWorkspace?.auto_save ?? false,
+      columnLabels,
       switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
-      updateWorkspaceSettings,
+      updateWorkspaceSettings, updateColumnLabels,
       refetch: fetchWorkspaces,
     }}>
       {children}

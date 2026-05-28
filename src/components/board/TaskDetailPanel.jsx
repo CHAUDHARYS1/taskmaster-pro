@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useAuth } from '../../contexts/AuthContext'
@@ -10,6 +11,8 @@ import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
 import TiptapEditor from '../ui/TiptapEditor'
 import { PRIORITIES } from '../../lib/priority'
+import TaskDocumentLink from './TaskDocumentLink'
+import DocDrawer from '../ui/DocDrawer'
 
 function toHtml(text) {
   if (!text) return ''
@@ -28,13 +31,12 @@ function commentAuthor(profiles) {
   return full || profiles.email?.split('@')[0] || 'Unknown'
 }
 
-const STATUS_OPTIONS = [
+const DEFAULT_STATUS_OPTIONS = [
   { id: 'toDo',       label: 'To Do' },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'inReview',   label: 'In Review' },
   { id: 'done',       label: 'Done' },
 ]
-const STATUS_LABELS = Object.fromEntries(STATUS_OPTIONS.map(s => [s.id, s.label]))
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -44,7 +46,8 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpdate, onClose }) {
+export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onClose }) {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
@@ -59,6 +62,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
   const [submitting, setSubmitting]  = useState(false)
   const [members, setMembers]        = useState([])
   const [showManageLabels, setShowManageLabels] = useState(false)
+  const [drawerDocId,     setDrawerDocId]     = useState(null)
 
   const commentInputRef = useRef(null)
   const titleRef = useRef(null)
@@ -109,6 +113,7 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
     const d = description || null
     if (d !== (toHtml(task.description) || null)) updates.description = d
     if (Object.keys(updates).length) onUpdate(task.id, updates)
+    onClose()
   }
 
   const handleAddComment = async (e) => {
@@ -135,27 +140,22 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
           <div className="task-panel-meta">
             {canEdit ? (
               <select
-                className={`task-panel-status-select ${urgencyClass(task.due_date)}`}
+                className={`task-panel-status-select ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}
                 value={task.status}
                 onChange={e => onUpdate(task.id, { status: e.target.value })}
                 aria-label="Task status"
               >
-                {STATUS_OPTIONS.map(s => (
+                {columns.map(s => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
             ) : (
-              <span className={`task-panel-status ${urgencyClass(task.due_date)}`}>
-                {STATUS_LABELS[task.status]}
+              <span className={`task-panel-status ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
+                {columns.find(s => s.id === task.status)?.label ?? task.status}
               </span>
             )}
           </div>
           <div className="task-panel-hdr-right">
-            {hasPending && (
-              <button className="btn-primary btn-sm task-panel-save-btn" onClick={handleSave}>
-                Save
-              </button>
-            )}
             <button className="modal-close" onClick={onClose} aria-label="Close panel"><X size={18} weight="bold" aria-hidden="true" /></button>
           </div>
         </div>
@@ -213,20 +213,29 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
           </div>
 
           <div className="task-panel-section">
-            <p className="task-panel-label">Due date</p>
+            <p className="task-panel-label">Due date &amp; time</p>
             {canEdit ? (
               <div className="due-date-row">
                 <input
                   type="date"
                   className="due-date-input"
                   value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
-                  onChange={e => onUpdate(task.id, { due_date: e.target.value || null })}
+                  onChange={e => onUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
                   aria-label="Due date"
+                />
+                <input
+                  key={task.due_time ?? 'no-time'}
+                  type="time"
+                  className="due-time-input"
+                  defaultValue={task.due_time ?? ''}
+                  onBlur={e => { if (e.target.value !== (task.due_time ?? '')) onUpdate(task.id, { due_time: e.target.value || null }) }}
+                  disabled={!task.due_date}
+                  aria-label="Due time"
                 />
                 {task.due_date && (
                   <button
                     className="due-date-clear"
-                    onClick={() => onUpdate(task.id, { due_date: null })}
+                    onClick={() => onUpdate(task.id, { due_date: null, due_time: null })}
                     aria-label="Clear due date"
                   >
                     <X size={16} weight="bold" aria-hidden="true" />
@@ -234,9 +243,9 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
                 )}
               </div>
             ) : (
-              <p className={`task-panel-desc-ro ${urgencyClass(task.due_date)}`}>
+              <p className={`task-panel-desc-ro ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
                 {task.due_date
-                  ? dayjs(task.due_date).format('MMM D, YYYY')
+                  ? `${dayjs(task.due_date).format('MMM D, YYYY')}${task.due_time ? ` at ${dayjs(`2000-01-01T${task.due_time}`).format('h:mm A')}` : ''}`
                   : <span className="task-panel-empty">No due date.</span>
                 }
               </p>
@@ -333,6 +342,12 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
               )}
             </div>
           </div>
+
+          <TaskDocumentLink
+            taskId={task.id}
+            workspaceId={task.workspace_id}
+            onOpenDoc={setDrawerDocId}
+          />
 
           <div className="task-panel-section">
             <p className="task-panel-label">
@@ -454,10 +469,27 @@ export default function TaskDetailPanel({ task, canEdit, autoSave = true, onUpda
             )}
           </div>
         </div>
+
+        {hasPending && (
+          <div className="task-panel-ftr">
+            <button className="btn-primary task-panel-save-btn" onClick={handleSave}>
+              Save
+            </button>
+          </div>
+        )}
       </aside>
 
       {showManageLabels && (
         <ManageLabelsModal onClose={() => setShowManageLabels(false)} />
+      )}
+
+      {drawerDocId && (
+        <DocDrawer
+          docId={drawerDocId}
+          workspaceId={task.workspace_id}
+          onClose={() => setDrawerDocId(null)}
+          onOpenFull={() => { navigate('/writes/' + drawerDocId); setDrawerDocId(null); onClose() }}
+        />
       )}
     </>
   )

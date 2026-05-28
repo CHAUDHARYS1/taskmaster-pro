@@ -7,9 +7,6 @@ import { useToast } from '../../contexts/ToastContext'
 
 dayjs.extend(isoWeek)
 
-const STATUS_LABELS = {
-  toDo: 'To Do', inProgress: 'In Progress', inReview: 'In Review', done: 'Done',
-}
 
 function assigneeName(a) {
   if (!a) return null
@@ -39,7 +36,7 @@ function groupByWeek(archives) {
 }
 
 export default function ArchiveView({ canEdit, canDelete, canArchiveNow }) {
-  const { currentWorkspace } = useWorkspace()
+  const { currentWorkspace, columnLabels } = useWorkspace()
   const { archives, loading, restoreTask, deleteArchive, archiveNow } =
     useArchive(currentWorkspace?.id)
   const { toast } = useToast()
@@ -107,7 +104,7 @@ export default function ArchiveView({ canEdit, canDelete, canArchiveNow }) {
                   <div className="archive-row-main">
                     <span className="archive-row-text">{task.text}</span>
                     <span className="archive-row-meta">
-                      {STATUS_LABELS[task.status] ?? task.status}
+                      {columnLabels[task.status] ?? task.status}
                       {task.due_date && ` · due ${dayjs(task.due_date).format('MMM D')}`}
                       {assigneeName(task.assignee) && ` · ${assigneeName(task.assignee)}`}
                     </span>

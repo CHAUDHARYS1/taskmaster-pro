@@ -15,7 +15,8 @@ export default function AuthPage() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirectTo = searchParams.get('redirect')
+  const redirectTo  = searchParams.get('redirect')
+  const isTimeout   = searchParams.get('reason') === 'timeout'
 
   const switchMode = (next) => {
     setMode(next)
@@ -61,6 +62,12 @@ export default function AuthPage() {
         <p className="auth-subtitle">
           {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
         </p>
+
+        {isTimeout && (
+          <div className="auth-timeout-banner" role="alert">
+            Session timed out — you were away for more than 3 hours. Please sign back in to continue.
+          </div>
+        )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'signup' && (

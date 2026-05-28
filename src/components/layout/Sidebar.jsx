@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, PencilSimple, Gear, Coffee } from '@phosphor-icons/react'
+import { SquaresFour, PencilSimple, Gear, Coffee, SignOut, Keyboard, NotePencil } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -9,13 +9,15 @@ import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 import ProfileSettingsModal from '../ui/ProfileSettingsModal'
 import GlobalSettingsModal from '../ui/GlobalSettingsModal'
 import BugReportSheet from '../ui/BugReportSheet'
+import QuickLinks from '../ui/QuickLinks'
 
-export default function Sidebar({ isOpen, viewMode, onViewChange }) {
+export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcuts }) {
   const { user, profile, displayName, signOut } = useAuth()
   const { currentWorkspace }    = useWorkspace()
   const navigate   = useNavigate()
   const location   = useLocation()
   const onDashboard = location.pathname === '/dashboard'
+  const onWrites    = location.pathname.startsWith('/writes')
   const [showCreate,    setShowCreate]    = useState(false)
   const [showProfile,   setShowProfile]   = useState(false)
   const [showSettings,  setShowSettings]  = useState(false)
@@ -42,6 +44,15 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           >
             <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
             Dashboard
+          </button>
+
+          <button
+            className={`sidebar-dash-btn${onWrites ? ' sidebar-dash-btn--active' : ''}`}
+            onClick={() => navigate('/writes')}
+            aria-pressed={onWrites}
+          >
+            <NotePencil size={18} className="sidebar-dash-icon" aria-hidden="true" />
+            Writes
           </button>
 
           <WorkspaceSwitcher
@@ -84,10 +95,16 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
           </button>
 
           <div className="sidebar-footer-row">
+            <button className="btn-ghost sidebar-settings-btn" onClick={onShowShortcuts} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
+              <Keyboard size={18} aria-hidden="true" />
+            </button>
             <button className="btn-ghost sidebar-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
               <Gear size={18} aria-hidden="true" />
             </button>
-            <button className="btn-ghost" onClick={signOut}>Sign out</button>
+            <button className="btn-ghost sidebar-signout-btn" onClick={signOut} aria-label="Sign out" title="Sign out">
+              <SignOut size={18} aria-hidden="true" />
+            </button>
+            <QuickLinks />
           </div>
 
           <p className="sidebar-version">v1.0.01</p>
