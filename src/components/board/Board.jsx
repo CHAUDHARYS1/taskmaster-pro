@@ -77,7 +77,7 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
   const [showModal, setShowModal]           = useState(false)
@@ -579,7 +579,7 @@ ${colData.map(c => `<div class="col">
           columns={columns}
           onClose={() => setShowModal(false)}
           onSave={async (data) => {
-            try { await addTask(data); toast.success('Task added'); setShowModal(false) }
+            try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
             catch (err) { toast.error(err.message || 'Failed to add task') }
           }}
         />
@@ -595,6 +595,7 @@ ${colData.map(c => `<div class="col">
             if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
             return updateTask(id, changes)
           }}
+          onChecklistChange={patchTaskChecklist}
           onClose={() => setSelectedTaskId(null)}
         />
       )}

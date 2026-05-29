@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle, PlusCircle } from '@phosphor-icons/react'
+import { CheckCircle, PlusCircle, X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
 
@@ -28,6 +29,7 @@ export default function DashboardQuickAdd({ onSaved }) {
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
 
   const { workspaces, currentWorkspace } = useWorkspace()
+  const { user } = useAuth()
 
   const [workspaceId,    setWorkspaceId]    = useState(currentWorkspace?.id ?? '')
   const [projectId,      setProjectId]      = useState('')
@@ -41,9 +43,11 @@ export default function DashboardQuickAdd({ onSaved }) {
   const [projects,       setProjects]       = useState([])
   const [members,        setMembers]        = useState([])
   const [labels,         setLabels]         = useState([])
-  const [loading,        setLoading]        = useState(false)
-  const [error,          setError]          = useState('')
-  const [saved,          setSaved]          = useState(false)
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  const [saved,            setSaved]            = useState(false)
+  const [checklistItems,   setChecklistItems]   = useState([])
+  const [newChecklistText, setNewChecklistText] = useState('')
 
   // Plain fetches — no realtime subscriptions to avoid channel conflicts with context providers
   useEffect(() => {
@@ -73,6 +77,17 @@ export default function DashboardQuickAdd({ onSaved }) {
       prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
     )
 
+  const addChecklistItem = () => {
+    const trimmed = newChecklistText.trim()
+    if (!trimmed) return
+    setChecklistItems(prev => [...prev, { localId: Date.now(), text: trimmed }])
+    setNewChecklistText('')
+  }
+
+  const removeChecklistItem = (localId) => {
+    setChecklistItems(prev => prev.filter(i => i.localId !== localId))
+  }
+
   const reset = () => {
     setTitle('')
     setDesc('')
@@ -82,6 +97,8 @@ export default function DashboardQuickAdd({ onSaved }) {
     setSelectedLabels([])
     setDueDate(today)
     setError('')
+    setChecklistItems([])
+    setNewChecklistText('')
   }
 
   const handleSubmit = async (e) => {
@@ -101,7 +118,7 @@ export default function DashboardQuickAdd({ onSaved }) {
       const maxPos = existing?.[0]?.position ?? 0
       const text   = title.trim() || desc.trim().split('\n')[0].slice(0, 80) || 'Untitled'
 
-      const { error: insertError } = await supabase.from('tasks').insert({
+      const { data: newTask, error: insertError } = await supabase.from('tasks').insert({
         workspace_id: workspaceId,
         project_id:   projectId,
         text,
@@ -112,8 +129,20 @@ export default function DashboardQuickAdd({ onSaved }) {
         labels:       selectedLabels,
         due_date:     dueDate || null,
         position:     maxPos + 1000,
-      })
+      }).select('id').single()
       if (insertError) throw insertError
+
+      if (newTask?.id && checklistItems.length > 0) {
+        await supabase.from('task_checklist_items').insert(
+          checklistItems.map((item, i) => ({
+            task_id:    newTask.id,
+            text:       item.text,
+            checked:    false,
+            position:   (i + 1) * 1000,
+            created_by: user.id,
+          }))
+        )
+      }
 
       reset()
       setSaved(true)
@@ -179,6 +208,46 @@ export default function DashboardQuickAdd({ onSaved }) {
             <label htmlFor="qa-desc">Description <span className="field-optional">(optional)</span></label>
             <textarea id="qa-desc" rows={3} value={desc}
               onChange={e => setDesc(e.target.value)} placeholder="Add more details…" />
+          </div>
+
+          <div className="field-block">
+            <label>Checklist <span className="field-optional">(optional)</span></label>
+            {checklistItems.length > 0 && (
+              <ul className="checklist-list checklist-list--create">
+                {checklistItems.map(item => (
+                  <li key={item.localId} className="checklist-item">
+                    <span className="checklist-item__text">{item.text}</span>
+                    <button
+                      type="button"
+                      className="checklist-item__delete"
+                      onClick={() => removeChecklistItem(item.localId)}
+                      aria-label="Remove item"
+                    >
+                      <X size={13} weight="bold" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="checklist-add-row">
+              <input
+                type="text"
+                className="checklist-add-input"
+                value={newChecklistText}
+                onChange={e => setNewChecklistText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
+                placeholder="Add a checklist item…"
+                aria-label="New checklist item"
+              />
+              <button
+                type="button"
+                className="btn-ghost checklist-add-btn"
+                onClick={addChecklistItem}
+                disabled={!newChecklistText.trim()}
+              >
+                Add
+              </button>
+            </div>
           </div>
         </div>
 

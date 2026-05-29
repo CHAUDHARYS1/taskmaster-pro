@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X } from '@phosphor-icons/react'
+import { X, CheckSquare } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
+import { useTaskChecklist } from '../../hooks/useTaskChecklist'
 import { supabase } from '../../lib/supabase'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
@@ -46,13 +47,14 @@ function urgencyClass(due_date) {
   return ''
 }
 
-export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onClose }) {
+export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose }) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
   const { labels, labelMap } = useLabelsCtx()
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
+  const { items: checklistItems, addItem: addChecklistItem, updateItem: updateChecklistItem, deleteItem: deleteChecklistItem } = useTaskChecklist(task.id)
 
   const [title, setTitle]           = useState(task.text)
   const [description, setDescription] = useState(() => toHtml(task.description ?? ''))
@@ -62,6 +64,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const [submitting, setSubmitting]  = useState(false)
   const [members, setMembers]        = useState([])
   const [showManageLabels, setShowManageLabels] = useState(false)
+  const [newItemText, setNewItemText] = useState('')
   const [drawerDocId,     setDrawerDocId]     = useState(null)
 
   const commentInputRef = useRef(null)
@@ -186,6 +189,101 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             />
             {!canEdit && !task.description && (
               <span className="task-panel-empty">No description.</span>
+            )}
+          </div>
+
+          <div className="task-panel-section">
+            <p className="task-panel-label">
+              Checklist
+              {checklistItems.length > 0 && (
+                <span className="task-panel-count">
+                  {checklistItems.filter(i => i.checked).length}/{checklistItems.length}
+                </span>
+              )}
+            </p>
+
+            {checklistItems.length > 0 && (
+              <div
+                className="checklist-progress"
+                style={{ '--progress-pct': `${Math.round((checklistItems.filter(i => i.checked).length / checklistItems.length) * 100)}%` }}
+                aria-label={`${checklistItems.filter(i => i.checked).length} of ${checklistItems.length} items complete`}
+              />
+            )}
+
+            <ul className="checklist-list">
+              {checklistItems.map(item => (
+                <li key={item.id} className="checklist-item">
+                  <input
+                    type="checkbox"
+                    id={`chk-${item.id}`}
+                    checked={item.checked}
+                    onChange={() => {
+                      if (!canEdit) return
+                      const newChecked = !item.checked
+                      updateChecklistItem(item.id, { checked: newChecked })
+                      onChecklistChange?.(task.id, items => items.map(i => i.id === item.id ? { ...i, checked: newChecked } : i))
+                    }}
+                    disabled={!canEdit}
+                    aria-label={item.text}
+                  />
+                  <label
+                    htmlFor={`chk-${item.id}`}
+                    className={`checklist-item__text${item.checked ? ' checklist-item__text--done' : ''}`}
+                  >
+                    {item.text}
+                  </label>
+                  {canEdit && (
+                    <button
+                      className="checklist-item__delete"
+                      onClick={() => {
+                        deleteChecklistItem(item.id)
+                        onChecklistChange?.(task.id, items => items.filter(i => i.id !== item.id))
+                      }}
+                      aria-label="Delete checklist item"
+                      title="Delete item"
+                    >
+                      <X size={13} weight="bold" aria-hidden="true" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {!canEdit && checklistItems.length === 0 && (
+              <span className="task-panel-empty">No checklist items.</span>
+            )}
+
+            {canEdit && (
+              <form
+                className="checklist-add-row"
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!newItemText.trim()) return
+                  try {
+                    const newItem = await addChecklistItem(newItemText)
+                    setNewItemText('')
+                    if (newItem) onChecklistChange?.(task.id, items => [...items, { id: newItem.id, checked: false }])
+                  } catch (err) {
+                    toast.error(err.message || 'Failed to add item')
+                  }
+                }}
+              >
+                <input
+                  type="text"
+                  className="checklist-add-input"
+                  value={newItemText}
+                  onChange={e => setNewItemText(e.target.value)}
+                  placeholder="Add an item…"
+                  aria-label="New checklist item"
+                />
+                <button
+                  type="submit"
+                  className="btn-primary checklist-add-btn"
+                  disabled={!newItemText.trim()}
+                >
+                  Add
+                </button>
+              </form>
             )}
           </div>
 
