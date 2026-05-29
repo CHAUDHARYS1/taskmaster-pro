@@ -1,11 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSixVertical, Check, X, ChatCircle, CheckSquare } from '@phosphor-icons/react'
+import { DotsSixVertical, Check, X, ChatCircle, CheckSquare, Square } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
-import { stripHtml, truncateText } from '../../utils/text'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -115,10 +114,33 @@ export default function TaskCard({
       )}
 
       {task.description && (
-        <p className="task-desc-preview">
-          {truncateText(stripHtml(task.description))}
-        </p>
+        <div
+          className="task-desc-preview"
+          dangerouslySetInnerHTML={{ __html: task.description }}
+        />
       )}
+
+      {task.task_checklist_items?.length > 0 && (() => {
+        const sorted  = [...task.task_checklist_items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        const visible  = sorted.slice(0, 3)
+        const overflow = sorted.length - visible.length
+        return (
+          <ul className="card-checklist">
+            {visible.map(item => (
+              <li key={item.id} className={`card-checklist-item${item.checked ? ' card-checklist-item--done' : ''}`}>
+                {item.checked
+                  ? <CheckSquare size={12} weight="fill" className="card-checklist-icon card-checklist-icon--checked" aria-hidden="true" />
+                  : <Square      size={12} weight="regular" className="card-checklist-icon" aria-hidden="true" />
+                }
+                <span className="card-checklist-text">{item.text}</span>
+              </li>
+            ))}
+            {overflow > 0 && (
+              <li className="card-checklist-more">+{overflow} more</li>
+            )}
+          </ul>
+        )
+      })()}
 
       {task.labels?.length > 0 && (
         <div className="task-labels">

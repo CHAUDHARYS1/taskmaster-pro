@@ -3,7 +3,6 @@ import { Check, X } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
-import { stripHtml, truncateText } from '../../utils/text'
 
 const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
@@ -87,9 +86,10 @@ export default function ListView({ columns = DEFAULT_COLS, tasksByStatus, canEdi
                   )}
                   <span className="list-task-text">{task.text}</span>
                   {task.description && (
-                    <span className="list-task-desc">
-                      {truncateText(stripHtml(task.description), 100)}
-                    </span>
+                    <div
+                      className="list-task-desc"
+                      dangerouslySetInnerHTML={{ __html: task.description }}
+                    />
                   )}
                 </td>
 

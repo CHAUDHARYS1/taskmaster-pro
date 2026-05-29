@@ -12,7 +12,7 @@ export function useTasks(workspaceId, projectId) {
     if (!workspaceId) return
     let query = supabase
       .from('tasks')
-      .select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,checked)')
+      .select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,text,checked,position)')
       .eq('workspace_id', workspaceId)
     if (projectId) query = query.eq('project_id', projectId)
     const { data, error } = await query.order('position', { ascending: true })
@@ -48,7 +48,7 @@ export function useTasks(workspaceId, projectId) {
         if (t.id !== row.task_id) return t
         const existing = t.task_checklist_items ?? []
         if (existing.some(i => i.id === row.id)) return t
-        return { ...t, task_checklist_items: [...existing, { id: row.id, checked: row.checked }] }
+        return { ...t, task_checklist_items: [...existing, { id: row.id, text: row.text, checked: row.checked, position: row.position }] }
       })))
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'task_checklist_items',
@@ -82,7 +82,7 @@ export function useTasks(workspaceId, projectId) {
       priority:     priority || null,
       assignee_id:  assignee_id || null,
       labels:       labels.length ? labels : [],
-    }).select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,checked)').single()
+    }).select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,text,checked,position)').single()
     if (error) throw error
     setTasks(prev => [...prev, data])
     return data.id
