@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
+import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -346,7 +347,7 @@ h1{font-size:18px;font-weight:700;margin-bottom:4px}
 @media print{body{padding:10px}@page{margin:.5in}}
 </style></head><body>
 <h1>${escHtml(currentWorkspace?.name)}</h1>
-<p class="sub">Printed ${dayjs().format('MMMM D, YYYY [at] h:mm A')}</p>
+<p class="sub">Printed ${fmtPrintNow()}</p>
 <div class="cols">
 ${colData.map(c => `<div class="col">
   <div class="col-hdr">${escHtml(c.label)} (${c.tasks.length})</div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
+import { isDesktop } from '../../utils/device'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -121,7 +122,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Task title…"
-                autoFocus
+                autoFocus={isDesktop()}
               />
             </div>
 
@@ -287,7 +288,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               </div>
             )}
 
-            {error && <p className="form-error">{error}</p>}
+            {error && <p className="form-error" id="add-task-error" role="alert">{error}</p>}
           </div>
 
           <div className="modal-ftr">

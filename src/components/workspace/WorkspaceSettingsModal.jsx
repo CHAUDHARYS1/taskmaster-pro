@@ -358,6 +358,7 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                         onChange={e => setInviteEmail(e.target.value)}
                         placeholder="teammate@example.com"
                         required
+                        spellCheck={false}
                         className="ws-invite-input"
                       />
                       <select

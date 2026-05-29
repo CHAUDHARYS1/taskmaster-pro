@@ -121,8 +121,8 @@ export default function QuickLinks() {
                     type="text"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    placeholder="Staging environment"
-                    autoFocus
+                    placeholder="Staging environment…"
+                    autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
                   />
                 </div>
                 <div className="field-block">

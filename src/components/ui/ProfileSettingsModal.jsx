@@ -123,7 +123,7 @@ export default function ProfileSettingsModal({ onClose }) {
                   type="text"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  placeholder="Jane"
+                  placeholder="Jane…"
                 />
               </div>
               <div className="field-block">
@@ -133,7 +133,7 @@ export default function ProfileSettingsModal({ onClose }) {
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  placeholder="Smith"
+                  placeholder="Smith…"
                 />
               </div>
             </div>

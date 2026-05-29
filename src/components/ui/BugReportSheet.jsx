@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
 import { useToast } from '../../contexts/ToastContext'
 
 export default function BugReportSheet({ onClose }) {
@@ -76,9 +77,9 @@ export default function BugReportSheet({ onClose }) {
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Short summary"
+              placeholder="Short summary…"
               required
-              autoFocus
+              autoFocus={isDesktop()}
             />
           </div>
 
@@ -88,7 +89,7 @@ export default function BugReportSheet({ onClose }) {
               id="bug-desc"
               value={desc}
               onChange={e => setDesc(e.target.value)}
-              placeholder="What happened?"
+              placeholder="Describe what happened…"
               rows={4}
               required
             />
@@ -100,7 +101,7 @@ export default function BugReportSheet({ onClose }) {
               id="bug-steps"
               value={steps}
               onChange={e => setSteps(e.target.value)}
-              placeholder="Optional: step-by-step to trigger the issue"
+              placeholder="Optional: step-by-step to trigger the issue…"
               rows={3}
             />
           </div>

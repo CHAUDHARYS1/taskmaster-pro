@@ -1,0 +1,12 @@
+const _dateShort   = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+const _dateMed     = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+const _time        = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
+const _dateTimeLg  = new Intl.DateTimeFormat(undefined, { month: 'long',  day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+const _commentDT   = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
+export const fmtDate         = d => _dateShort.format(new Date(d))
+export const fmtDateFull     = d => _dateMed.format(new Date(d))
+export const fmtTime         = d => _time.format(new Date(d))
+export const fmtTimeStr      = s => _time.format(new Date(`2000-01-01T${s}`))
+export const fmtCommentDate  = d => _commentDT.format(new Date(d))
+export const fmtPrintNow     = () => _dateTimeLg.format(new Date())

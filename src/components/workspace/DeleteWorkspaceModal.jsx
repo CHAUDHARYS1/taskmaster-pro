@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -78,7 +79,7 @@ export default function DeleteWorkspaceModal({ workspace, onClose }) {
                 value={typed}
                 onChange={e => setTyped(e.target.value)}
                 placeholder={`Type "${confirmWord}" to confirm`}
-                autoFocus
+                autoFocus={isDesktop()}
                 autoComplete="off"
                 spellCheck={false}
               />

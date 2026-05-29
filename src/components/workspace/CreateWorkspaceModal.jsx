@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
 export default function CreateWorkspaceModal({ onClose }) {
@@ -39,7 +40,7 @@ export default function CreateWorkspaceModal({ onClose }) {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="e.g. Design Team"
-                autoFocus
+                autoFocus={isDesktop()}
                 required
               />
             </div>

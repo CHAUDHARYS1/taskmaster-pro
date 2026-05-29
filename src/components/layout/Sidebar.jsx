@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { SquaresFour, PencilSimple, Gear, Coffee, SignOut, Keyboard, NotePencil, CalendarBlank } from '@phosphor-icons/react'
+import LogoLockup from '../ui/LogoLockup'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { userColor } from '../../lib/userColor'
@@ -34,7 +35,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
     <>
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-top">
-          <h1 className="sidebar-title">Taskmaster Pro</h1>
+          <LogoLockup width={164} className="sidebar-lockup" />
         </div>
 
         <div className="sidebar-nav">
@@ -81,6 +82,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
           <button
             className="sidebar-user-row"
             onClick={() => setShowProfile(true)}
+            aria-label={`Edit profile for ${displayName || user?.email}`}
             title="Edit profile"
           >
             {profile?.avatar_url ? (

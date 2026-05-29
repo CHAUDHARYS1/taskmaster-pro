@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProjects } from '../../hooks/useProjects'
@@ -132,7 +133,7 @@ export default function DashboardAddTaskModal({ onClose, onSaved }) {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Task title…"
-                autoFocus
+                autoFocus={isDesktop()}
               />
             </div>
 
