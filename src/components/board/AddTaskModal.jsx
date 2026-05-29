@@ -3,6 +3,7 @@ import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
 
@@ -25,6 +26,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
 
   const { currentWorkspace } = useWorkspace()
   const { labels } = useLabelsCtx()
+  const { user } = useAuth()
 
   const [title,       setTitle]       = useState('')
   const [desc,        setDesc]        = useState('')
@@ -34,9 +36,11 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const [priority,    setPriority]    = useState(null)
   const [assigneeId,  setAssigneeId]  = useState('')
   const [selectedLabels, setSelectedLabels] = useState([])
-  const [members,     setMembers]     = useState([])
-  const [loading,     setLoading]     = useState(false)
-  const [error,       setError]       = useState('')
+  const [members,          setMembers]          = useState([])
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  const [checklistItems,   setChecklistItems]   = useState([])
+  const [newChecklistText, setNewChecklistText] = useState('')
 
   useEffect(() => {
     if (!currentWorkspace?.id) return
@@ -53,13 +57,24 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
     )
   }
 
+  const addChecklistItem = () => {
+    const trimmed = newChecklistText.trim()
+    if (!trimmed) return
+    setChecklistItems(prev => [...prev, { localId: Date.now(), text: trimmed }])
+    setNewChecklistText('')
+  }
+
+  const removeChecklistItem = (localId) => {
+    setChecklistItems(prev => prev.filter(i => i.localId !== localId))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
       const text = title.trim() || desc.trim().split('\n')[0].slice(0, 80) || 'Untitled'
-      await onSave({
+      const taskId = await onSave({
         text,
         description:  desc.trim() || null,
         due_date:     dueDate || null,
@@ -69,6 +84,17 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
         assignee_id:  assigneeId || null,
         labels:       selectedLabels,
       })
+      if (taskId && checklistItems.length > 0) {
+        await supabase.from('task_checklist_items').insert(
+          checklistItems.map((item, i) => ({
+            task_id:    taskId,
+            text:       item.text,
+            checked:    false,
+            position:   (i + 1) * 1000,
+            created_by: user.id,
+          }))
+        )
+      }
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -110,6 +136,46 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 onChange={e => setDesc(e.target.value)}
                 placeholder="Add more details…"
               />
+            </div>
+
+            <div className="field-block">
+              <label>Checklist <span className="field-optional">(optional)</span></label>
+              {checklistItems.length > 0 && (
+                <ul className="checklist-list checklist-list--create">
+                  {checklistItems.map(item => (
+                    <li key={item.localId} className="checklist-item">
+                      <span className="checklist-item__text">{item.text}</span>
+                      <button
+                        type="button"
+                        className="checklist-item__delete"
+                        onClick={() => removeChecklistItem(item.localId)}
+                        aria-label="Remove item"
+                      >
+                        <X size={13} weight="bold" aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="checklist-add-row">
+                <input
+                  type="text"
+                  className="checklist-add-input"
+                  value={newChecklistText}
+                  onChange={e => setNewChecklistText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
+                  placeholder="Add a checklist item…"
+                  aria-label="New checklist item"
+                />
+                <button
+                  type="button"
+                  className="btn-ghost checklist-add-btn"
+                  onClick={addChecklistItem}
+                  disabled={!newChecklistText.trim()}
+                >
+                  Add
+                </button>
+              </div>
             </div>
 
             <div className="add-task-row">
