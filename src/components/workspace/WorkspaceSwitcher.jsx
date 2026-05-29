@@ -1,9 +1,29 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { Link, CaretDown } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 import ProjectSwitcher from './ProjectSwitcher'
+
+// Mounts with --closed so the stagger always plays, even on workspace switch
+function ProjectPanel({ projectsOpen, viewMode, onViewChange }) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  return (
+    <div
+      className={`project-panel${(!ready || !projectsOpen) ? ' project-panel--closed' : ''}`}
+      aria-hidden={!projectsOpen}
+    >
+      <div className="project-panel-inner">
+        <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+      </div>
+    </div>
+  )
+}
 
 export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, viewMode, onViewChange }) {
   const { user }   = useAuth()
@@ -65,14 +85,11 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
 
               {/* Projects nested directly inside the active workspace item */}
               {isActive && (
-                <div
-                  className={`project-panel${projectsOpen ? '' : ' project-panel--closed'}`}
-                  aria-hidden={!projectsOpen}
-                >
-                  <div className="project-panel-inner">
-                    <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
-                  </div>
-                </div>
+                <ProjectPanel
+                  projectsOpen={projectsOpen}
+                  viewMode={viewMode}
+                  onViewChange={onViewChange}
+                />
               )}
             </li>
           )
