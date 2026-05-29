@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer } from '@phosphor-icons/react'
+import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -28,6 +28,7 @@ import WelcomeModal from '../ui/WelcomeModal'
 import MondayMotivationModal from '../ui/MondayMotivationModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 import ArchiveView from './ArchiveView'
+import CalendarView from '../calendar/CalendarView'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -410,7 +411,7 @@ ${colData.map(c => `<div class="col">
           <div className="board-header-right">
             <PresenceAvatars users={present} />
 
-            {/* Board / List toggle — archive is a separate button */}
+            {/* Board / List / Calendar toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
                 className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
@@ -427,6 +428,14 @@ ${colData.map(c => `<div class="col">
                 title="List view (L)"
               >
                 <Rows size={20} aria-hidden="true" />
+              </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'calendar' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('calendar')}
+                aria-pressed={viewMode === 'calendar'}
+                title="Calendar view (C)"
+              >
+                <CalendarBlank size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -567,6 +576,13 @@ ${colData.map(c => `<div class="col">
               }}
               onOpen={setSelectedTaskId}
               onComplete={handleComplete}
+            />
+          </div>
+        ) : viewMode === 'calendar' ? (
+          <div className="cal-page-body">
+            <CalendarView
+              tasks={allTasks}
+              onTaskClick={t => setSelectedTaskId(t.id)}
             />
           </div>
         ) : (
