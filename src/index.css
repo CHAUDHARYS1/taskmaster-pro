@@ -61,6 +61,21 @@
 
   --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --ease-enter:  cubic-bezier(.32, 1, .45, 1);
+
+  /* ── Compatibility aliases (referenced in newer feature CSS) ── */
+  --paper:        var(--surface);
+  --paper-1:      var(--surface);
+  --ink-1:        var(--ink);
+  --ink-faint:    var(--ink-4);
+  --border:       var(--line);
+  --shadow:       var(--shadow-pop);
+  --surface-2:    var(--paper-2);
+  --font-base:    var(--font-body);
+  --text-2xl:     20px;
+  --radius-md:    var(--radius);
+  --accent-muted: rgba(37, 99, 235, 0.12);
+  --danger:       var(--red);
+  --danger-bg:    var(--red-tint);
 }
 
 /* ── Color scheme hints for browser UI (scrollbars, inputs) ── */
@@ -97,6 +112,8 @@ html[data-theme="dark"] {
   --shadow-card:  0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.35);
   --shadow-pop:   0 8px 24px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.4);
   --shadow-float: 0 12px 40px rgba(0,0,0,0.8), 0 2px 6px rgba(0,0,0,0.5);
+
+  --accent-muted: rgba(79, 142, 247, 0.12);
 }
 
 /* ── Reset & Base ─────────────────────────────────────────── */
@@ -2013,7 +2030,7 @@ ul, ol { list-style: none; }
   max-width: 720px;
   margin: 0 auto;
   outline: none;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: var(--space-6);
