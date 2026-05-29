@@ -27,7 +27,7 @@ function memberInitial(m) {
 }
 
 export default function WorkspaceSettingsModal({ onClose, canEdit }) {
-  const { currentWorkspace, autoSave, userRole, updateWorkspaceSettings, deleteWorkspace } = useWorkspace()
+  const { currentWorkspace, autoSave, userRole, columnLabels, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
   const { user }     = useAuth()
   const { projects, currentProject, removeProject, renameProject } = useProject()
   const { members, inviteMember, removeMember } = useMembers(currentWorkspace?.id)
@@ -38,6 +38,10 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
 
   const [tab, setTab]       = useState('general')
   const [saving, setSaving] = useState(false)
+
+  const [draftName,   setDraftName]   = useState(currentWorkspace?.name ?? '')
+  const [nameSaving,  setNameSaving]  = useState(false)
+  const nameChanged = draftName.trim() !== '' && draftName.trim() !== currentWorkspace?.name
 
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole,  setInviteRole]  = useState('member')
@@ -50,6 +54,41 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
   const [deleting, setDeleting] = useState(false)
 
   const [colSaving, setColSaving] = useState(false)
+
+  const [draftLabels, setDraftLabels] = useState(() => ({ ...columnLabels }))
+  const [labelSaving, setLabelSaving] = useState(false)
+  const labelsChanged = DEFAULT_COLUMNS.some(c => draftLabels[c.id] !== columnLabels[c.id])
+
+  const handleSaveLabels = async () => {
+    const trimmed = Object.fromEntries(
+      DEFAULT_COLUMNS.map(c => [c.id, (draftLabels[c.id] ?? '').trim() || c.label])
+    )
+    setLabelSaving(true)
+    try {
+      await updateColumnLabels(currentWorkspace.id, trimmed)
+      setDraftLabels(trimmed)
+      toast.success('Column names updated')
+    } catch (err) {
+      toast.error(err.message || 'Failed to update column names')
+    } finally {
+      setLabelSaving(false)
+    }
+  }
+
+  const handleRenameWorkspace = async (e) => {
+    e.preventDefault()
+    const trimmed = draftName.trim()
+    if (!trimmed || trimmed === currentWorkspace?.name) return
+    setNameSaving(true)
+    try {
+      await renameWorkspace(currentWorkspace.id, trimmed)
+      toast.success('Workspace renamed')
+    } catch (err) {
+      toast.error(err.message || 'Failed to rename workspace')
+    } finally {
+      setNameSaving(false)
+    }
+  }
 
   const handleToggleAutoSave = async () => {
     setSaving(true)
@@ -168,6 +207,40 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
           {/* General */}
           {tab === 'general' && (
             <div className="ws-settings-section">
+
+              <form className="ws-rename-form" onSubmit={handleRenameWorkspace}>
+                <label className="ws-settings-label" htmlFor="ws-name-input">
+                  Workspace name
+                </label>
+                <p className="ws-settings-desc">
+                  This name appears in the sidebar and across the app.
+                </p>
+                <div className="ws-rename-row">
+                  <input
+                    id="ws-name-input"
+                    type="text"
+                    className="ws-rename-input"
+                    value={draftName}
+                    onChange={e => setDraftName(e.target.value)}
+                    placeholder="Workspace name…"
+                    maxLength={60}
+                    disabled={!isOwner || nameSaving}
+                    aria-label="Workspace name"
+                  />
+                  {isOwner && (
+                    <button
+                      type="submit"
+                      className="btn-primary btn-sm"
+                      disabled={!nameChanged || nameSaving}
+                    >
+                      {nameSaving ? 'Saving…' : 'Rename'}
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              <div className="ws-settings-divider" />
+
               <div className="ws-settings-row">
                 <div className="ws-settings-info">
                   <span className="ws-settings-label">Auto-save task edits</span>
@@ -202,13 +275,48 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                             disabled={colSaving || !isOwner}
                             onChange={() => handleToggleColumn(col.id)}
                           />
-                          <span>{col.label}</span>
+                          <span>{draftLabels[col.id] ?? col.label}</span>
                         </label>
                       )
                     })}
                   </div>
                 </div>
               )}
+
+              <div className="ws-settings-col-section">
+                <p className="ws-settings-label" style={{ marginTop: 'var(--space-5)' }}>Column names</p>
+                <p className="ws-settings-desc">Rename status columns across this workspace.</p>
+                <div className="ws-col-rename-list">
+                  {DEFAULT_COLUMNS.map(col => (
+                    <div key={col.id} className="ws-col-rename-row">
+                      <label className="ws-col-rename-default" htmlFor={`col-${col.id}`}>
+                        {col.label}
+                      </label>
+                      <input
+                        id={`col-${col.id}`}
+                        type="text"
+                        className="ws-col-rename-input"
+                        value={draftLabels[col.id] ?? col.label}
+                        onChange={e => setDraftLabels(prev => ({ ...prev, [col.id]: e.target.value }))}
+                        placeholder={col.label}
+                        maxLength={30}
+                        disabled={!isOwner || labelSaving}
+                        aria-label={`Rename ${col.label} column`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {isOwner && (
+                  <button
+                    className="btn-primary btn-sm"
+                    style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }}
+                    disabled={!labelsChanged || labelSaving}
+                    onClick={handleSaveLabels}
+                  >
+                    {labelSaving ? 'Saving…' : 'Save column names'}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

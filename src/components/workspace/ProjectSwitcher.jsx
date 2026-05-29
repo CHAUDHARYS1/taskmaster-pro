@@ -89,7 +89,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
       </div>
 
       <ul className="project-list" role="list">
-        <li className="project-list-item">
+        <li className="project-list-item" style={{ '--i': 0 }}>
           <div className="project-item-row">
             <button
               className={`project-item-btn${!currentProject ? ' project-item-btn--active' : ''}`}
@@ -103,10 +103,10 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
             </button>
           </div>
         </li>
-        {projects.map(p => {
+        {projects.map((p, idx) => {
           const isActive = currentProject?.id === p.id
           return (
-            <li key={p.id} className="project-list-item">
+            <li key={p.id} className="project-list-item" style={{ '--i': idx + 1 }}>
               {renaming === p.id ? (
                 <form
                   className="project-rename-form"

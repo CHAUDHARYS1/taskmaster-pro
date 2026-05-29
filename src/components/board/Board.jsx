@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple } from '@phosphor-icons/react'
+import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -10,6 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
+import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
@@ -21,11 +22,14 @@ import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
+import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import ShortcutsHelp from '../ui/ShortcutsHelp'
 import WelcomeModal from '../ui/WelcomeModal'
+import MondayMotivationModal from '../ui/MondayMotivationModal'
 import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
 import ArchiveView from './ArchiveView'
+import CalendarView from '../calendar/CalendarView'
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -57,9 +61,9 @@ function TrashZone({ visible }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -75,7 +79,7 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
   const [showModal, setShowModal]           = useState(false)
@@ -88,8 +92,9 @@ export default function Board() {
     () => localStorage.getItem('tm_view_mode') ?? 'board'
   )
   const [welcomeData, setWelcomeData]       = useState(null)
-  const [showWsSettings, setShowWsSettings] = useState(false)
-  const [isDragging, setIsDragging]         = useState(false)
+  const [showWsSettings, setShowWsSettings]     = useState(false)
+  const [isDragging, setIsDragging]             = useState(false)
+  const [showMondayModal, setShowMondayModal]   = useState(false)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -120,15 +125,17 @@ export default function Board() {
     } catch { /* silently skip */ }
   }
 
-  const present    = usePresence(currentWorkspace?.id)
+  const present                      = usePresence(currentWorkspace?.id)
+  const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
   const allTasks     = Object.values(tasksByStatus).flat()
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
-  const columns = currentProject?.enabled_columns
+  const columns = (currentProject?.enabled_columns
     ? DEFAULT_COLUMNS.filter(c => currentProject.enabled_columns.includes(c.id))
     : DEFAULT_COLUMNS
+  ).map(c => ({ ...c, label: columnLabels[c.id] ?? c.label }))
 
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
@@ -143,6 +150,14 @@ export default function Board() {
     if (!raw) return
     localStorage.removeItem('tm_welcome')
     try { setWelcomeData(JSON.parse(raw)) } catch { /* ignore malformed */ }
+  }, [])
+
+  useEffect(() => {
+    if (dayjs().day() !== 1) return  // only Monday (0 = Sun)
+    const weekKey = dayjs().format('YYYY-[W]WW')
+    if (localStorage.getItem('tm_monday_modal_week') === weekKey) return
+    localStorage.setItem('tm_monday_modal_week', weekKey)
+    setShowMondayModal(true)
   }, [])
 
   const { search, assigneeId, priority, label, due, project } = filters
@@ -187,6 +202,7 @@ export default function Board() {
   }
 
   const { toast } = useToast()
+  useTaskReminders(allTasks, toast, updateTask, columns)
 
   const handleComplete = async (id) => {
     const task = allTasks.find(t => t.id === id)
@@ -295,7 +311,58 @@ export default function Board() {
       }
     }
 
+    if (targetColumnId === 'done' && draggedTask.status !== 'done') playDoneSound()
     reorderTask(active.id, targetColumnId, newPosition)
+  }
+
+  const escHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+
+  const handlePrint = () => {
+    const colData = columns.map(col => ({
+      label: col.label,
+      tasks: displayByStatus[col.id] ?? [],
+    }))
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escHtml(currentWorkspace?.name)} — Task Board</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;color:#111}
+h1{font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{font-size:12px;color:#666;margin-bottom:20px}
+.cols{display:grid;grid-template-columns:repeat(${colData.length},1fr);gap:14px}
+.col{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+.col-hdr{background:#f3f4f6;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#374151}
+.col-body{padding:8px}
+.task{border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:6px}
+.task-text{font-size:13px;color:#111;margin-bottom:4px}
+.meta{display:flex;gap:8px;font-size:11px;color:#777;flex-wrap:wrap}
+.pri{font-weight:600}.high{color:#ef4444}.medium{color:#f59e0b}.low{color:#6b7280}
+.empty{font-size:12px;color:#9ca3af;padding:6px}
+@media print{body{padding:10px}@page{margin:.5in}}
+</style></head><body>
+<h1>${escHtml(currentWorkspace?.name)}</h1>
+<p class="sub">Printed ${dayjs().format('MMMM D, YYYY [at] h:mm A')}</p>
+<div class="cols">
+${colData.map(c => `<div class="col">
+  <div class="col-hdr">${escHtml(c.label)} (${c.tasks.length})</div>
+  <div class="col-body">
+    ${c.tasks.length === 0 ? '<p class="empty">No tasks</p>' : c.tasks.map(t => `<div class="task">
+      <div class="task-text">${escHtml(t.text)}</div>
+      ${t.priority || t.due_date ? `<div class="meta">
+        ${t.priority ? `<span class="pri ${t.priority}">${t.priority}</span>` : ''}
+        ${t.due_date ? `<span>Due ${dayjs(t.due_date).format('MMM D')}</span>` : ''}
+      </div>` : ''}
+    </div>`).join('')}
+  </div>
+</div>`).join('')}
+</div></body></html>`
+
+    const win = window.open('', '_blank')
+    if (!win) { toast.error('Pop-ups blocked — allow pop-ups to print.'); return }
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 300)
   }
 
   if (wsLoading || projLoading || loading) return <BoardSkeleton />
@@ -303,7 +370,7 @@ export default function Board() {
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
       <main className="board-main">
         <div className="board-empty-state">
           <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
@@ -323,7 +390,7 @@ export default function Board() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} />
+      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main className="board-main">
         <div className="board-header">
@@ -344,9 +411,9 @@ export default function Board() {
             </span>
           </div>
           <div className="board-header-right">
-            <PresenceAvatars users={present} />
+            <PresenceAvatars members={workspaceMembers} present={present} />
 
-            {/* Board / List toggle — archive is a separate button */}
+            {/* Board / List / Calendar toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
                 className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
@@ -364,6 +431,14 @@ export default function Board() {
               >
                 <Rows size={20} aria-hidden="true" />
               </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'calendar' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('calendar')}
+                aria-pressed={viewMode === 'calendar'}
+                title="Calendar view (C)"
+              >
+                <CalendarBlank size={20} aria-hidden="true" />
+              </button>
             </div>
 
             {/* Archive — separate from layout toggle */}
@@ -374,6 +449,15 @@ export default function Board() {
               title="Archive (A)"
             >
               <Archive size={20} aria-hidden="true" />
+            </button>
+
+            <button
+              className="ws-settings-btn board-header-btn--print"
+              onClick={handlePrint}
+              aria-label="Print task board"
+              title="Print board"
+            >
+              <Printer size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -456,8 +540,8 @@ export default function Board() {
                     }}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text) => {
-                      try { await addTask({ text, status: 'toDo' }); toast.success('Task added') }
+                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text, description) => {
+                      try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
                       catch (err) { toast.error(err.message || 'Failed to add task') }
                     } : undefined}
                   />
@@ -482,6 +566,7 @@ export default function Board() {
         ) : viewMode === 'list' ? (
           <div className="list-view-wrap">
             <ListView
+              columns={columns}
               tasksByStatus={displayByStatus}
               canEdit={canEdit}
               canDelete={canDelete}
@@ -495,27 +580,24 @@ export default function Board() {
               onComplete={handleComplete}
             />
           </div>
+        ) : viewMode === 'calendar' ? (
+          <div className="cal-page-body">
+            <CalendarView
+              tasks={allTasks}
+              onTaskClick={t => setSelectedTaskId(t.id)}
+            />
+          </div>
         ) : (
           <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
         )}
       </main>
-
-      {/* Fixed help button — bottom right corner */}
-      <button
-        className="help-fab"
-        onClick={() => setShowShortcuts(true)}
-        aria-label="Keyboard shortcuts"
-        title="Keyboard shortcuts (?)"
-      >
-        ?
-      </button>
 
       {showModal && canEdit && (
         <AddTaskModal
           columns={columns}
           onClose={() => setShowModal(false)}
           onSave={async (data) => {
-            try { await addTask(data); toast.success('Task added'); setShowModal(false) }
+            try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
             catch (err) { toast.error(err.message || 'Failed to add task') }
           }}
         />
@@ -524,9 +606,14 @@ export default function Board() {
       {selectedTask && (
         <TaskDetailPanel
           task={selectedTask}
+          columns={columns}
           canEdit={canEdit}
           autoSave={autoSave}
-          onUpdate={updateTask}
+          onUpdate={(id, changes) => {
+            if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+            return updateTask(id, changes)
+          }}
+          onChecklistChange={patchTaskChecklist}
           onClose={() => setSelectedTaskId(null)}
         />
       )}
@@ -538,6 +625,13 @@ export default function Board() {
           workspaceName={welcomeData.workspace_name}
           invitedByName={welcomeData.invited_by_name}
           onClose={() => setWelcomeData(null)}
+        />
+      )}
+      {showMondayModal && currentWorkspace && (
+        <MondayMotivationModal
+          workspaceId={currentWorkspace.id}
+          firstName={profile?.first_name}
+          onClose={() => setShowMondayModal(false)}
         />
       )}
     </div>

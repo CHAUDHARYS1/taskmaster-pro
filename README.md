@@ -239,6 +239,31 @@ Run in Supabase dashboard → SQL Editor in order:
 - **Color-coded column counts** — the task count badge in each column header is color-coded: blue for In Progress, amber for In Review, green for Done
 - **Profile settings** — click the user row in the sidebar footer to open a Profile Settings modal; edit first and last name inline without leaving the board; changes persist to Supabase and update the display name everywhere immediately
 
+### QoL 4
+- **Calendar** — full calendar view (month / week / day) accessible from the sidebar and the board header view toggle; tasks with due dates appear as color-coded event chips; click any chip to open the task detail panel
+- **Dashboard** — analytics page per workspace: current streak, activity heatmap (with year selector), status breakdown bar, recent completions list, and a quick-add form to create tasks without leaving the dashboard
+- **Writes** — lightweight per-workspace document editor built on Tiptap; supports rich text (bold, italic, lists, headings, blockquotes, links); auto-saves, per-doc shareable URLs (`/writes/:id`), and PDF export
+- **Doc linking** — link any Writes document to a task from the detail panel; linked docs appear as chips and open in an inline drawer without navigating away from the board
+- **Quick links** — pin any URL as a favicon shortcut in the sidebar footer for fast one-click access to external tools; tooltips show title and URL on hover
+- **Auto-logout** — idle session timeout after inactivity with an amber warning banner before signing out automatically
+- **Print board** — print the current board state (with filters applied) directly from the board header toolbar; generates a clean print-optimised HTML page
+
+### QoL 5
+- **Task checklist** — add sub-tasks as a checklist inside the task detail panel; a thin progress bar and `x/y` count badge appear on the card when items exist
+- **Task reminders** — set a specific due time alongside the due date; a toast fires at the exact moment with snooze (15 min / 1 hr), Move to Done, and dismiss actions, plus a chime sound on completion
+- **Inline quick-add** — type-and-submit form pinned to the top of the To Do column; a slide-down description field expands on focus, no modal required
+- **Monday motivation modal** — shown once per week on Monday mornings; displays tasks completed the previous week as a bar chart alongside a motivational message
+- **Rename columns** — workspace owners can rename any status column (To Do, In Progress, In Review, Done) from the Workspace Settings modal; custom labels persist per workspace
+- **Fluid kanban columns** — board columns expand equally to fill all available horizontal space; no wasted whitespace on wide monitors
+- **Always-visible member avatars** — all workspace member avatars are shown in the board header (not just currently-online members); online status is indicated by a green dot
+- **Rename workspace** — workspace owners can edit the workspace name inline from the Settings → General tab without leaving the board
+
+### v1.2.0 — Mobile & Polish
+- **Mobile-first layout pass** — dashboard stacks form panel and stats vertically with a single scroll; Writes shows a compact 220px doc list above the editor; Calendar week view scrolls horizontally at 100px per column; List view wraps in a horizontal scroll container; board header right-side controls tightened to fit 390px screens (print button hidden on mobile)
+- **CSS token resolution** — 13 undefined CSS custom property tokens (`--border`, `--shadow`, `--paper-1`, `--ink-faint`, `--font-base`, `--accent-muted`, `--danger`, `--danger-bg`, and more) aliased to their correct values, fixing broken styles in the calendar, checklist, writes editor, and workspace settings across light and dark mode
+- **Dark mode Writes editor fix** — the writing canvas was hardcoded to `#fff`; now uses `var(--card)` so it respects the active theme
+- **Focus ring dark mode** — `--accent-muted` now has a correct dark-mode value so input focus glows render in the right blue tint instead of the light-mode colour
+
 ---
 
 ## Keyboard Shortcuts

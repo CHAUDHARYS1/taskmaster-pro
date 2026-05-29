@@ -6,11 +6,14 @@ import { ProjectProvider } from './contexts/ProjectContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './components/auth/AuthPage'
+import SessionGuard from './components/auth/SessionGuard'
 import Board from './components/board/Board'
 import AcceptInvitePage from './components/workspace/AcceptInvitePage'
 import WorkspaceDeepLink from './components/workspace/WorkspaceDeepLink'
 import ProjectDeepLink from './components/workspace/ProjectDeepLink'
 import DashboardPage from './components/dashboard/DashboardPage'
+import WritesPage from './components/writes/WritesPage'
+import CalendarPage from './components/calendar/CalendarPage'
 import ToastContainer from './components/ui/ToastContainer'
 
 function ProtectedRoute({ children }) {
@@ -38,6 +41,7 @@ export default function App() {
         <WorkspaceProvider>
           <LabelsProvider>
           <ProjectProvider>
+          <SessionGuard />
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/invite/:token"        element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
@@ -45,6 +49,8 @@ export default function App() {
             <Route path="/workspace/:workspaceId/project/:projectId"  element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/project/:projectId"                         element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+            <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
