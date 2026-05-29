@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
             <QuickLinks />
           </div>
 
-          <p className="sidebar-version">v1.0.01</p>
+          <p className="sidebar-version">v1.2.00</p>
           <p className="sidebar-credit">
             Designed and built by{' '}
             <a href="https://chaudharys1.netlify.app" target="_blank" rel="noreferrer" className="sidebar-credit-link">
