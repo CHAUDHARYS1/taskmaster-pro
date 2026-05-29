@@ -10,6 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
+import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
@@ -124,7 +125,8 @@ export default function Board() {
     } catch { /* silently skip */ }
   }
 
-  const present    = usePresence(currentWorkspace?.id)
+  const present                      = usePresence(currentWorkspace?.id)
+  const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
   const allTasks     = Object.values(tasksByStatus).flat()
@@ -409,7 +411,7 @@ ${colData.map(c => `<div class="col">
             </span>
           </div>
           <div className="board-header-right">
-            <PresenceAvatars users={present} />
+            <PresenceAvatars members={workspaceMembers} present={present} />
 
             {/* Board / List / Calendar toggle — archive is a separate button */}
             <div className="view-toggle" role="group" aria-label="View mode">
