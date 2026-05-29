@@ -1314,6 +1314,26 @@ ul, ol { list-style: none; }
 
 .presence-avatar-wrap:hover .presence-avatar { transform: translateY(-2px); }
 
+/* Green dot on the wrapper when the member is online */
+.presence-avatar-wrap--online::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--green, #22c55e);
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Offline members are dimmed */
+.presence-avatar--offline {
+  opacity: 0.45;
+}
+
 .presence-avatar--overflow {
   background: var(--paper-3);
   color: var(--ink-3);
@@ -1371,6 +1391,10 @@ ul, ol { list-style: none; }
 .presence-tooltip-time {
   font-size: var(--text-xs);
   opacity: 0.55;
+}
+.presence-tooltip-time--online {
+  color: var(--green, #22c55e);
+  opacity: 0.9;
 }
 
 /* ── Board & column empty states ─────────────────────────── */
