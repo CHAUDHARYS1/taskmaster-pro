@@ -4541,27 +4541,45 @@ ul, ol { list-style: none; }
   font-size: 12px;
   color: var(--accent);
   display: inline-block;
-  transition: transform 0.2s var(--ease-enter);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transform: rotate(-90deg);
   margin-left: auto;
 }
 .ws-chevron--open { transform: rotate(0deg); }
 
-/* Project panel — dropdown container */
-@keyframes projectPanelIn {
-  from { max-height: 0; opacity: 0; transform: translateY(-4px); }
-  to   { max-height: 600px; opacity: 1; transform: translateY(0); }
-}
-
+/* Project panel — dropdown container (grid-rows for smooth height) */
 .project-panel {
-  overflow: hidden;
-  animation: projectPanelIn 0.22s var(--ease-enter);
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity            0.32s ease;
 }
 .project-panel--closed {
-  max-height: 0 !important;
+  grid-template-rows: 0fr;
   opacity: 0;
-  transition: max-height 0.2s ease-in, opacity 0.15s ease-in;
   pointer-events: none;
+}
+/* Inner div clips overflow during the height collapse */
+.project-panel-inner { overflow: hidden; }
+
+/* ── Staggered slide-in for each project item ──────────────
+   Visible state: translate(0) opacity 1 with spring easing.
+   Hidden state (when panel is closed): snap back instantly —
+   the collapsed container hides the snap so it's invisible.   */
+.project-list-item {
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity   0.26s ease;
+  transition-delay: calc(var(--i, 0) * 60ms + 30ms);
+}
+.project-panel--closed .project-list-item {
+  transform: translateX(-14px);
+  opacity: 0;
+  transition: none; /* instant reset — hidden behind collapsed container */
 }
 
 .project-switcher {

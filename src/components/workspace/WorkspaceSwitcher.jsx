@@ -66,11 +66,12 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
               {/* Projects nested directly inside the active workspace item */}
               {isActive && (
                 <div
-                  key={ws.id}
                   className={`project-panel${projectsOpen ? '' : ' project-panel--closed'}`}
                   aria-hidden={!projectsOpen}
                 >
-                  <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+                  <div className="project-panel-inner">
+                    <ProjectSwitcher viewMode={viewMode} onViewChange={onViewChange} />
+                  </div>
                 </div>
               )}
             </li>
