@@ -410,41 +410,104 @@ ul, ol { list-style: none; }
 /* ── Quick Add ───────────────────────────────────────────── */
 .quick-add {
   padding: var(--space-2);
-  border-top: 1px solid var(--line);
 }
 
-.quick-add-btn {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--ink-4);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  text-align: left;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+.quick-add--top {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-3);
 }
 
-.quick-add-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-muted, rgba(37,99,235,0.06));
+/* Title row: input + submit button side-by-side */
+.quick-add-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .quick-add-input {
-  width: 100%;
+  flex: 1;
   padding: var(--space-2) var(--space-3);
-  background: var(--card);
-  border: 1px solid var(--accent);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  color: var(--ink);
+  color: var(--ink-1);
   font-size: var(--text-sm);
   font-family: inherit;
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent-muted, rgba(37,99,235,0.15));
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   box-sizing: border-box;
 }
+
+.quick-add-input:focus {
+  border-color: var(--accent);
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--accent-muted, rgba(37,99,235,0.15));
+}
+
+.quick-add-input::placeholder { color: var(--ink-4); }
+
+.quick-add-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.quick-add-submit:disabled {
+  background: var(--paper-3);
+  color: var(--ink-4);
+  cursor: default;
+}
+
+.quick-add-submit:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+/* Slide-down description field */
+.quick-add-desc-wrap {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.22s ease;
+}
+
+.quick-add-desc-wrap--open {
+  max-height: 110px;
+}
+
+.quick-add-desc-inner {
+  padding-top: var(--space-2);
+}
+
+.quick-add-desc {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-1);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.quick-add-desc:focus {
+  border-color: var(--accent);
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--accent-muted, rgba(37,99,235,0.15));
+}
+
+.quick-add-desc::placeholder { color: var(--ink-4); }
 
 /* ── Task Card ────────────────────────────────────────────── */
 .task-card {
