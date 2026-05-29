@@ -340,13 +340,12 @@ ul, ol { list-style: none; }
   display: flex;
   gap: var(--space-4);
   height: 100%;
-  min-width: max-content;
 }
 
 /* ── Column ───────────────────────────────────────────────── */
 .column {
-  width: 280px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
   background-color: var(--card);
@@ -2811,6 +2810,7 @@ ul, ol { list-style: none; }
     min-width: unset;
   }
   .column {
+    flex: none;
     width: 82vw;
     scroll-snap-align: start;
     max-height: calc(100dvh - 180px);
