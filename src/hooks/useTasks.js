@@ -69,7 +69,7 @@ export function useTasks(workspaceId, projectId) {
 
   const addTask = async ({ text, description, due_date, due_time, status = 'toDo', priority = null, assignee_id = null, labels = [] }) => {
     const colTasks = tasks.filter(t => t.status === status)
-    const maxPos = colTasks.length ? Math.max(...colTasks.map(t => t.position)) : 0
+    const minPos = colTasks.length ? Math.min(...colTasks.map(t => t.position)) : 0
     const { data, error } = await supabase.from('tasks').insert({
       workspace_id: workspaceId,
       project_id:   projectId,
@@ -78,12 +78,13 @@ export function useTasks(workspaceId, projectId) {
       due_date:     due_date || null,
       due_time:     due_time || null,
       status,
-      position:     maxPos + 1000,
+      position:     minPos - 1000,
       priority:     priority || null,
       assignee_id:  assignee_id || null,
       labels:       labels.length ? labels : [],
-    }).select('id').single()
+    }).select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,checked)').single()
     if (error) throw error
+    setTasks(prev => [...prev, data])
     return data.id
   }
 

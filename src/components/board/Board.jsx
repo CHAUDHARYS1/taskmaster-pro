@@ -529,8 +529,8 @@ ${colData.map(c => `<div class="col">
                     }}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text) => {
-                      try { await addTask({ text, status: 'toDo' }); toast.success('Task added') }
+                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text, description) => {
+                      try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
                       catch (err) { toast.error(err.message || 'Failed to add task') }
                     } : undefined}
                   />
