@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { List } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -73,6 +74,13 @@ export default function WritesPage() {
         {/* Document list panel */}
         <aside className="writes-list-panel">
           <div className="writes-list-hdr">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setShowSidebar(p => !p)}
+              aria-label="Toggle sidebar"
+            >
+              <List size={22} aria-hidden="true" />
+            </button>
             <h2 className="writes-list-heading">Writes</h2>
             <button className="btn-primary btn-sm" onClick={handleNew} aria-label="New document">
               + New

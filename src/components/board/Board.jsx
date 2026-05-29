@@ -263,6 +263,11 @@ export default function Board() {
     setIsDragging(true)
   }
 
+  const handleDragCancel = () => {
+    setActiveTask(null)
+    setIsDragging(false)
+  }
+
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
     setIsDragging(false)
@@ -471,6 +476,58 @@ ${colData.map(c => `<div class="col">
           </div>
         </div>
 
+        {/* ── Mobile view bar (second row, mobile-only) ──────────── */}
+        <nav className="mob-view-bar" aria-label="View options">
+          <button
+            className={`mob-view-btn${viewMode === 'board' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('board')}
+            aria-pressed={viewMode === 'board'}
+          >
+            <SquaresFour size={22} aria-hidden="true" />
+            <span>Board</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'list' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
+          >
+            <Rows size={22} aria-hidden="true" />
+            <span>List</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'calendar' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('calendar')}
+            aria-pressed={viewMode === 'calendar'}
+          >
+            <CalendarBlank size={22} aria-hidden="true" />
+            <span>Calendar</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'archive' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
+            aria-pressed={viewMode === 'archive'}
+          >
+            <Archive size={22} aria-hidden="true" />
+            <span>Archive</span>
+          </button>
+          <button
+            className="mob-view-btn"
+            onClick={handlePrint}
+            aria-label="Print task board"
+          >
+            <Printer size={22} aria-hidden="true" />
+            <span>Print</span>
+          </button>
+          <button
+            className="mob-view-btn"
+            onClick={() => setShowWsSettings(true)}
+            aria-label="Workspace settings"
+          >
+            <GearSix size={22} aria-hidden="true" />
+            <span>Settings</span>
+          </button>
+        </nav>
+
         {totalTasks > 0 && viewMode !== 'archive' && (
           <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
             <div
@@ -522,6 +579,7 @@ ${colData.map(c => `<div class="col">
               sensors={sensors}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               <div className="board-columns">
                 {columns.map(col => (
