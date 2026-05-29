@@ -452,7 +452,7 @@ ${colData.map(c => `<div class="col">
             </button>
 
             <button
-              className="ws-settings-btn"
+              className="ws-settings-btn board-header-btn--print"
               onClick={handlePrint}
               aria-label="Print task board"
               title="Print board"

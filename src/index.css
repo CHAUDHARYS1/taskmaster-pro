@@ -2911,6 +2911,100 @@ ul, ol { list-style: none; }
     max-width: unset;
     width: 100%;
   }
+
+  /* ── Board header: compact right cluster ─────────────────── */
+  .board-header-right {
+    gap: var(--space-2);
+  }
+  .board-header-btn--print { display: none; }
+  .view-toggle-btn {
+    width: 26px;
+    height: 26px;
+  }
+  .archive-toggle-btn,
+  .ws-settings-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* ── Filter bar: fix add-button anchor ───────────────────── */
+  .filter-add-btn { margin-left: 0; }
+
+  /* ── Task detail panel: tighter body ─────────────────────── */
+  .task-panel-body {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+  .tiptap-toolbar { flex-wrap: wrap; }
+
+  /* ── List view: horizontal scroll ────────────────────────── */
+  .list-view-wrap { padding: var(--space-2); }
+  .list-view {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-table { min-width: 540px; }
+  .list-th,
+  .list-td { padding: var(--space-2); }
+
+  /* ── Dashboard: stack vertically, single scroll ──────────── */
+  .dash-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .dash-form-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    overflow-y: visible;
+    flex-shrink: 0;
+  }
+  .dashboard {
+    flex: none;
+    overflow-y: visible;
+    padding: var(--space-4);
+  }
+  .dash-top-row    { flex-direction: column; }
+  .dash-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-bottom-row { flex-direction: column; }
+  .dash-streak-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: unset;
+  }
+  .dash-qa-row    { grid-template-columns: 1fr; }
+  .dash-qa-header { padding: var(--space-4) var(--space-4) var(--space-3); }
+  .dash-quick-add-form { padding: var(--space-3) var(--space-4); }
+
+  /* ── Writes: stack vertically ────────────────────────────── */
+  .writes-main { flex-direction: column; }
+  .writes-list-panel {
+    width: 100%;
+    max-height: 220px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .writes-editor-area {
+    flex: 1;
+    min-height: 0;
+  }
+  .we-doc-hdr { padding: var(--space-3) var(--space-4) var(--space-2); }
+  .we-toolbar { padding: var(--space-2) var(--space-4); }
+  .we-body    { padding: var(--space-3) var(--space-4); }
+
+  /* ── Calendar: compact toolbar + scrollable week ─────────── */
+  .cal-toolbar {
+    flex-wrap: wrap;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+  .cal-day-view { padding: var(--space-4); }
+  .cal-week {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(7, minmax(100px, 1fr));
+  }
 }
 
 /* ── Collaborative editing: locked card ──────────────────── */
