@@ -13,6 +13,7 @@ import WorkspaceDeepLink from './components/workspace/WorkspaceDeepLink'
 import ProjectDeepLink from './components/workspace/ProjectDeepLink'
 import DashboardPage from './components/dashboard/DashboardPage'
 import WritesPage from './components/writes/WritesPage'
+import CalendarPage from './components/calendar/CalendarPage'
 import ToastContainer from './components/ui/ToastContainer'
 
 function ProtectedRoute({ children }) {
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/workspace/:workspaceId/project/:projectId"  element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/project/:projectId"                         element={<ProtectedRoute><ProjectDeepLink /></ProtectedRoute>} />
             <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
