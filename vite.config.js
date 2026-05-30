@@ -25,7 +25,6 @@ export default defineConfig({
           'vendor-react':    ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-dnd':      ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-          'vendor-tiptap':   ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link'],
           'vendor-icons':    ['@phosphor-icons/react'],
           'vendor-dayjs':    ['dayjs'],
         },

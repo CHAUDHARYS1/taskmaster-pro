@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
@@ -16,21 +16,22 @@ import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
 import TaskCard from './TaskCard'
-import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
-import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-import ShortcutsHelp from '../ui/ShortcutsHelp'
-import WelcomeModal from '../ui/WelcomeModal'
-import MondayMotivationModal from '../ui/MondayMotivationModal'
-import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
-import ArchiveView from './ArchiveView'
-import CalendarView from '../calendar/CalendarView'
+
+const AddTaskModal          = lazy(() => import('./AddTaskModal'))
+const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
+const CalendarView          = lazy(() => import('../calendar/CalendarView'))
+const ArchiveView           = lazy(() => import('./ArchiveView'))
+const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
+const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
+const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
+const WorkspaceSettingsModal = lazy(() => import('../workspace/WorkspaceSettingsModal'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -646,58 +647,61 @@ ${colData.map(c => `<div class="col">
           </div>
         ) : viewMode === 'calendar' ? (
           <div className="cal-page-body">
-            <CalendarView
-              tasks={allTasks}
-              onTaskClick={t => setSelectedTaskId(t.id)}
-            />
+            <Suspense fallback={null}>
+              <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
+            </Suspense>
           </div>
         ) : (
-          <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
+          <Suspense fallback={null}>
+            <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
+          </Suspense>
         )}
       </main>
 
-      {showModal && canEdit && (
-        <AddTaskModal
-          columns={columns}
-          onClose={() => setShowModal(false)}
-          onSave={async (data) => {
-            try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
-            catch (err) { toast.error(err.message || 'Failed to add task') }
-          }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showModal && canEdit && (
+          <AddTaskModal
+            columns={columns}
+            onClose={() => setShowModal(false)}
+            onSave={async (data) => {
+              try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
+              catch (err) { toast.error(err.message || 'Failed to add task') }
+            }}
+          />
+        )}
 
-      {selectedTask && (
-        <TaskDetailPanel
-          task={selectedTask}
-          columns={columns}
-          canEdit={canEdit}
-          autoSave={autoSave}
-          onUpdate={(id, changes) => {
-            if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
-            return updateTask(id, changes)
-          }}
-          onChecklistChange={patchTaskChecklist}
-          onClose={() => setSelectedTaskId(null)}
-        />
-      )}
+        {selectedTask && (
+          <TaskDetailPanel
+            task={selectedTask}
+            columns={columns}
+            canEdit={canEdit}
+            autoSave={autoSave}
+            onUpdate={(id, changes) => {
+              if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+              return updateTask(id, changes)
+            }}
+            onChecklistChange={patchTaskChecklist}
+            onClose={() => setSelectedTaskId(null)}
+          />
+        )}
 
-      {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-      {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
-      {welcomeData    && (
-        <WelcomeModal
-          workspaceName={welcomeData.workspace_name}
-          invitedByName={welcomeData.invited_by_name}
-          onClose={() => setWelcomeData(null)}
-        />
-      )}
-      {showMondayModal && currentWorkspace && (
-        <MondayMotivationModal
-          workspaceId={currentWorkspace.id}
-          firstName={profile?.first_name}
-          onClose={() => setShowMondayModal(false)}
-        />
-      )}
+        {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+        {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {welcomeData    && (
+          <WelcomeModal
+            workspaceName={welcomeData.workspace_name}
+            invitedByName={welcomeData.invited_by_name}
+            onClose={() => setWelcomeData(null)}
+          />
+        )}
+        {showMondayModal && currentWorkspace && (
+          <MondayMotivationModal
+            workspaceId={currentWorkspace.id}
+            firstName={profile?.first_name}
+            onClose={() => setShowMondayModal(false)}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }
