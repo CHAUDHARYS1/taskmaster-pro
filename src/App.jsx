@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
@@ -5,16 +6,17 @@ import { LabelsProvider } from './contexts/LabelsContext'
 import { ProjectProvider } from './contexts/ProjectContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import AuthPage from './components/auth/AuthPage'
 import SessionGuard from './components/auth/SessionGuard'
-import Board from './components/board/Board'
-import AcceptInvitePage from './components/workspace/AcceptInvitePage'
-import WorkspaceDeepLink from './components/workspace/WorkspaceDeepLink'
-import ProjectDeepLink from './components/workspace/ProjectDeepLink'
-import DashboardPage from './components/dashboard/DashboardPage'
-import WritesPage from './components/writes/WritesPage'
-import CalendarPage from './components/calendar/CalendarPage'
 import ToastContainer from './components/ui/ToastContainer'
+
+const AuthPage        = lazy(() => import('./components/auth/AuthPage'))
+const Board           = lazy(() => import('./components/board/Board'))
+const AcceptInvitePage  = lazy(() => import('./components/workspace/AcceptInvitePage'))
+const WorkspaceDeepLink = lazy(() => import('./components/workspace/WorkspaceDeepLink'))
+const ProjectDeepLink   = lazy(() => import('./components/workspace/ProjectDeepLink'))
+const DashboardPage   = lazy(() => import('./components/dashboard/DashboardPage'))
+const WritesPage      = lazy(() => import('./components/writes/WritesPage'))
+const CalendarPage    = lazy(() => import('./components/calendar/CalendarPage'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -42,6 +44,8 @@ export default function App() {
           <LabelsProvider>
           <ProjectProvider>
           <SessionGuard />
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <Suspense fallback={<div className="loading-screen">Loading…</div>}>
           <Routes>
             <Route path="/login"          element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/invite/:token"        element={<ProtectedRoute><AcceptInvitePage /></ProtectedRoute>} />
@@ -54,6 +58,7 @@ export default function App() {
             <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
           <ToastContainer />
           </ProjectProvider>
           </LabelsProvider>

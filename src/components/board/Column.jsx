@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { PaperPlaneTilt } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 
-export default function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   const [text, setText] = useState('')
@@ -113,3 +113,5 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
     </div>
   )
 }
+
+export default memo(Column)

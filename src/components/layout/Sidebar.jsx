@@ -33,7 +33,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
 
   return (
     <>
-      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
+      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`} aria-label="Sidebar navigation">
         <div className="sidebar-top">
           <LogoLockup width={164} className="sidebar-lockup" />
         </div>

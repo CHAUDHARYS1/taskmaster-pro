@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
@@ -100,14 +100,18 @@ export default function Board() {
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
   const pendingDeletes = useRef({})
+  const doneAudioRef   = useRef(null)
 
-  const playDoneSound = () => {
+  const playDoneSound = useCallback(() => {
     try {
-      const audio = new Audio('/sound/done.mp3')
-      audio.volume = 0.5
-      audio.play().catch(() => {})
+      if (!doneAudioRef.current) {
+        doneAudioRef.current = new Audio('/sound/done.mp3')
+        doneAudioRef.current.volume = 0.5
+      }
+      doneAudioRef.current.currentTime = 0
+      doneAudioRef.current.play().catch(() => {})
     } catch { /* silently skip */ }
-  }
+  }, [])
 
   const playDeleteSound = () => {
     try {
@@ -130,7 +134,7 @@ export default function Board() {
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
-  const allTasks     = Object.values(tasksByStatus).flat()
+  const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
   const columns = (currentProject?.enabled_columns
@@ -205,7 +209,7 @@ export default function Board() {
   const { toast } = useToast()
   useTaskReminders(allTasks, toast, updateTask, columns)
 
-  const handleComplete = async (id) => {
+  const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
     try {
       await updateTask(id, { status: 'done' })
@@ -214,9 +218,9 @@ export default function Board() {
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
-  }
+  }, [allTasks, updateTask, toast, playDoneSound])
 
-  const scheduleDelete = (id, label) => {
+  const scheduleDelete = useCallback((id, label) => {
     const timerId = setTimeout(async () => {
       delete pendingDeletes.current[id]
       try { await deleteTask(id) }
@@ -227,7 +231,17 @@ export default function Board() {
       clearTimeout(pendingDeletes.current[id])
       delete pendingDeletes.current[id]
     })
-  }
+  }, [deleteTask, toast])
+
+  const handleColumnDelete = useCallback((id) => {
+    const task = allTasks.find(t => t.id === id)
+    scheduleDelete(id, task?.text ?? 'Task')
+  }, [allTasks, scheduleDelete])
+
+  const handleQuickAdd = useCallback(async (text, description) => {
+    try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
+    catch (err) { toast.error(err.message || 'Failed to add task') }
+  }, [addTask, toast])
 
   useKeyboardShortcuts({
     'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
@@ -398,7 +412,7 @@ ${colData.map(c => `<div class="col">
       )}
       <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
-      <main className="board-main">
+      <main id="main-content" className="board-main">
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -593,16 +607,10 @@ ${colData.map(c => `<div class="col">
                     canDelete={canDelete}
                     editingMap={editingMap}
                     showProject={isGlobalBoard}
-                    onDelete={(id) => {
-                      const task = allTasks.find(t => t.id === id)
-                      scheduleDelete(id, task?.text ?? 'Task')
-                    }}
+                    onDelete={handleColumnDelete}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text, description) => {
-                      try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
-                      catch (err) { toast.error(err.message || 'Failed to add task') }
-                    } : undefined}
+                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
                   />
                 ))}
               </div>
@@ -631,10 +639,7 @@ ${colData.map(c => `<div class="col">
               canDelete={canDelete}
               editingMap={editingMap}
               showProject={isGlobalBoard}
-              onDelete={(id) => {
-                const task = allTasks.find(t => t.id === id)
-                scheduleDelete(id, task?.text ?? 'Task')
-              }}
+              onDelete={handleColumnDelete}
               onOpen={setSelectedTaskId}
               onComplete={handleComplete}
             />

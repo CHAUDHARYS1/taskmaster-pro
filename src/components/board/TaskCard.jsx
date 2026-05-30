@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
@@ -24,7 +25,7 @@ function initials(u) {
   return (u.email ?? '??').split('@')[0].slice(0, 2).toUpperCase()
 }
 
-export default function TaskCard({
+function TaskCard({
   task,
   canEdit = true,
   canDelete = false,
@@ -232,3 +233,5 @@ export default function TaskCard({
     </li>
   )
 }
+
+export default memo(TaskCard)

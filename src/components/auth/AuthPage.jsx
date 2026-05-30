@@ -122,8 +122,8 @@ export default function AuthPage() {
             />
           </div>
 
-          {error   && <p className="form-error">{error}</p>}
-          {success && <p className="form-success">{success}</p>}
+          {error   && <p className="form-error" role="alert">{error}</p>}
+          {success && <p className="form-success" role="status">{success}</p>}
 
           <button type="submit" className="btn-primary btn-block" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
