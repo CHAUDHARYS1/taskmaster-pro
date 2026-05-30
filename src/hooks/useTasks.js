@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const STATUSES = ['toDo', 'inProgress', 'inReview', 'done']
@@ -120,12 +120,12 @@ export function useTasks(workspaceId, projectId) {
     ))
   }, [])
 
-  const tasksByStatus = STATUSES.reduce((acc, status) => {
+  const tasksByStatus = useMemo(() => STATUSES.reduce((acc, status) => {
     acc[status] = tasks
       .filter(t => t.status === status)
       .sort((a, b) => a.position - b.position)
     return acc
-  }, {})
+  }, {}), [tasks])
 
   return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist }
 }
