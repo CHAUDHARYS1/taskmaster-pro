@@ -1,11 +1,18 @@
-import { useMemo, useState } from 'react'
-import { X } from '@phosphor-icons/react'
+import { useEffect, useMemo, useState } from 'react'
+import { X, PencilSimple, Check } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useMembers } from '../../hooks/useMembers'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { DEFAULT_COLUMNS } from '../board/Board'
+import { ALL_COLUMN_IDS } from '../../contexts/WorkspaceContext'
+
+const COLUMN_PRESET_COLORS = [
+  '#6366f1', '#2563EB', '#0ea5e9', '#0f766e',
+  '#22c55e', '#d97706', '#ef4444', '#ec4899',
+  '#7c3aed', '#555555',
+]
 
 const WORDS = [
   'avalanche','biscuit','chimney','driftwood','eclipse','falcon',
@@ -27,7 +34,7 @@ function memberInitial(m) {
 }
 
 export default function WorkspaceSettingsModal({ onClose, canEdit }) {
-  const { currentWorkspace, autoSave, userRole, columnLabels, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
+  const { currentWorkspace, autoSave, userRole, columnLabels, workspaceColumns, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
   const { user }     = useAuth()
   const { projects, currentProject, removeProject, renameProject } = useProject()
   const { members, inviteMember, removeMember } = useMembers(currentWorkspace?.id)
@@ -55,23 +62,67 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
 
   const [colSaving, setColSaving] = useState(false)
 
-  const [draftLabels, setDraftLabels] = useState(() => ({ ...columnLabels }))
-  const [labelSaving, setLabelSaving] = useState(false)
-  const labelsChanged = DEFAULT_COLUMNS.some(c => draftLabels[c.id] !== columnLabels[c.id])
+  // Unified column manager — one source of truth for names + visibility + custom columns
+  const [draftColumns, setDraftColumns] = useState(() => workspaceColumns.map(c => ({ ...c })))
+  const [newColLabel, setNewColLabel]   = useState('')
+  const [colManagerSaving, setColManagerSaving] = useState(false)
 
-  const handleSaveLabels = async () => {
-    const trimmed = Object.fromEntries(
-      DEFAULT_COLUMNS.map(c => [c.id, (draftLabels[c.id] ?? '').trim() || c.label])
+  // Reset draft whenever the saved workspace columns change (e.g. after a successful save)
+  useEffect(() => {
+    setDraftColumns(workspaceColumns.map(c => ({ ...c })))
+  }, [currentWorkspace?.id, currentWorkspace?.column_labels])
+
+  const columnsChanged = (() => {
+    if (draftColumns.length !== workspaceColumns.length) return true
+    return draftColumns.some((c, i) =>
+      c.id !== workspaceColumns[i]?.id ||
+      c.label !== workspaceColumns[i]?.label ||
+      c.color !== workspaceColumns[i]?.color
     )
-    setLabelSaving(true)
+  })()
+
+  const handleAddColumn = () => {
+    const trimmed = newColLabel.trim()
+    if (!trimmed) return
+    const id = `col_${Date.now()}`
+    const color = COLUMN_PRESET_COLORS[draftColumns.length % COLUMN_PRESET_COLORS.length]
+    setDraftColumns(prev => [...prev, { id, label: trimmed, color }])
+    setNewColLabel('')
+  }
+
+  const handleRemoveColumn = (id) => {
+    if (draftColumns.length <= 1) { toast.error('At least one column must remain'); return }
+    setDraftColumns(prev => prev.filter(c => c.id !== id))
+  }
+
+  const handleRenameColumn = (id, label) => {
+    setDraftColumns(prev => prev.map(c => c.id === id ? { ...c, label } : c))
+  }
+
+  const handleSetColumnColor = (id, color) => {
+    setDraftColumns(prev => prev.map(c => c.id === id ? { ...c, color } : c))
+  }
+
+  const handleSaveColumns = async () => {
+    if (draftColumns.some(c => !c.label.trim())) { toast.error('All columns need a name'); return }
+
+    const newIds = draftColumns.map(c => c.id)
+
+    // Build new column_labels: preserve metadata keys, write labels + colors + order
+    const existing = currentWorkspace?.column_labels ?? {}
+    const metadata = Object.fromEntries(Object.entries(existing).filter(([k]) => k.startsWith('_')))
+    const labels   = Object.fromEntries(draftColumns.map(c => [c.id, c.label.trim()]))
+    const colors   = Object.fromEntries(draftColumns.map(c => [c.id, c.color]))
+    const toSave   = { ...metadata, ...labels, _columns: newIds, _column_colors: colors }
+
+    setColManagerSaving(true)
     try {
-      await updateColumnLabels(currentWorkspace.id, trimmed)
-      setDraftLabels(trimmed)
-      toast.success('Column names updated')
+      await updateColumnLabels(currentWorkspace.id, toSave)
+      toast.success('Columns saved')
     } catch (err) {
-      toast.error(err.message || 'Failed to update column names')
+      toast.error(err.message || 'Failed to save columns')
     } finally {
-      setLabelSaving(false)
+      setColManagerSaving(false)
     }
   }
 
@@ -152,10 +203,10 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
 
   const handleToggleColumn = async (colId) => {
     if (!currentProject) return
-    const enabled = currentProject.enabled_columns ?? DEFAULT_COLUMNS.map(c => c.id)
-    const next = enabled.includes(colId)
-      ? enabled.filter(id => id !== colId)
-      : [...enabled, colId]
+    const wsIds = workspaceColumns.map(c => c.id)
+    const enabled = currentProject.enabled_columns ?? wsIds
+    // Maintain workspace column order when deriving next state
+    const next = wsIds.filter(id => id === colId ? !enabled.includes(id) : enabled.includes(id))
     if (next.length === 0) { toast.error('At least one column must be enabled'); return }
     setColSaving(true)
     try {
@@ -164,6 +215,24 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
       toast.error(err.message || 'Failed to update columns')
     } finally {
       setColSaving(false)
+    }
+  }
+
+  const [renamingProject, setRenamingProject] = useState(null) // { id, name }
+
+  const handleStartRenameProject = (p) => setRenamingProject({ id: p.id, name: p.name })
+
+  const handleConfirmRenameProject = async () => {
+    if (!renamingProject) return
+    const trimmed = renamingProject.name.trim()
+    if (!trimmed) { setRenamingProject(null); return }
+    try {
+      await renameProject(renamingProject.id, trimmed)
+      toast.success('Project renamed')
+    } catch (err) {
+      toast.error(err.message || 'Failed to rename project')
+    } finally {
+      setRenamingProject(null)
     }
   }
 
@@ -257,15 +326,100 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                 />
               </div>
 
+              <div className="ws-settings-col-section">
+                <p className="ws-settings-label" style={{ marginTop: 'var(--space-5)' }}>Board columns</p>
+                <p className="ws-settings-desc">Add, rename, or remove columns. Changes apply workspace-wide.</p>
+                <div className="ws-col-rename-list">
+                  {draftColumns.map((col, i) => (
+                    <div key={col.id} className="ws-col-manager-item">
+                      <div className="ws-col-rename-row">
+                        <span className="ws-col-rename-index">{i + 1}</span>
+                        <input
+                          type="text"
+                          className="ws-col-rename-input"
+                          value={col.label}
+                          onChange={e => handleRenameColumn(col.id, e.target.value)}
+                          placeholder="Column name"
+                          maxLength={30}
+                          disabled={!isOwner || colManagerSaving}
+                          aria-label={`Column ${i + 1} name`}
+                        />
+                        {isOwner && (
+                          <button
+                            className="ws-col-remove-btn"
+                            onClick={() => handleRemoveColumn(col.id)}
+                            disabled={draftColumns.length <= 1 || colManagerSaving}
+                            aria-label={`Remove column ${col.label}`}
+                            title="Remove column"
+                          >
+                            <X size={14} weight="bold" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                      {isOwner && (
+                        <div className="ws-col-color-row">
+                          {COLUMN_PRESET_COLORS.map(preset => (
+                            <button
+                              key={preset}
+                              type="button"
+                              className={`col-color-swatch${col.color === preset ? ' col-color-swatch--active' : ''}`}
+                              style={{ background: preset }}
+                              onClick={() => handleSetColumnColor(col.id, preset)}
+                              aria-label={`Set color ${preset}`}
+                              aria-pressed={col.color === preset}
+                              disabled={colManagerSaving}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {isOwner && (
+                  <div className="ws-col-add-row">
+                    <input
+                      type="text"
+                      className="ws-col-rename-input"
+                      value={newColLabel}
+                      onChange={e => setNewColLabel(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddColumn() } }}
+                      placeholder="New column name…"
+                      maxLength={30}
+                      disabled={colManagerSaving}
+                      aria-label="New column name"
+                    />
+                    <button
+                      className="btn-ghost btn-sm"
+                      onClick={handleAddColumn}
+                      disabled={!newColLabel.trim() || colManagerSaving}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                )}
+
+                {isOwner && (
+                  <button
+                    className="btn-primary btn-sm"
+                    style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }}
+                    disabled={!columnsChanged || colManagerSaving}
+                    onClick={handleSaveColumns}
+                  >
+                    {colManagerSaving ? 'Saving…' : 'Save columns'}
+                  </button>
+                )}
+              </div>
+
               {currentProject && (
                 <div className="ws-settings-col-section">
                   <p className="ws-settings-label" style={{ marginTop: 'var(--space-5)' }}>
-                    Status columns — <em>{currentProject.name}</em>
+                    Columns — <em>{currentProject.name}</em>
                   </p>
-                  <p className="ws-settings-desc">Toggle which columns are shown on the board.</p>
+                  <p className="ws-settings-desc">Override which workspace columns this project shows.</p>
                   <div className="ws-settings-col-list">
-                    {DEFAULT_COLUMNS.map(col => {
-                      const enabled = currentProject.enabled_columns ?? DEFAULT_COLUMNS.map(c => c.id)
+                    {workspaceColumns.map(col => {
+                      const enabled = currentProject.enabled_columns ?? workspaceColumns.map(c => c.id)
                       const isOn = enabled.includes(col.id)
                       return (
                         <label key={col.id} className="ws-settings-col-row">
@@ -275,48 +429,13 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                             disabled={colSaving || !isOwner}
                             onChange={() => handleToggleColumn(col.id)}
                           />
-                          <span>{draftLabels[col.id] ?? col.label}</span>
+                          <span>{col.label}</span>
                         </label>
                       )
                     })}
                   </div>
                 </div>
               )}
-
-              <div className="ws-settings-col-section">
-                <p className="ws-settings-label" style={{ marginTop: 'var(--space-5)' }}>Column names</p>
-                <p className="ws-settings-desc">Rename status columns across this workspace.</p>
-                <div className="ws-col-rename-list">
-                  {DEFAULT_COLUMNS.map(col => (
-                    <div key={col.id} className="ws-col-rename-row">
-                      <label className="ws-col-rename-default" htmlFor={`col-${col.id}`}>
-                        {col.label}
-                      </label>
-                      <input
-                        id={`col-${col.id}`}
-                        type="text"
-                        className="ws-col-rename-input"
-                        value={draftLabels[col.id] ?? col.label}
-                        onChange={e => setDraftLabels(prev => ({ ...prev, [col.id]: e.target.value }))}
-                        placeholder={col.label}
-                        maxLength={30}
-                        disabled={!isOwner || labelSaving}
-                        aria-label={`Rename ${col.label} column`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                {isOwner && (
-                  <button
-                    className="btn-primary btn-sm"
-                    style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }}
-                    disabled={!labelsChanged || labelSaving}
-                    onClick={handleSaveLabels}
-                  >
-                    {labelSaving ? 'Saving…' : 'Save column names'}
-                  </button>
-                )}
-              </div>
             </div>
           )}
 
@@ -399,21 +518,61 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
             <div className="ws-settings-section">
               <p className="ws-settings-label">Manage projects</p>
               <ul className="ws-project-list">
-                {projects.map(p => (
-                  <li key={p.id} className="ws-project-row">
-                    <span className="ws-project-dot" style={{ background: p.color }} />
-                    <span className="ws-project-name">{p.name}</span>
-                    {isOwner && projects.length > 1 && (
-                      <button
-                        className="ws-project-delete"
-                        onClick={() => handleDeleteProject(p)}
-                        aria-label={`Delete ${p.name}`}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {projects.map(p => {
+                  const isRenaming = renamingProject?.id === p.id
+                  return (
+                    <li key={p.id} className="ws-project-row">
+                      <span className="ws-project-dot" style={{ background: p.color }} />
+                      {isRenaming ? (
+                        <input
+                          className="ws-project-rename-input"
+                          value={renamingProject.name}
+                          onChange={e => setRenamingProject(prev => ({ ...prev, name: e.target.value }))}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleConfirmRenameProject()
+                            if (e.key === 'Escape') setRenamingProject(null)
+                          }}
+                          onBlur={handleConfirmRenameProject}
+                          autoFocus
+                          maxLength={60}
+                          aria-label="Project name"
+                        />
+                      ) : (
+                        <span className="ws-project-name">{p.name}</span>
+                      )}
+                      <div className="ws-project-actions">
+                        {isOwner && !isRenaming && (
+                          <button
+                            className="ws-project-icon-btn"
+                            onClick={() => handleStartRenameProject(p)}
+                            aria-label={`Rename ${p.name}`}
+                            title="Rename"
+                          >
+                            <PencilSimple size={14} weight="bold" aria-hidden="true" />
+                          </button>
+                        )}
+                        {isRenaming && (
+                          <button
+                            className="ws-project-icon-btn ws-project-icon-btn--confirm"
+                            onClick={handleConfirmRenameProject}
+                            aria-label="Confirm rename"
+                          >
+                            <Check size={14} weight="bold" aria-hidden="true" />
+                          </button>
+                        )}
+                        {isOwner && projects.length > 1 && !isRenaming && (
+                          <button
+                            className="ws-project-delete"
+                            onClick={() => handleDeleteProject(p)}
+                            aria-label={`Delete ${p.name}`}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )}

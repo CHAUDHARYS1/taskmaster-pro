@@ -51,7 +51,7 @@ function urgencyClass(due_date) {
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { currentWorkspace } = useWorkspace()
+  const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { toast } = useToast()
   const { labels, labelMap } = useLabelsCtx()
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
@@ -288,28 +288,30 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             )}
           </div>
 
-          <div className="task-panel-section">
-            <p className="task-panel-label">Assignee</p>
-            {canEdit ? (
-              <select
-                className="assignee-select"
-                value={task.assignee_id ?? ''}
-                onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
-              >
-                <option value="">Unassigned</option>
-                {members.map(m => (
-                  <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                ))}
-              </select>
-            ) : (
-              <p className="task-panel-desc-ro">
-                {task.assignee
-                  ? memberDisplayName(task.assignee)
-                  : <span className="task-panel-empty">Unassigned</span>
-                }
-              </p>
-            )}
-          </div>
+          {workspaceTemplate !== 'job-tracker' && (
+            <div className="task-panel-section">
+              <p className="task-panel-label">Assignee</p>
+              {canEdit ? (
+                <select
+                  className="assignee-select"
+                  value={task.assignee_id ?? ''}
+                  onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="task-panel-desc-ro">
+                  {task.assignee
+                    ? memberDisplayName(task.assignee)
+                    : <span className="task-panel-empty">Unassigned</span>
+                  }
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="task-panel-section">
             <p className="task-panel-label">Due date &amp; time</p>

@@ -6,6 +6,7 @@ import { DotsSixVertical, Check, X, ChatCircle, CheckSquare, Square } from '@pho
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -37,6 +38,8 @@ function TaskCard({
   showProject = false,
 }) {
   const { labelMap } = useLabelsCtx()
+  const { workspaceTemplate } = useWorkspace()
+  const isJobTracker = workspaceTemplate === 'job-tracker'
   const isLockedByOther = editingUser != null
   const glowColor = editingUser ? userColor(editingUser.user_id) : null
 
@@ -171,11 +174,11 @@ function TaskCard({
         const checklistTotal = task.task_checklist_items?.length ?? 0
         const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
         const commentCount   = Number(task.comments?.[0]?.count ?? 0)
-        const hasFooter      = task.assignee || commentCount > 0 || checklistTotal > 0
+        const hasFooter      = (!isJobTracker && task.assignee) || commentCount > 0 || checklistTotal > 0
         if (!hasFooter) return null
         return (
           <div className="task-card-footer">
-            {task.assignee && (
+            {!isJobTracker && task.assignee && (
               <span
                 className="task-assignee-avatar"
                 style={{ background: userColor(task.assignee_id), color: '#fff' }}

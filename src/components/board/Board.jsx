@@ -63,7 +63,7 @@ function TrashZone({ visible }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user, profile } = useAuth()
   const { toggle: toggleTheme } = useTheme()
@@ -138,10 +138,9 @@ export default function Board() {
   const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
-  const columns = (currentProject?.enabled_columns
-    ? DEFAULT_COLUMNS.filter(c => currentProject.enabled_columns.includes(c.id))
-    : DEFAULT_COLUMNS
-  ).map(c => ({ ...c, label: columnLabels[c.id] ?? c.label }))
+  const columns = currentProject?.enabled_columns
+    ? workspaceColumns.filter(c => currentProject.enabled_columns.includes(c.id))
+    : workspaceColumns
 
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)

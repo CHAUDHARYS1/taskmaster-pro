@@ -25,7 +25,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
 
-  const { currentWorkspace } = useWorkspace()
+  const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { labels } = useLabelsCtx()
   const { user } = useAuth()
 
@@ -137,7 +137,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="Task title…"
+                placeholder={workspaceTemplate === 'job-tracker' ? 'e.g. Stripe — Product Designer' : 'Task title…'}
                 autoFocus={isDesktop()}
               />
             </div>
@@ -210,20 +210,22 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 </select>
               </div>
 
-              <div className="field-block" style={{ flex: 1 }}>
-                <label htmlFor="task-assignee">Assignee</label>
-                <select
-                  id="task-assignee"
-                  className="field-select"
-                  value={assigneeId}
-                  onChange={e => setAssigneeId(e.target.value)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map(m => (
-                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                  ))}
-                </select>
-              </div>
+              {workspaceTemplate !== 'job-tracker' && (
+                <div className="field-block" style={{ flex: 1 }}>
+                  <label htmlFor="task-assignee">Assignee</label>
+                  <select
+                    id="task-assignee"
+                    className="field-select"
+                    value={assigneeId}
+                    onChange={e => setAssigneeId(e.target.value)}
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map(m => (
+                      <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="add-task-row">
