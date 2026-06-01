@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, CheckSquare } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
+import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -50,7 +51,7 @@ function urgencyClass(due_date) {
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { currentWorkspace } = useWorkspace()
+  const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { toast } = useToast()
   const { labels, labelMap } = useLabelsCtx()
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
@@ -287,28 +288,30 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             )}
           </div>
 
-          <div className="task-panel-section">
-            <p className="task-panel-label">Assignee</p>
-            {canEdit ? (
-              <select
-                className="assignee-select"
-                value={task.assignee_id ?? ''}
-                onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
-              >
-                <option value="">Unassigned</option>
-                {members.map(m => (
-                  <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                ))}
-              </select>
-            ) : (
-              <p className="task-panel-desc-ro">
-                {task.assignee
-                  ? memberDisplayName(task.assignee)
-                  : <span className="task-panel-empty">Unassigned</span>
-                }
-              </p>
-            )}
-          </div>
+          {workspaceTemplate !== 'job-tracker' && (
+            <div className="task-panel-section">
+              <p className="task-panel-label">Assignee</p>
+              {canEdit ? (
+                <select
+                  className="assignee-select"
+                  value={task.assignee_id ?? ''}
+                  onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="task-panel-desc-ro">
+                  {task.assignee
+                    ? memberDisplayName(task.assignee)
+                    : <span className="task-panel-empty">Unassigned</span>
+                  }
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="task-panel-section">
             <p className="task-panel-label">Due date &amp; time</p>
@@ -343,7 +346,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             ) : (
               <p className={`task-panel-desc-ro ${task.status !== 'done' ? urgencyClass(task.due_date) : ''}`}>
                 {task.due_date
-                  ? `${dayjs(task.due_date).format('MMM D, YYYY')}${task.due_time ? ` at ${dayjs(`2000-01-01T${task.due_time}`).format('h:mm A')}` : ''}`
+                  ? `${fmtDateFull(task.due_date)}${task.due_time ? ` at ${fmtTimeStr(task.due_time)}` : ''}`
                   : <span className="task-panel-empty">No due date.</span>
                 }
               </p>
@@ -459,7 +462,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
               <div className="activity-item activity-item--created">
                 <span className="activity-dot" />
                 <span className="activity-text">
-                  Task created {dayjs(task.created_at).format('MMM D, YYYY')}
+                  Task created {fmtDateFull(task.created_at)}
                 </span>
               </div>
 
@@ -472,7 +475,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                     <div className="comment-meta">
                       <span className="comment-author">{commentAuthor(c.profiles)}</span>
                       <span className="comment-time">
-                        {dayjs(c.created_at).format('MMM D, h:mm a')}
+                        {fmtCommentDate(c.created_at)}
                         {c.updated_at && c.updated_at !== c.created_at && (
                           <span className="comment-edited"> (edited)</span>
                         )}
@@ -542,8 +545,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
 
             {canEdit && (
               <form className="comment-form" onSubmit={handleAddComment}>
+                <label htmlFor="comment-input" className="sr-only">Add a comment</label>
                 <textarea
                   ref={commentInputRef}
+                  id="comment-input"
                   className="comment-input"
                   value={commentBody}
                   onChange={e => setCommentBody(e.target.value)}

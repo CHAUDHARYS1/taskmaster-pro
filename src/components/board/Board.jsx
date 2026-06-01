@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
+import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
@@ -15,21 +16,22 @@ import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
 import Column from './Column'
 import TaskCard from './TaskCard'
-import AddTaskModal from './AddTaskModal'
 import PresenceAvatars from './PresenceAvatars'
-import TaskDetailPanel from './TaskDetailPanel'
 import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-import ShortcutsHelp from '../ui/ShortcutsHelp'
-import WelcomeModal from '../ui/WelcomeModal'
-import MondayMotivationModal from '../ui/MondayMotivationModal'
-import WorkspaceSettingsModal from '../workspace/WorkspaceSettingsModal'
-import ArchiveView from './ArchiveView'
-import CalendarView from '../calendar/CalendarView'
+
+const AddTaskModal          = lazy(() => import('./AddTaskModal'))
+const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
+const CalendarView          = lazy(() => import('../calendar/CalendarView'))
+const ArchiveView           = lazy(() => import('./ArchiveView'))
+const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
+const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
+const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
+const WorkspaceSettingsModal = lazy(() => import('../workspace/WorkspaceSettingsModal'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -61,7 +63,7 @@ function TrashZone({ visible }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user, profile } = useAuth()
   const { toggle: toggleTheme } = useTheme()
@@ -99,14 +101,18 @@ export default function Board() {
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
   const pendingDeletes = useRef({})
+  const doneAudioRef   = useRef(null)
 
-  const playDoneSound = () => {
+  const playDoneSound = useCallback(() => {
     try {
-      const audio = new Audio('/sound/done.mp3')
-      audio.volume = 0.5
-      audio.play().catch(() => {})
+      if (!doneAudioRef.current) {
+        doneAudioRef.current = new Audio('/sound/done.mp3')
+        doneAudioRef.current.volume = 0.5
+      }
+      doneAudioRef.current.currentTime = 0
+      doneAudioRef.current.play().catch(() => {})
     } catch { /* silently skip */ }
-  }
+  }, [])
 
   const playDeleteSound = () => {
     try {
@@ -129,13 +135,12 @@ export default function Board() {
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
-  const allTasks     = Object.values(tasksByStatus).flat()
+  const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
-  const columns = (currentProject?.enabled_columns
-    ? DEFAULT_COLUMNS.filter(c => currentProject.enabled_columns.includes(c.id))
-    : DEFAULT_COLUMNS
-  ).map(c => ({ ...c, label: columnLabels[c.id] ?? c.label }))
+  const columns = currentProject?.enabled_columns
+    ? workspaceColumns.filter(c => currentProject.enabled_columns.includes(c.id))
+    : workspaceColumns
 
   useEffect(() => {
     if (selectedTaskId && !selectedTask) setSelectedTaskId(null)
@@ -204,7 +209,7 @@ export default function Board() {
   const { toast } = useToast()
   useTaskReminders(allTasks, toast, updateTask, columns)
 
-  const handleComplete = async (id) => {
+  const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
     try {
       await updateTask(id, { status: 'done' })
@@ -213,9 +218,9 @@ export default function Board() {
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
-  }
+  }, [allTasks, updateTask, toast, playDoneSound])
 
-  const scheduleDelete = (id, label) => {
+  const scheduleDelete = useCallback((id, label) => {
     const timerId = setTimeout(async () => {
       delete pendingDeletes.current[id]
       try { await deleteTask(id) }
@@ -226,7 +231,17 @@ export default function Board() {
       clearTimeout(pendingDeletes.current[id])
       delete pendingDeletes.current[id]
     })
-  }
+  }, [deleteTask, toast])
+
+  const handleColumnDelete = useCallback((id) => {
+    const task = allTasks.find(t => t.id === id)
+    scheduleDelete(id, task?.text ?? 'Task')
+  }, [allTasks, scheduleDelete])
+
+  const handleQuickAdd = useCallback(async (text, description) => {
+    try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
+    catch (err) { toast.error(err.message || 'Failed to add task') }
+  }, [addTask, toast])
 
   useKeyboardShortcuts({
     'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
@@ -261,6 +276,11 @@ export default function Board() {
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
     setIsDragging(true)
+  }
+
+  const handleDragCancel = () => {
+    setActiveTask(null)
+    setIsDragging(false)
   }
 
   const handleDragEnd = ({ active, over }) => {
@@ -341,7 +361,7 @@ h1{font-size:18px;font-weight:700;margin-bottom:4px}
 @media print{body{padding:10px}@page{margin:.5in}}
 </style></head><body>
 <h1>${escHtml(currentWorkspace?.name)}</h1>
-<p class="sub">Printed ${dayjs().format('MMMM D, YYYY [at] h:mm A')}</p>
+<p class="sub">Printed ${fmtPrintNow()}</p>
 <div class="cols">
 ${colData.map(c => `<div class="col">
   <div class="col-hdr">${escHtml(c.label)} (${c.tasks.length})</div>
@@ -392,7 +412,7 @@ ${colData.map(c => `<div class="col">
       )}
       <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
-      <main className="board-main">
+      <main id="main-content" className="board-main">
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -471,6 +491,58 @@ ${colData.map(c => `<div class="col">
           </div>
         </div>
 
+        {/* ── Mobile view bar (second row, mobile-only) ──────────── */}
+        <nav className="mob-view-bar" aria-label="View options">
+          <button
+            className={`mob-view-btn${viewMode === 'board' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('board')}
+            aria-pressed={viewMode === 'board'}
+          >
+            <SquaresFour size={22} aria-hidden="true" />
+            <span>Board</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'list' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
+          >
+            <Rows size={22} aria-hidden="true" />
+            <span>List</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'calendar' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('calendar')}
+            aria-pressed={viewMode === 'calendar'}
+          >
+            <CalendarBlank size={22} aria-hidden="true" />
+            <span>Calendar</span>
+          </button>
+          <button
+            className={`mob-view-btn${viewMode === 'archive' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
+            aria-pressed={viewMode === 'archive'}
+          >
+            <Archive size={22} aria-hidden="true" />
+            <span>Archive</span>
+          </button>
+          <button
+            className="mob-view-btn"
+            onClick={handlePrint}
+            aria-label="Print task board"
+          >
+            <Printer size={22} aria-hidden="true" />
+            <span>Print</span>
+          </button>
+          <button
+            className="mob-view-btn"
+            onClick={() => setShowWsSettings(true)}
+            aria-label="Workspace settings"
+          >
+            <GearSix size={22} aria-hidden="true" />
+            <span>Settings</span>
+          </button>
+        </nav>
+
         {totalTasks > 0 && viewMode !== 'archive' && (
           <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
             <div
@@ -522,6 +594,7 @@ ${colData.map(c => `<div class="col">
               sensors={sensors}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               <div className="board-columns">
                 {columns.map(col => (
@@ -534,16 +607,10 @@ ${colData.map(c => `<div class="col">
                     canDelete={canDelete}
                     editingMap={editingMap}
                     showProject={isGlobalBoard}
-                    onDelete={(id) => {
-                      const task = allTasks.find(t => t.id === id)
-                      scheduleDelete(id, task?.text ?? 'Task')
-                    }}
+                    onDelete={handleColumnDelete}
                     onOpen={setSelectedTaskId}
                     onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? async (text, description) => {
-                      try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
-                      catch (err) { toast.error(err.message || 'Failed to add task') }
-                    } : undefined}
+                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
                   />
                 ))}
               </div>
@@ -572,68 +639,68 @@ ${colData.map(c => `<div class="col">
               canDelete={canDelete}
               editingMap={editingMap}
               showProject={isGlobalBoard}
-              onDelete={(id) => {
-                const task = allTasks.find(t => t.id === id)
-                scheduleDelete(id, task?.text ?? 'Task')
-              }}
+              onDelete={handleColumnDelete}
               onOpen={setSelectedTaskId}
               onComplete={handleComplete}
             />
           </div>
         ) : viewMode === 'calendar' ? (
           <div className="cal-page-body">
-            <CalendarView
-              tasks={allTasks}
-              onTaskClick={t => setSelectedTaskId(t.id)}
-            />
+            <Suspense fallback={null}>
+              <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
+            </Suspense>
           </div>
         ) : (
-          <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
+          <Suspense fallback={null}>
+            <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
+          </Suspense>
         )}
       </main>
 
-      {showModal && canEdit && (
-        <AddTaskModal
-          columns={columns}
-          onClose={() => setShowModal(false)}
-          onSave={async (data) => {
-            try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
-            catch (err) { toast.error(err.message || 'Failed to add task') }
-          }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showModal && canEdit && (
+          <AddTaskModal
+            columns={columns}
+            onClose={() => setShowModal(false)}
+            onSave={async (data) => {
+              try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
+              catch (err) { toast.error(err.message || 'Failed to add task') }
+            }}
+          />
+        )}
 
-      {selectedTask && (
-        <TaskDetailPanel
-          task={selectedTask}
-          columns={columns}
-          canEdit={canEdit}
-          autoSave={autoSave}
-          onUpdate={(id, changes) => {
-            if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
-            return updateTask(id, changes)
-          }}
-          onChecklistChange={patchTaskChecklist}
-          onClose={() => setSelectedTaskId(null)}
-        />
-      )}
+        {selectedTask && (
+          <TaskDetailPanel
+            task={selectedTask}
+            columns={columns}
+            canEdit={canEdit}
+            autoSave={autoSave}
+            onUpdate={(id, changes) => {
+              if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+              return updateTask(id, changes)
+            }}
+            onChecklistChange={patchTaskChecklist}
+            onClose={() => setSelectedTaskId(null)}
+          />
+        )}
 
-      {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-      {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
-      {welcomeData    && (
-        <WelcomeModal
-          workspaceName={welcomeData.workspace_name}
-          invitedByName={welcomeData.invited_by_name}
-          onClose={() => setWelcomeData(null)}
-        />
-      )}
-      {showMondayModal && currentWorkspace && (
-        <MondayMotivationModal
-          workspaceId={currentWorkspace.id}
-          firstName={profile?.first_name}
-          onClose={() => setShowMondayModal(false)}
-        />
-      )}
+        {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+        {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {welcomeData    && (
+          <WelcomeModal
+            workspaceName={welcomeData.workspace_name}
+            invitedByName={welcomeData.invited_by_name}
+            onClose={() => setWelcomeData(null)}
+          />
+        )}
+        {showMondayModal && currentWorkspace && (
+          <MondayMotivationModal
+            workspaceId={currentWorkspace.id}
+            firstName={profile?.first_name}
+            onClose={() => setShowMondayModal(false)}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

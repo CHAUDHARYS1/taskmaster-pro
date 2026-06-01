@@ -1,11 +1,12 @@
+import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSixVertical, Check, X, ChatCircle, CheckSquare } from '@phosphor-icons/react'
+import { DotsSixVertical, Check, X, ChatCircle, CheckSquare, Square } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
-import { stripHtml, truncateText } from '../../utils/text'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -25,7 +26,7 @@ function initials(u) {
   return (u.email ?? '??').split('@')[0].slice(0, 2).toUpperCase()
 }
 
-export default function TaskCard({
+function TaskCard({
   task,
   canEdit = true,
   canDelete = false,
@@ -37,6 +38,8 @@ export default function TaskCard({
   showProject = false,
 }) {
   const { labelMap } = useLabelsCtx()
+  const { workspaceTemplate } = useWorkspace()
+  const isJobTracker = workspaceTemplate === 'job-tracker'
   const isLockedByOther = editingUser != null
   const glowColor = editingUser ? userColor(editingUser.user_id) : null
 
@@ -115,10 +118,33 @@ export default function TaskCard({
       )}
 
       {task.description && (
-        <p className="task-desc-preview">
-          {truncateText(stripHtml(task.description))}
-        </p>
+        <div
+          className="task-desc-preview"
+          dangerouslySetInnerHTML={{ __html: task.description }}
+        />
       )}
+
+      {task.task_checklist_items?.length > 0 && (() => {
+        const sorted  = [...task.task_checklist_items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        const visible  = sorted.slice(0, 3)
+        const overflow = sorted.length - visible.length
+        return (
+          <ul className="card-checklist">
+            {visible.map(item => (
+              <li key={item.id} className={`card-checklist-item${item.checked ? ' card-checklist-item--done' : ''}`}>
+                {item.checked
+                  ? <CheckSquare size={12} weight="fill" className="card-checklist-icon card-checklist-icon--checked" aria-hidden="true" />
+                  : <Square      size={12} weight="regular" className="card-checklist-icon" aria-hidden="true" />
+                }
+                <span className="card-checklist-text">{item.text}</span>
+              </li>
+            ))}
+            {overflow > 0 && (
+              <li className="card-checklist-more">+{overflow} more</li>
+            )}
+          </ul>
+        )
+      })()}
 
       {task.labels?.length > 0 && (
         <div className="task-labels">
@@ -148,11 +174,11 @@ export default function TaskCard({
         const checklistTotal = task.task_checklist_items?.length ?? 0
         const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
         const commentCount   = Number(task.comments?.[0]?.count ?? 0)
-        const hasFooter      = task.assignee || commentCount > 0 || checklistTotal > 0
+        const hasFooter      = (!isJobTracker && task.assignee) || commentCount > 0 || checklistTotal > 0
         if (!hasFooter) return null
         return (
           <div className="task-card-footer">
-            {task.assignee && (
+            {!isJobTracker && task.assignee && (
               <span
                 className="task-assignee-avatar"
                 style={{ background: userColor(task.assignee_id), color: '#fff' }}
@@ -210,3 +236,5 @@ export default function TaskCard({
     </li>
   )
 }
+
+export default memo(TaskCard)

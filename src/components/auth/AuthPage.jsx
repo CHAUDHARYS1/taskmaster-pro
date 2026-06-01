@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Check } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
+import LogoLockup from '../ui/LogoLockup'
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login')
@@ -55,10 +55,7 @@ export default function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo-row">
-          <Check size={26} weight="bold" className="auth-icon" aria-hidden="true" />
-          <h1 className="auth-app-name">Taskmaster Pro</h1>
-        </div>
+        <LogoLockup width={210} className="auth-lockup" />
         <p className="auth-subtitle">
           {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
         </p>
@@ -79,7 +76,7 @@ export default function AuthPage() {
                   type="text"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  placeholder="Jane"
+                  placeholder="Jane…"
                   required
                   autoComplete="given-name"
                 />
@@ -91,7 +88,7 @@ export default function AuthPage() {
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  placeholder="Smith"
+                  placeholder="Smith…"
                   autoComplete="family-name"
                 />
               </div>
@@ -108,6 +105,7 @@ export default function AuthPage() {
               placeholder="you@example.com"
               required
               autoComplete="email"
+              spellCheck={false}
             />
           </div>
 
@@ -124,8 +122,8 @@ export default function AuthPage() {
             />
           </div>
 
-          {error   && <p className="form-error">{error}</p>}
-          {success && <p className="form-success">{success}</p>}
+          {error   && <p className="form-error" role="alert">{error}</p>}
+          {success && <p className="form-success" role="status">{success}</p>}
 
           <button type="submit" className="btn-primary btn-block" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}

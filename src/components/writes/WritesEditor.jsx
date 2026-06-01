@@ -246,7 +246,7 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
             onChange={e => setLinkInput(e.target.value)}
             onKeyDown={handleLinkKeyDown}
             placeholder="https://example.com"
-            autoFocus
+            autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
             aria-label="Link URL"
           />
           <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>

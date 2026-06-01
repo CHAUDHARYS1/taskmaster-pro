@@ -1,10 +1,21 @@
-import { Check, X, Info } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 
 const ICONS = {
-  success: <Check size={18} weight="bold" aria-hidden="true" />,
-  error:   <X    size={18} weight="bold" aria-hidden="true" />,
-  info:    <Info size={18}               aria-hidden="true" />,
+  success: (
+    <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="32">
+      <polyline points="40 144 96 200 216 72"/>
+    </svg>
+  ),
+  error: (
+    <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="32">
+      <line x1="200" y1="56" x2="56" y2="200"/><line x1="56" y1="56" x2="200" y2="200"/>
+    </svg>
+  ),
+  info: (
+    <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="16">
+      <circle cx="128" cy="128" r="96"/><line x1="128" y1="128" x2="128" y2="176"/><circle cx="128" cy="88" r="10" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
 }
 
 export default function ToastContainer() {
@@ -49,7 +60,9 @@ export default function ToastContainer() {
               </div>
             )}
             <button className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss">
-              <X size={16} weight="bold" aria-hidden="true" />
+              <svg width="16" height="16" viewBox="0 0 256 256" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="32">
+                <line x1="200" y1="56" x2="56" y2="200"/><line x1="56" y1="56" x2="200" y2="200"/>
+              </svg>
             </button>
           </div>
         )

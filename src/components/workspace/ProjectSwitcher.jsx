@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Archive, Link, SquaresFour, Rows } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
+
+const COLOR_NAMES = {
+  '#2563EB': 'Blue', '#16a34a': 'Green', '#7c3aed': 'Purple', '#dc2626': 'Red',
+  '#d97706': 'Amber', '#0891b2': 'Cyan', '#be185d': 'Pink', '#475569': 'Slate',
+}
 import { useProject } from '../../contexts/ProjectContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -118,7 +124,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
                     onChange={e => setRenameVal(e.target.value)}
                     onBlur={() => handleRename(p.id)}
                     onKeyDown={e => { if (e.key === 'Escape') setRenaming(null) }}
-                    autoFocus
+                    autoFocus={isDesktop()}
                   />
                 </form>
               ) : (
@@ -171,7 +177,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
             onChange={e => setNewName(e.target.value)}
             placeholder="Project name…"
             onKeyDown={e => { if (e.key === 'Escape') setShowNew(false) }}
-            autoFocus
+            autoFocus={isDesktop()}
           />
           <div className="project-color-row">
             {COLOR_PALETTE.map(c => (
@@ -181,7 +187,7 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
                 className={`project-color-swatch${newColor === c ? ' project-color-swatch--selected' : ''}`}
                 style={{ background: c }}
                 onClick={() => setNewColor(c)}
-                aria-label={c}
+                aria-label={COLOR_NAMES[c] ?? c}
               />
             ))}
           </div>

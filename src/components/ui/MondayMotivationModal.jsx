@@ -47,7 +47,7 @@ export default function MondayMotivationModal({ workspaceId, firstName, onClose 
           <p className="monday-modal-greeting">{greeting}</p>
 
           {loading ? (
-            <div className="monday-loading" aria-label="Loading stats" />
+            <div className="monday-loading" role="status" aria-label="Loading stats" />
           ) : (
             <>
               {showCount ? (

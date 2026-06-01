@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
+import { isDesktop } from '../../utils/device'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -24,7 +25,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
 
-  const { currentWorkspace } = useWorkspace()
+  const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { labels } = useLabelsCtx()
   const { user } = useAuth()
 
@@ -50,6 +51,22 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
       .eq('workspace_id', currentWorkspace.id)
       .then(({ data }) => { if (data) setMembers(data) })
   }, [currentWorkspace?.id])
+
+  const sheetRef = useRef(null)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab' || !sheetRef.current) return
+      const focusable = Array.from(sheetRef.current.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ))
+      const first = focusable[0], last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   const toggleLabel = (id) => {
     setSelectedLabels(prev =>
@@ -103,7 +120,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
+      <div className="modal-sheet" ref={sheetRef} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
         <div className="modal-hdr">
           <h2 className="modal-ttl">Add New Task</h2>
           <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
@@ -120,8 +137,8 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="Task title…"
-                autoFocus
+                placeholder={workspaceTemplate === 'job-tracker' ? 'e.g. Stripe — Product Designer' : 'Task title…'}
+                autoFocus={isDesktop()}
               />
             </div>
 
@@ -193,20 +210,22 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 </select>
               </div>
 
-              <div className="field-block" style={{ flex: 1 }}>
-                <label htmlFor="task-assignee">Assignee</label>
-                <select
-                  id="task-assignee"
-                  className="field-select"
-                  value={assigneeId}
-                  onChange={e => setAssigneeId(e.target.value)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map(m => (
-                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                  ))}
-                </select>
-              </div>
+              {workspaceTemplate !== 'job-tracker' && (
+                <div className="field-block" style={{ flex: 1 }}>
+                  <label htmlFor="task-assignee">Assignee</label>
+                  <select
+                    id="task-assignee"
+                    className="field-select"
+                    value={assigneeId}
+                    onChange={e => setAssigneeId(e.target.value)}
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map(m => (
+                      <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="add-task-row">
@@ -234,10 +253,10 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
             </div>
 
             <div className="quick-date-row">
-              <button type="button" className={`quick-date-btn${dueDate === today    ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(today)}>Today</button>
-              <button type="button" className={`quick-date-btn${dueDate === tomorrow ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(tomorrow)}>Tomorrow</button>
-              <button type="button" className={`quick-date-btn${dueDate === nextWeek ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(nextWeek)}>Next week</button>
-              <button type="button" className={`quick-date-btn${!dueDate            ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate('')}>None</button>
+              <button type="button" className={`quick-date-btn${dueDate === today    ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(today)}    aria-pressed={dueDate === today}>Today</button>
+              <button type="button" className={`quick-date-btn${dueDate === tomorrow ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(tomorrow)} aria-pressed={dueDate === tomorrow}>Tomorrow</button>
+              <button type="button" className={`quick-date-btn${dueDate === nextWeek ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate(nextWeek)} aria-pressed={dueDate === nextWeek}>Next week</button>
+              <button type="button" className={`quick-date-btn${!dueDate            ? ' quick-date-btn--active' : ''}`} onClick={() => setDueDate('')}        aria-pressed={!dueDate}>None</button>
             </div>
 
             <div className="field-block">
@@ -252,6 +271,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                       className={`priority-btn${active ? ' priority-btn--active' : ''}`}
                       style={{ '--p-color': p.color, '--p-bg': p.bg }}
                       onClick={() => setPriority(active ? null : p.id)}
+                      aria-pressed={active}
                       title={active ? 'Click to clear' : undefined}
                     >
                       <span className="priority-icon">{p.icon}</span>
@@ -278,6 +298,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                         className={`label-chip${active ? ' label-chip--active' : ''}`}
                         style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
                         onClick={() => toggleLabel(label.id)}
+                        aria-pressed={active}
                       >
                         {label.name}
                       </button>
@@ -287,7 +308,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               </div>
             )}
 
-            {error && <p className="form-error">{error}</p>}
+            {error && <p className="form-error" id="add-task-error" role="alert">{error}</p>}
           </div>
 
           <div className="modal-ftr">

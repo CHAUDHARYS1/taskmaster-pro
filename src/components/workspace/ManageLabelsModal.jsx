@@ -1,5 +1,12 @@
 import { useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
+
+const PALETTE_NAMES = {
+  '#b91c1c': 'Red', '#c2410c': 'Orange', '#b45309': 'Amber', '#15803d': 'Green',
+  '#0f766e': 'Teal', '#0369a1': 'Sky', '#2563EB': 'Blue', '#4f46e5': 'Indigo',
+  '#7c3aed': 'Violet', '#be185d': 'Pink', '#555555': 'Gray', '#1e293b': 'Slate',
+}
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -99,9 +106,9 @@ export default function ManageLabelsModal({ onClose }) {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Label name"
+                placeholder="Label name…"
                 maxLength={32}
-                autoFocus
+                autoFocus={isDesktop()}
                 className="label-name-input"
               />
 
@@ -126,7 +133,7 @@ export default function ManageLabelsModal({ onClose }) {
                   className={`palette-swatch${color === hex ? ' palette-swatch--selected' : ''}`}
                   style={{ background: hex }}
                   onClick={() => setColor(hex)}
-                  aria-label={hex}
+                  aria-label={PALETTE_NAMES[hex] ?? hex}
                   aria-pressed={color === hex}
                 />
               ))}

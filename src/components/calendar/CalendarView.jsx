@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { fmtTimeStr } from '../../utils/format'
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -23,7 +24,7 @@ function EventChip({ task, onClick }) {
     >
       {task.due_time && (
         <span className="cal-event-time">
-          {dayjs(`2000-01-01T${task.due_time}`).format('h:mma')}
+          {fmtTimeStr(task.due_time)}
         </span>
       )}
       <span className="cal-event-text">{task.text}</span>
@@ -57,7 +58,7 @@ function MonthView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
               onClick={() => onDayClick(day)}
               role="button"
               tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && onDayClick(day)}
+              onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onDayClick(day)}
               aria-label={`${day.format('MMMM D')}, ${events.length} task${events.length !== 1 ? 's' : ''}`}
             >
               <span className="cal-day-num">{day.date()}</span>
@@ -140,7 +141,7 @@ function DayView({ cursor, tasksByDate, onTaskClick }) {
           {timed.map(t => (
             <div key={t.id} className="cal-timed-row">
               <span className="cal-timed-label">
-                {dayjs(`2000-01-01T${t.due_time}`).format('h:mm a')}
+                {fmtTimeStr(t.due_time)}
               </span>
               <EventChip task={t} onClick={onTaskClick} />
             </div>

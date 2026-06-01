@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { List, CalendarBlank } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../contexts/ToastContext'
 import Sidebar from '../layout/Sidebar'
 import CalendarView from './CalendarView'
-import TaskDetailPanel from '../board/TaskDetailPanel'
+
+const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
 
 export default function CalendarPage() {
   const { workspaces, loading: wsLoading } = useWorkspace()
@@ -95,15 +96,17 @@ export default function CalendarPage() {
         </div>
       </main>
 
-      {selectedTask && (
-        <TaskDetailPanel
-          task={selectedTask}
-          canEdit
-          autoSave
-          onUpdate={handleUpdateTask}
-          onClose={() => setSelectedTask(null)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedTask && (
+          <TaskDetailPanel
+            task={selectedTask}
+            canEdit
+            autoSave
+            onUpdate={handleUpdateTask}
+            onClose={() => setSelectedTask(null)}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

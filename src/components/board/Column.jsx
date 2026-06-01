@@ -1,11 +1,14 @@
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { PaperPlaneTilt } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-export default function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
+  const { workspaceTemplate } = useWorkspace()
+  const isJobTracker = workspaceTemplate === 'job-tracker'
 
   const [text, setText] = useState('')
   const [desc, setDesc] = useState('')
@@ -32,15 +35,25 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
     if (e.key === 'Escape') { setText(''); setDesc('') }
   }
 
+  const JOB_EMPTY = {
+    toDo:       'No saved jobs yet — add one above',
+    inProgress: 'No submitted applications yet',
+    inReview:   'No active interviews yet',
+    done:       'No closed applications',
+  }
+
   let emptyText = null
   if (tasks.length === 0) {
     if (hasFilter) emptyText = 'No matches'
-    else if (canEdit) emptyText = 'Drop tasks here'
-    else emptyText = 'No tasks'
+    else if (canEdit) emptyText = (isJobTracker ? JOB_EMPTY[column.id] : null) ?? 'Drop tasks here'
+    else emptyText = (isJobTracker ? JOB_EMPTY[column.id] : null) ?? 'No tasks'
   }
 
   return (
-    <div className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}>
+    <div
+      className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}
+      style={column.color ? { '--col-color': column.color } : undefined}
+    >
       <div className="column-header">
         <span className="column-label">{column.label}</span>
         <span className="column-count">{tasks.length}</span>
@@ -55,8 +68,8 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleTitleKeyDown}
-              placeholder="Add a task…"
-              aria-label="Quick add task title"
+              placeholder={isJobTracker ? 'Company — Role (e.g. Stripe — Product Designer)' : 'Add a task…'}
+              aria-label={isJobTracker ? 'Quick add job application' : 'Quick add task title'}
             />
             <button
               className="quick-add-submit"
@@ -113,3 +126,5 @@ export default function Column({ column, tasks, canEdit, canDelete, hasFilter, o
     </div>
   )
 }
+
+export default memo(Column)

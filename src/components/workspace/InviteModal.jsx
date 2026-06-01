@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from '@phosphor-icons/react'
+import { isDesktop } from '../../utils/device'
 import { useMembers } from '../../hooks/useMembers'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -55,7 +56,8 @@ export default function InviteModal({ onClose }) {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="teammate@example.com"
                   required
-                  autoFocus
+                  spellCheck={false}
+                  autoFocus={isDesktop()}
                 />
               </div>
               <div className="field-block">

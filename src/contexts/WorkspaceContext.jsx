@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext'
 const WorkspaceContext = createContext(null)
 
 const DEFAULT_LABEL_MAP = { toDo: 'To Do', inProgress: 'In Progress', inReview: 'In Review', done: 'Done' }
+const DEFAULT_COLUMN_COLORS = { toDo: '#6366f1', inProgress: '#0ea5e9', inReview: '#d97706', done: '#22c55e' }
+export const ALL_COLUMN_IDS = ['toDo', 'inProgress', 'inReview', 'done']
 
 export function WorkspaceProvider({ children }) {
   const { user } = useAuth()
@@ -59,9 +61,34 @@ export function WorkspaceProvider({ children }) {
     setCurrentWorkspace(workspace)
   }, [])
 
-  const createWorkspace = async (name) => {
+  const createWorkspace = async (name, template = null) => {
     const { data, error } = await supabase.rpc('create_workspace', { workspace_name: name })
     if (error) throw error
+
+    if (template && template.id !== 'blank') {
+      const labels = {
+        ...template.columnLabels,
+        _template: template.id,
+        ...(template.columnColors ? { _column_colors: template.columnColors } : {}),
+      }
+      await supabase.from('workspaces').update({ column_labels: labels }).eq('id', data.id)
+      data.column_labels = labels
+
+      if (template.defaultLabels.length > 0) {
+        await supabase.from('workspace_labels').insert(
+          template.defaultLabels.map(l => ({ workspace_id: data.id, name: l.name, color: l.color }))
+        )
+      }
+    }
+
+    // Every new workspace gets a General project by default
+    await supabase.from('projects').insert({
+      workspace_id: data.id,
+      name: 'General',
+      color: '#2563EB',
+      position: 0,
+    })
+
     setWorkspaces(prev => [...prev, data])
     setCurrentWorkspace(data)
     return data
@@ -71,6 +98,21 @@ export function WorkspaceProvider({ children }) {
     ...DEFAULT_LABEL_MAP,
     ...(currentWorkspace?.column_labels ?? {}),
   }), [currentWorkspace?.column_labels])
+
+  const workspaceTemplate = currentWorkspace?.column_labels?._template ?? 'blank'
+
+  const workspaceColumns = useMemo(() => {
+    const rawLabels = currentWorkspace?.column_labels ?? {}
+    const visibleIds = rawLabels._columns ?? ALL_COLUMN_IDS
+    const colors = rawLabels._column_colors ?? {}
+    return visibleIds
+      .filter(id => !id.startsWith('_'))
+      .map(id => ({
+        id,
+        label: rawLabels[id] ?? DEFAULT_LABEL_MAP[id] ?? id,
+        color: colors[id] ?? DEFAULT_COLUMN_COLORS[id] ?? '#6366f1',
+      }))
+  }, [currentWorkspace?.column_labels])
 
   const updateColumnLabels = async (id, labels) => {
     const { error } = await supabase.from('workspaces').update({ column_labels: labels }).eq('id', id)
@@ -112,7 +154,7 @@ export function WorkspaceProvider({ children }) {
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
       autoSave: currentWorkspace?.auto_save ?? false,
-      columnLabels,
+      columnLabels, workspaceTemplate, workspaceColumns,
       switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
       updateWorkspaceSettings, updateColumnLabels,
       refetch: fetchWorkspaces,

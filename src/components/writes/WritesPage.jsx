@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { List } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
+import { fmtDate } from '../../utils/format'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDocuments } from '../../hooks/useDocuments'
@@ -73,6 +75,13 @@ export default function WritesPage() {
         {/* Document list panel */}
         <aside className="writes-list-panel">
           <div className="writes-list-hdr">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setShowSidebar(p => !p)}
+              aria-label="Toggle sidebar"
+            >
+              <List size={22} aria-hidden="true" />
+            </button>
             <h2 className="writes-list-heading">Writes</h2>
             <button className="btn-primary btn-sm" onClick={handleNew} aria-label="New document">
               + New
@@ -92,7 +101,7 @@ export default function WritesPage() {
                     onClick={() => navigate('/writes/' + doc.id)}
                   >
                     <span className="writes-list-item-title">{doc.title || 'Untitled'}</span>
-                    <span className="writes-list-item-date">{dayjs(doc.updated_at).format('MMM D')}</span>
+                    <span className="writes-list-item-date">{fmtDate(doc.updated_at)}</span>
                   </button>
                 </li>
               ))}
