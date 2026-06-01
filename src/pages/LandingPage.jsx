@@ -101,6 +101,43 @@ const FEATURES = [
 
 /* ── Components ─────────────────────────────────────────── */
 
+function LogoSVG() {
+  return (
+    <svg
+      className="lp-logo-svg"
+      viewBox="0 0 300 52"
+      width="150"
+      height="26"
+      role="img"
+      aria-label="Taskmaster Pro"
+    >
+      <g transform="translate(0,4)">
+        <rect width="44" height="44" rx="11.4" fill="#2563EB" />
+        <path
+          d="M12.3 22.9 L19.4 29.9 L32.6 15"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="5.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <text
+        x="58"
+        y="34"
+        fontFamily="'Plus Jakarta Sans', -apple-system, sans-serif"
+        fontSize="27"
+        fontWeight="700"
+        letterSpacing="-0.5"
+        className="lp-logo-wordmark"
+      >
+        Taskmaster
+        <tspan fill="#2563EB"> Pro</tspan>
+      </text>
+    </svg>
+  )
+}
+
 function Nav() {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -111,9 +148,8 @@ function Nav() {
 
   return (
     <nav className={`lp-nav${scrolled ? ' lp-nav--scrolled' : ''}`}>
-      <Link to="/" className="lp-logo">
-        <span className="lp-logo-mark">T</span>
-        <span className="lp-logo-name">Taskmaster</span>
+      <Link to="/" className="lp-logo" aria-label="Taskmaster Pro — home">
+        <LogoSVG />
       </Link>
       <div className="lp-nav-actions">
         <Link to="/login" className="lp-btn lp-btn-ghost">Sign in</Link>
@@ -254,7 +290,7 @@ function Templates() {
                   <span
                     key={col.label}
                     className="lp-template-col-pill"
-                    style={{ background: `${col.color}28` }}
+                    style={{ background: `${col.color}22`, color: col.color }}
                   >
                     {col.label}
                   </span>
@@ -340,7 +376,10 @@ function BottomCTA() {
 function Footer() {
   return (
     <footer className="lp-footer">
-      <span className="lp-footer-copy">© {new Date().getFullYear()} Taskmaster</span>
+      <div className="lp-footer-left">
+        <span className="lp-footer-copy">© {new Date().getFullYear()} Taskmaster Pro</span>
+        <span className="lp-footer-credit">Designed and built by SC Design and Consultation</span>
+      </div>
       <div className="lp-footer-links">
         <Link to="/login">Sign in</Link>
         <Link to="/login">Get started</Link>
