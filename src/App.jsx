@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import LandingPage from './pages/LandingPage'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { LabelsProvider } from './contexts/LabelsContext'
@@ -32,7 +33,7 @@ function PublicRoute({ children }) {
   // After login, honour redirect param (e.g. /invite/:token)
   const [params] = useSearchParams()
   const redirect = params.get('redirect')
-  return <Navigate to={redirect ?? '/'} replace />
+  return <Navigate to={redirect ?? '/app'} replace />
 }
 
 export default function App() {
@@ -55,7 +56,8 @@ export default function App() {
             <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
-            <Route path="/"               element={<ProtectedRoute><Board /></ProtectedRoute>} />
+            <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
+            <Route path="/"               element={<LandingPage />} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
