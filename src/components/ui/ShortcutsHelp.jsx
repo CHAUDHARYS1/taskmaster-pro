@@ -6,9 +6,9 @@ const SHORTCUT_GROUPS = [
     shortcuts: [
       { keys: ['Ctrl', 'N'],         description: 'New task' },
       { keys: ['/'],                  description: 'Focus search' },
-      { keys: ['Ctrl', 'B'],         description: 'Board view' },
-      { keys: ['Ctrl', 'L'],         description: 'List view' },
-      { keys: ['Ctrl', 'Shift', 'A'], description: 'Archive view' },
+      { keys: ['Ctrl', 'B'],          description: 'Board view' },
+      { keys: ['Ctrl', 'L'],          description: 'List view' },
+      { keys: ['Ctrl', 'G'],          description: 'Gantt view' },
       { keys: ['?'],                  description: 'Toggle shortcuts' },
       { keys: ['Esc'],               description: 'Close panel / modal' },
     ],
@@ -24,10 +24,11 @@ const SHORTCUT_GROUPS = [
   {
     label: 'Task panel',
     shortcuts: [
-      { keys: ['←'],                 description: 'Previous task' },
-      { keys: ['→'],                 description: 'Next task' },
-      { keys: ['Enter'],             description: 'Submit comment' },
-      { keys: ['⇧', 'Enter'],       description: 'New line in comment' },
+      { keys: ['←'],                  description: 'Previous task' },
+      { keys: ['→'],                  description: 'Next task' },
+      { keys: ['Enter'],              description: 'Submit comment' },
+      { keys: ['⇧', 'Enter'],        description: 'New line in comment' },
+      { keys: ['Ctrl', 'Shift', 'A'], description: 'Archive open task' },
     ],
   },
 ]

@@ -82,6 +82,9 @@ function buildWeeklyVelocity(completedDates) {
   return weeks
 }
 
+// completed_at may be null for tasks archived before the column existed; fall back to archived_at
+const effectiveDate = t => t.completed_at ?? t.archived_at
+
 export function useDashboard(year = 2026) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
@@ -98,7 +101,10 @@ export function useDashboard(year = 2026) {
       const eightWeeksAgo = today.subtract(8, 'week').toISOString()
       const sevenDaysOut  = today.add(7, 'day').format('YYYY-MM-DD')
 
-      const [allTasks, completedInYear, recentDone, dueSoonRes, velocityDates] = await Promise.all([
+      const [
+        allTasks, completedInYear, recentDone, dueSoonRes, velocityDates,
+        archivedInYear, archivedVelocity, archivedRecent,
+      ] = await Promise.all([
         // All tasks — status, priority, due_date
         supabase
           .from('tasks')
@@ -137,6 +143,29 @@ export function useDashboard(year = 2026) {
           .select('completed_at')
           .not('completed_at', 'is', null)
           .gte('completed_at', eightWeeksAgo),
+
+        // Archived done tasks completed/archived this year (heatmap + streak + period counts)
+        supabase
+          .from('archived_tasks')
+          .select('completed_at, archived_at')
+          .eq('status', 'done')
+          .gte('archived_at', yearStart)
+          .lt('archived_at', yearEnd),
+
+        // Archived done tasks in the last 8 weeks (velocity chart)
+        supabase
+          .from('archived_tasks')
+          .select('completed_at, archived_at')
+          .eq('status', 'done')
+          .gte('archived_at', eightWeeksAgo),
+
+        // 8 most-recent archived done tasks (recent completions feed)
+        supabase
+          .from('archived_tasks')
+          .select('id, text, completed_at, archived_at, status, priority')
+          .eq('status', 'done')
+          .order('archived_at', { ascending: false })
+          .limit(8),
       ])
 
       if (allTasks.error)       throw allTasks.error
@@ -144,22 +173,33 @@ export function useDashboard(year = 2026) {
       if (recentDone.error)     throw recentDone.error
       if (dueSoonRes.error)     throw dueSoonRes.error
       if (velocityDates.error)  throw velocityDates.error
+      // Archived queries: log errors but don't throw — a missing archived_tasks table shouldn't break the dashboard
+      if (archivedInYear.error)  console.warn('[useDashboard] archivedInYear:', archivedInYear.error.message)
+      if (archivedVelocity.error) console.warn('[useDashboard] archivedVelocity:', archivedVelocity.error.message)
+      if (archivedRecent.error)  console.warn('[useDashboard] archivedRecent:', archivedRecent.error.message)
 
       const tasks    = allTasks.data ?? []
       const doneItems = completedInYear.data ?? []
       const recent   = recentDone.data ?? []
       const dueSoon  = dueSoonRes.data ?? []
-      const velDates = (velocityDates.data ?? []).map(t => t.completed_at)
 
       const weekStart = today.startOf('week')
       const monStart  = today.startOf('month')
 
+      // Merge active-task completions with archived completions for time-based stats
+      const allYearItems = [
+        ...doneItems,
+        ...(archivedInYear.data ?? []),
+      ]
+
+      const completedDates = allYearItems.map(effectiveDate).filter(Boolean)
+
       const totalTasks          = tasks.length
       const totalCompleted      = tasks.filter(t => t.status === 'done').length
       const activeTasks         = totalTasks - totalCompleted
-      const completedToday      = doneItems.filter(t => dayjs(t.completed_at).isSame(today, 'day')).length
-      const completedThisWeek   = doneItems.filter(t => !dayjs(t.completed_at).isBefore(weekStart)).length
-      const completedThisMonth  = doneItems.filter(t => !dayjs(t.completed_at).isBefore(monStart)).length
+      const completedToday      = allYearItems.filter(t => dayjs(effectiveDate(t)).isSame(today, 'day')).length
+      const completedThisWeek   = allYearItems.filter(t => !dayjs(effectiveDate(t)).isBefore(weekStart)).length
+      const completedThisMonth  = allYearItems.filter(t => !dayjs(effectiveDate(t)).isBefore(monStart)).length
       const overdue             = tasks.filter(t =>
         t.status !== 'done' && t.due_date && dayjs(t.due_date).isBefore(today)
       ).length
@@ -180,10 +220,23 @@ export function useDashboard(year = 2026) {
         done:       totalCompleted,
       }
 
-      const completedDates  = doneItems.map(t => t.completed_at)
-      const heatmap         = buildYearHeatmap(completedDates, year)
-      const streak          = calculateStreak(completedDates)
-      const weeklyVelocity  = buildWeeklyVelocity(velDates)
+      // Velocity: merge tasks + archived completions for the last 8 weeks
+      const velDates = [
+        ...(velocityDates.data ?? []).map(t => t.completed_at),
+        ...(archivedVelocity.data ?? []).map(effectiveDate).filter(Boolean),
+      ]
+
+      // Recent completions: merge active + archived, normalise completed_at, sort, take 8
+      const archivedRecentNorm = (archivedRecent.data ?? []).map(t => ({
+        ...t, completed_at: effectiveDate(t),
+      }))
+      const allRecent = [...recent, ...archivedRecentNorm]
+        .sort((a, b) => dayjs(b.completed_at).valueOf() - dayjs(a.completed_at).valueOf())
+        .slice(0, 8)
+
+      const heatmap        = buildYearHeatmap(completedDates, year)
+      const streak         = calculateStreak(completedDates)
+      const weeklyVelocity = buildWeeklyVelocity(velDates)
 
       setData({
         stats: {
@@ -199,7 +252,7 @@ export function useDashboard(year = 2026) {
         heatmap,
         statusBreakdown,
         priorityBreakdown,
-        recentCompletions: recent,
+        recentCompletions: allRecent,
         dueSoon,
         weeklyVelocity,
       })

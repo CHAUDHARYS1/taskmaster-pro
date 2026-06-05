@@ -34,7 +34,7 @@ function memberInitial(m) {
 }
 
 export default function WorkspaceSettingsModal({ onClose, canEdit }) {
-  const { currentWorkspace, autoSave, userRole, columnLabels, workspaceColumns, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
+  const { currentWorkspace, autoSave, autoArchiveDays, userRole, columnLabels, workspaceColumns, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
   const { user }     = useAuth()
   const { projects, currentProject, removeProject, renameProject } = useProject()
   const { members, inviteMember, removeMember } = useMembers(currentWorkspace?.id)
@@ -150,6 +150,51 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
       toast.error(err.message || 'Failed to update settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const [draftEmoji,    setDraftEmoji]    = useState(currentWorkspace?.emoji ?? '')
+  const [emojiSaving,   setEmojiSaving]   = useState(false)
+  const [colorSaving,   setColorSaving]   = useState(false)
+
+  const handleSaveEmoji = async () => {
+    const val = draftEmoji.trim()
+    if (val === (currentWorkspace?.emoji ?? '')) return
+    setEmojiSaving(true)
+    try {
+      await updateWorkspaceSettings(currentWorkspace.id, { emoji: val || null })
+      toast.success(val ? 'Emoji updated' : 'Emoji removed')
+    } catch (err) {
+      toast.error(err.message || 'Failed to update emoji')
+    } finally {
+      setEmojiSaving(false)
+    }
+  }
+
+  const handleSetColor = async (color) => {
+    if (color === currentWorkspace?.color) return
+    setColorSaving(true)
+    try {
+      await updateWorkspaceSettings(currentWorkspace.id, { color })
+    } catch (err) {
+      toast.error(err.message || 'Failed to update color')
+    } finally {
+      setColorSaving(false)
+    }
+  }
+
+  const [archiveSaving, setArchiveSaving] = useState(false)
+  const handleSetAutoArchive = async (value) => {
+    setArchiveSaving(true)
+    try {
+      await updateWorkspaceSettings(currentWorkspace.id, {
+        auto_archive_after_days: value === '' ? null : Number(value),
+      })
+      toast.success(value === '' ? 'Auto-archive disabled' : `Auto-archive set to ${value} days`)
+    } catch (err) {
+      toast.error(err.message || 'Failed to update settings')
+    } finally {
+      setArchiveSaving(false)
     }
   }
 
@@ -310,6 +355,68 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
 
               <div className="ws-settings-divider" />
 
+              {/* Branding */}
+              <div className="ws-branding-section">
+                <p className="ws-settings-label">Workspace icon</p>
+                <p className="ws-settings-desc">Choose a color and an optional emoji for the sidebar avatar.</p>
+
+                <div className="ws-branding-row">
+                  {/* Live avatar preview */}
+                  <span
+                    className="ws-avatar ws-avatar--lg"
+                    style={{ background: currentWorkspace?.color ?? '#2563EB' }}
+                    aria-hidden="true"
+                  >
+                    {currentWorkspace?.emoji || currentWorkspace?.name?.charAt(0)?.toUpperCase()}
+                  </span>
+
+                  <div className="ws-branding-controls">
+                    {/* Color swatches */}
+                    <div className="ws-branding-swatches" role="group" aria-label="Workspace color">
+                      {COLUMN_PRESET_COLORS.map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className={`col-color-swatch${(currentWorkspace?.color ?? '#2563EB') === preset ? ' col-color-swatch--active' : ''}`}
+                          style={{ background: preset }}
+                          onClick={() => isOwner && handleSetColor(preset)}
+                          aria-label={`Set workspace color to ${preset}`}
+                          aria-pressed={(currentWorkspace?.color ?? '#2563EB') === preset}
+                          disabled={colorSaving || !isOwner}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Emoji input */}
+                    <div className="ws-emoji-row">
+                      <input
+                        type="text"
+                        className="ws-emoji-input"
+                        value={draftEmoji}
+                        onChange={e => setDraftEmoji(e.target.value.slice(0, 4))}
+                        onBlur={handleSaveEmoji}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSaveEmoji() } }}
+                        placeholder="Emoji (optional)"
+                        disabled={emojiSaving || !isOwner}
+                        aria-label="Workspace emoji"
+                      />
+                      {draftEmoji && isOwner && (
+                        <button
+                          type="button"
+                          className="ws-emoji-clear"
+                          onClick={() => { setDraftEmoji(''); updateWorkspaceSettings(currentWorkspace.id, { emoji: null }) }}
+                          aria-label="Remove emoji"
+                        >
+                          <X size={12} weight="bold" aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ws-settings-divider" />
+
               <div className="ws-settings-row">
                 <div className="ws-settings-info">
                   <span className="ws-settings-label">Auto-save task edits</span>
@@ -324,6 +431,27 @@ export default function WorkspaceSettingsModal({ onClose, canEdit }) {
                   aria-pressed={autoSave}
                   aria-label="Toggle auto-save"
                 />
+              </div>
+
+              <div className="ws-settings-row">
+                <div className="ws-settings-info">
+                  <span className="ws-settings-label">Auto-archive done tasks</span>
+                  <span className="ws-settings-desc">
+                    Automatically move done tasks to the archive after they've been completed for the selected period.
+                  </span>
+                </div>
+                <select
+                  className="field-select ws-archive-select"
+                  value={autoArchiveDays ?? ''}
+                  onChange={e => handleSetAutoArchive(e.target.value)}
+                  disabled={archiveSaving || !isOwner}
+                  aria-label="Auto-archive period"
+                >
+                  <option value="">Off</option>
+                  <option value="7">7 days</option>
+                  <option value="14">14 days</option>
+                  <option value="30">30 days</option>
+                </select>
               </div>
 
               <div className="ws-settings-col-section">
