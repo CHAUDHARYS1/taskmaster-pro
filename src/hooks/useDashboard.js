@@ -66,13 +66,12 @@ function calculateStreak(completedDates) {
   return { current, longest }
 }
 
-export function useDashboard(workspaceId, year = 2026) {
+export function useDashboard(year = 2026) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
   const fetch = useCallback(async () => {
-    if (!workspaceId) return
     setLoading(true)
     setError(null)
 
@@ -81,17 +80,15 @@ export function useDashboard(workspaceId, year = 2026) {
       const yearEnd   = `${year + 1}-01-01T00:00:00.000Z`
 
       const [allTasks, completedInYear, recentDone] = await Promise.all([
-        // All tasks for status breakdown + totals
+        // All tasks across all workspaces (RLS scopes to accessible ones)
         supabase
           .from('tasks')
-          .select('id, status, due_date, completed_at')
-          .eq('workspace_id', workspaceId),
+          .select('id, status, due_date, completed_at'),
 
         // Completed tasks in the selected year (for heatmap + streak + year stats)
         supabase
           .from('tasks')
           .select('completed_at')
-          .eq('workspace_id', workspaceId)
           .not('completed_at', 'is', null)
           .gte('completed_at', yearStart)
           .lt('completed_at', yearEnd),
@@ -100,7 +97,6 @@ export function useDashboard(workspaceId, year = 2026) {
         supabase
           .from('tasks')
           .select('id, text, completed_at, status')
-          .eq('workspace_id', workspaceId)
           .not('completed_at', 'is', null)
           .order('completed_at', { ascending: false })
           .limit(8),
@@ -148,7 +144,7 @@ export function useDashboard(workspaceId, year = 2026) {
     } finally {
       setLoading(false)
     }
-  }, [workspaceId, year])
+  }, [year])
 
   useEffect(() => { fetch() }, [fetch])
 
