@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { List, ChartBar } from '@phosphor-icons/react'
+import { lazy, Suspense, useState } from 'react'
+import { List, Plus } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
-import DashboardQuickAdd from './DashboardQuickAdd'
+
+const DashboardAddTaskModal = lazy(() => import('./DashboardAddTaskModal'))
 
 export default function DashboardPage() {
   const { currentWorkspace, loading } = useWorkspace()
-  const [showSidebar, setShowSidebar] = useState(false)
-  const [refreshKey,  setRefreshKey]  = useState(0)
+  const [showSidebar,  setShowSidebar]  = useState(false)
+  const [refreshKey,   setRefreshKey]   = useState(0)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   if (loading) return <div className="loading-screen">Loading…</div>
 
@@ -38,21 +40,31 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {currentWorkspace ? (
-          <div className="dash-layout">
-            <aside className="dash-form-panel">
-              <DashboardQuickAdd onSaved={() => setRefreshKey(k => k + 1)} />
-            </aside>
-            <DashboardView key={`${currentWorkspace.id}-${refreshKey}`} workspaceId={currentWorkspace.id} />
-          </div>
-        ) : (
-          <div className="board-empty-state">
-            <ChartBar size={48} className="board-empty-icon" aria-hidden="true" />
-            <h2 className="board-empty-title">No workspace selected</h2>
-            <p className="board-empty-body">Select a workspace from the sidebar to view its dashboard.</p>
-          </div>
-        )}
+        <DashboardView key={refreshKey} />
       </main>
+
+      {currentWorkspace && (
+        <button
+          className="dash-fab"
+          onClick={() => setShowAddModal(true)}
+          aria-label="Add new task"
+          title="Add new task"
+        >
+          <Plus size={22} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {showAddModal && (
+        <Suspense fallback={null}>
+          <DashboardAddTaskModal
+            onClose={() => setShowAddModal(false)}
+            onSaved={() => {
+              setRefreshKey(k => k + 1)
+              setShowAddModal(false)
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

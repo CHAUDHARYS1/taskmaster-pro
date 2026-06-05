@@ -162,8 +162,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
         <div className="atp-body">
 
           {/* Title */}
+          <label className="atp-field-label" htmlFor="tdp-title-input">Title</label>
           {canEdit ? (
             <textarea
+              id="tdp-title-input"
               ref={titleRef}
               className="atp-title"
               value={title}
@@ -178,6 +180,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           )}
 
           {/* Description */}
+          <span className="atp-field-label">Description</span>
           <div className="atp-desc-editor">
             <TiptapEditor
               content={description}
@@ -342,18 +345,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
 
             {/* Labels */}
             <div className="atp-prop atp-prop--wrap">
-              <span className="atp-prop__label" id="tdp-labels-label">
-                Labels
-                {canEdit && (
-                  <button
-                    className="atp-manage-link"
-                    onClick={() => setShowManageLabels(true)}
-                    title="Manage labels"
-                  >
-                    Manage
-                  </button>
-                )}
-              </span>
+              <span className="atp-prop__label" id="tdp-labels-label">Labels</span>
               <div className="atp-prop__val" role="group" aria-labelledby="tdp-labels-label">
                 <div className="atp-pill-row">
                   {labels.length === 0 && canEdit && (
@@ -394,6 +386,15 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                     <span className="task-panel-empty">No labels.</span>
                   )}
                 </div>
+                {canEdit && labels.length > 0 && (
+                  <button
+                    className="atp-manage-link"
+                    onClick={() => setShowManageLabels(true)}
+                    title="Manage labels"
+                  >
+                    Manage labels
+                  </button>
+                )}
               </div>
             </div>
 

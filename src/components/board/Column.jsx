@@ -1,7 +1,7 @@
 import { memo, useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { PaperPlaneTilt } from '@phosphor-icons/react'
+import { ArrowRight } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
@@ -78,7 +78,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
               aria-label="Submit task"
               title="Add task"
             >
-              <PaperPlaneTilt size={15} weight="fill" aria-hidden="true" />
+              <ArrowRight size={15} weight="bold" aria-hidden="true" />
             </button>
           </div>
 

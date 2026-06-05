@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { Check, CalendarBlank } from '@phosphor-icons/react'
+import { Fire } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
 
-const AVAILABLE_YEARS = [2026]
+const CURRENT_YEAR = dayjs().year()
+const AVAILABLE_YEARS = Array.from(
+  { length: CURRENT_YEAR - 2024 + 1 },
+  (_, i) => 2025 + i
+)
 
 const HEATMAP_LEVELS = [
-  { min: 0, cls: 'hm-0' },
-  { min: 1, cls: 'hm-1' },
-  { min: 3, cls: 'hm-2' },
-  { min: 6, cls: 'hm-3' },
+  { min: 0,  cls: 'hm-0' },
+  { min: 1,  cls: 'hm-1' },
+  { min: 3,  cls: 'hm-2' },
+  { min: 6,  cls: 'hm-3' },
   { min: 10, cls: 'hm-4' },
 ]
 
@@ -28,20 +32,9 @@ const STATUS_META = [
   { id: 'done',       label: 'Done',         cls: 'sb-done' },
 ]
 
-function StatCard({ label, value, sub, highlight }) {
-  return (
-    <div className={`dash-stat-card${highlight ? ' dash-stat-card--highlight' : ''}`}>
-      <span className="dash-stat-value">{value}</span>
-      <span className="dash-stat-label">{label}</span>
-      {sub && <span className="dash-stat-sub">{sub}</span>}
-    </div>
-  )
-}
-
 function Heatmap({ cells }) {
   if (!cells?.length) return null
 
-  // Build month label positions — only track months for in-year cells
   const monthLabels = []
   let prevMonth = null
   let colIndex  = 0
@@ -62,11 +55,7 @@ function Heatmap({ cells }) {
     <div className="heatmap-wrap">
       <div className="heatmap-month-row">
         {monthLabels.map((m, i) => (
-          <span
-            key={i}
-            className="heatmap-month-label"
-            style={{ gridColumnStart: m.col }}
-          >
+          <span key={i} className="heatmap-month-label" style={{ gridColumnStart: m.col }}>
             {m.label}
           </span>
         ))}
@@ -96,7 +85,7 @@ function StatusBreakdown({ breakdown, total }) {
   return (
     <div className="status-breakdown">
       <div className="sb-bar-track">
-        {STATUS_META.map(s => {
+        {[...STATUS_META].reverse().map(s => {
           const pct = total > 0 ? (breakdown[s.id] / total) * 100 : 0
           return pct > 0 ? (
             <div
@@ -109,13 +98,17 @@ function StatusBreakdown({ breakdown, total }) {
         })}
       </div>
       <div className="sb-legend">
-        {STATUS_META.map(s => (
-          <div key={s.id} className="sb-legend-item">
-            <span className={`sb-dot ${s.cls}`} />
-            <span className="sb-legend-label">{s.label}</span>
-            <span className="sb-legend-count">{breakdown[s.id]}</span>
-          </div>
-        ))}
+        {STATUS_META.map(s => {
+          const pct = total > 0 ? Math.round((breakdown[s.id] / total) * 100) : 0
+          return (
+            <div key={s.id} className="sb-legend-item">
+              <span className={`sb-dot ${s.cls}`} />
+              <span className="sb-legend-label">{s.label}</span>
+              <span className="sb-legend-count">{breakdown[s.id]}</span>
+              <span className="sb-legend-pct">{pct}%</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -125,15 +118,12 @@ function RecentCompletions({ items }) {
   if (!items?.length) return <p className="dash-empty">No completed tasks yet.</p>
   return (
     <ul className="recent-list">
-      {items.map(t => (
-        <li key={t.id} className="recent-item">
-          <Check size={18} weight="bold" className="recent-check" aria-hidden="true" />
+      {items.map((t, i) => (
+        <li key={t.id} className="recent-item" style={{ animationDelay: `${0.15 + i * 0.04}s` }}>
+          <span className="recent-check-dot" aria-hidden="true" />
           <span className="recent-text">{t.text}</span>
           <span className="recent-date">
-            {t.completed_at
-              ? dayjs(t.completed_at).format('MMM D')
-              : '—'
-            }
+            {t.completed_at ? dayjs(t.completed_at).format('MMM D') : '—'}
           </span>
         </li>
       ))}
@@ -141,54 +131,83 @@ function RecentCompletions({ items }) {
   )
 }
 
-export default function DashboardView({ workspaceId }) {
-  const [heatmapYear, setHeatmapYear] = useState(2026)
-  const { data, loading, error } = useDashboard(workspaceId, heatmapYear)
+export default function DashboardView() {
+  const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
+  const { data, loading, error } = useDashboard(heatmapYear)
 
   if (loading) return (
     <div className="dash-loading">
-      <div className="dash-skeleton" />
+      <div className="dash-skeleton dash-skeleton--header" />
+      <div className="dash-skeleton dash-skeleton--rail" />
       <div className="dash-skeleton dash-skeleton--wide" />
       <div className="dash-skeleton" />
     </div>
   )
 
   if (error) return <p className="dash-error">Failed to load dashboard: {error}</p>
+  if (!data)  return null
 
-  if (!data) return null
+  const { stats, streak, heatmap, statusBreakdown, recentCompletions } = data
 
-  const { stats, heatmap, statusBreakdown, recentCompletions } = data
   const completionRate = stats.totalTasks > 0
     ? Math.round((stats.totalCompleted / stats.totalTasks) * 100)
     : 0
 
-  const todayLabel = dayjs().format('dddd, MMMM D')
+  const RAIL_STATS = [
+    { value: stats.completedToday,     label: 'Today',      alert: false },
+    { value: stats.completedThisWeek,  label: 'This week',  alert: false },
+    { value: stats.completedThisMonth, label: 'This month', alert: false },
+    { value: stats.overdue,            label: 'Overdue',    alert: stats.overdue > 0 },
+    { value: `${completionRate}%`,     label: 'Complete',   alert: false, accent: completionRate >= 80 },
+    { value: stats.totalTasks,         label: 'Total',      alert: false },
+  ]
 
   return (
     <div className="dashboard">
 
-      {/* ── Welcome bar ────────────────────────────────── */}
-      <div className="dash-welcome">
-        <CalendarBlank size={16} weight="bold" className="dash-welcome-icon" aria-hidden="true" />
-        <span className="dash-welcome-date">{todayLabel}</span>
-      </div>
-
-      {/* ── Stats ──────────────────────────────────────── */}
-      <div className="dash-top-row">
-        <div className="dash-stats-grid">
-          <StatCard label="Completed today"      value={stats.completedToday}     />
-          <StatCard label="This week"            value={stats.completedThisWeek}  />
-          <StatCard label="This month"           value={stats.completedThisMonth} />
-          <StatCard label="Overdue"              value={stats.overdue}            highlight={stats.overdue > 0} />
-          <StatCard label="Total completed"      value={stats.totalCompleted}     sub={`${completionRate}% done`} />
-          <StatCard label="Total tasks"          value={stats.totalTasks}         />
+      {/* ── Header ─────────────────────────────────── */}
+      <header className="dash-header">
+        <div className="dash-header-date">
+          <span className="dash-header-day">{dayjs().format('dddd')}</span>
+          <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
         </div>
+        {streak.current > 0 && (
+          <div className="dash-streak-badge">
+            <Fire size={14} weight="fill" className="dash-streak-icon" aria-hidden="true" />
+            <span className="dash-streak-num">{streak.current}</span>
+            <span className="dash-streak-label">day streak</span>
+            {streak.longest > streak.current && (
+              <span className="dash-streak-best">best: {streak.longest}</span>
+            )}
+          </div>
+        )}
+      </header>
+
+      {/* ── Stat rail ──────────────────────────────── */}
+      <div className="dash-stat-rail">
+        {RAIL_STATS.map((s, i) => (
+          <div
+            key={i}
+            className={[
+              'dash-rail-stat',
+              s.alert  ? 'dash-rail-stat--alert'  : '',
+              s.accent ? 'dash-rail-stat--accent' : '',
+            ].filter(Boolean).join(' ')}
+            style={{ animationDelay: `${0.05 + i * 0.05}s` }}
+          >
+            <span className="dash-rail-number">{s.value}</span>
+            <span className="dash-rail-label">{s.label}</span>
+          </div>
+        ))}
       </div>
 
-      {/* ── Activity heatmap ───────────────────────────── */}
-      <section className="dash-section">
+      {/* ── Activity heatmap ───────────────────────── */}
+      <section className="dash-section dash-section--heatmap">
         <div className="dash-section-hdr">
-          <h2 className="dash-section-title">Activity — {heatmapYear}</h2>
+          <h2 className="dash-section-title">
+            Activity
+            <span className="dash-section-title-year">{heatmapYear}</span>
+          </h2>
           <select
             className="heatmap-year-select"
             value={heatmapYear}
@@ -203,18 +222,19 @@ export default function DashboardView({ workspaceId }) {
         <Heatmap cells={heatmap} />
       </section>
 
-      {/* ── Bottom row ─────────────────────────────────── */}
-      <div className="dash-bottom-row">
-        <section className="dash-section dash-section--half">
+      {/* ── Bottom grid ────────────────────────────── */}
+      <div className="dash-bottom-grid">
+        <section className="dash-section">
           <h2 className="dash-section-title">Task breakdown</h2>
           <StatusBreakdown breakdown={statusBreakdown} total={stats.totalTasks} />
         </section>
 
-        <section className="dash-section dash-section--half">
+        <section className="dash-section dash-section--recent">
           <h2 className="dash-section-title">Recently completed</h2>
           <RecentCompletions items={recentCompletions} />
         </section>
       </div>
+
     </div>
   )
 }

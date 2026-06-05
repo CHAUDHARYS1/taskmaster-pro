@@ -121,6 +121,21 @@ export default function Board() {
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
+  // Augment the broadcast map with the current user's own open task so their
+  // card glows while the panel is open, without marking it as locked for them.
+  const displayEditingMap = useMemo(() => {
+    if (!selectedTaskId || !user) return editingMap
+    return {
+      ...editingMap,
+      [selectedTaskId]: {
+        user_id:      user.id,
+        display_name: displayName,
+        email:        user.email,
+        is_self:      true,
+      },
+    }
+  }, [editingMap, selectedTaskId, user, displayName])
+
   const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
@@ -192,6 +207,16 @@ export default function Board() {
     if (next) setSelectedTaskId(next.id)
   }
 
+  const openAddPanel = () => {
+    setSelectedTaskId(null)
+    setShowModal(true)
+  }
+
+  const openTaskDetail = (id) => {
+    setShowModal(false)
+    setSelectedTaskId(id)
+  }
+
   const { toast } = useToast()
   useTaskReminders(allTasks, toast, updateTask, columns)
 
@@ -240,7 +265,7 @@ export default function Board() {
   }, [addTask, toast])
 
   useKeyboardShortcuts({
-    'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
+    'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !isGlobalBoard) openAddPanel() },
     '/':      (e) => { e.preventDefault(); searchRef.current?.focus() },
     'ctrl+f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
     '?':      () => setShowShortcuts(prev => !prev),
@@ -576,7 +601,7 @@ ${colData.map(c => `<div class="col">
             filters={filters}
             onChange={setFilters}
             searchRef={searchRef}
-            onAdd={canEdit && !isGlobalBoard ? () => setShowModal(true) : undefined}
+            onAdd={canEdit && !isGlobalBoard ? openAddPanel : undefined}
             projects={isGlobalBoard ? projects : undefined}
           />
         </div>
@@ -595,7 +620,7 @@ ${colData.map(c => `<div class="col">
                 <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
                 <h2 className="board-empty-title">Your board is empty</h2>
                 <p className="board-empty-body">Add your first task to get started.</p>
-                <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
+                <button className="btn-primary" onClick={openAddPanel}>+ Add Task</button>
               </div>
             )}
 
@@ -616,11 +641,11 @@ ${colData.map(c => `<div class="col">
                         canEdit={canEdit}
                         hasFilter={hasFilter}
                         canDelete={canDelete}
-                        editingMap={editingMap}
+                        editingMap={displayEditingMap}
                         showProject={isGlobalBoard}
                         onDelete={handleColumnDelete}
                         onArchive={handleColumnArchive}
-                        onOpen={setSelectedTaskId}
+                        onOpen={openTaskDetail}
                         onComplete={handleComplete}
                         onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
                       />
@@ -634,7 +659,7 @@ ${colData.map(c => `<div class="col">
                         isOverlay
                         canEdit={canEdit}
                         onOpen={() => {}}
-                        editingUser={editingMap[activeTask.id] ?? null}
+                        editingUser={displayEditingMap[activeTask.id] ?? null}
                       />
                     ) : null}
                   </DragOverlay>
@@ -658,7 +683,7 @@ ${colData.map(c => `<div class="col">
             ) : viewMode === 'calendar' ? (
               <div className="cal-page-body">
                 <Suspense fallback={null}>
-                  <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
+                  <CalendarView tasks={allTasks} onTaskClick={t => openTaskDetail(t.id)} />
                 </Suspense>
               </div>
             ) : null}
