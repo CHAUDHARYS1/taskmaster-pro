@@ -39,7 +39,7 @@ export default function AuthPage() {
       if (mode === 'login') {
         const { error } = await signIn(email, password)
         if (error) throw error
-        navigate(redirectTo || '/', { replace: true })
+        navigate(redirectTo || '/app', { replace: true })
       } else {
         const { error } = await signUp(email, password, firstName.trim(), lastName.trim())
         if (error) throw error

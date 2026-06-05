@@ -101,7 +101,13 @@ export function useTasks(workspaceId, projectId) {
 
   const deleteTask = async (taskId) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
-    const { error } = await supabase.rpc('trash_task', { p_task_id: taskId })
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) { fetchTasks(); throw error }
+  }
+
+  const archiveTask = async (taskId) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    const { error } = await supabase.rpc('archive_task', { p_task_id: taskId })
     if (error) { fetchTasks(); throw error }
   }
 
@@ -127,5 +133,5 @@ export function useTasks(workspaceId, projectId) {
     return acc
   }, {}), [tasks])
 
-  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist }
+  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist }
 }

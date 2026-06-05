@@ -6,7 +6,8 @@ export function useArchive(workspaceId) {
   const [loading, setLoading]   = useState(true)
 
   const fetch = useCallback(async () => {
-    if (!workspaceId) return
+    if (!workspaceId) { setLoading(false); return }
+    setLoading(true)
     const { data } = await supabase
       .from('archived_tasks')
       .select('*, assignee:profiles!assignee_id(email, first_name, last_name)')

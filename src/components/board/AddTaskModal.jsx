@@ -38,6 +38,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const [assigneeId,  setAssigneeId]  = useState('')
   const [selectedLabels, setSelectedLabels] = useState([])
   const [members,          setMembers]          = useState([])
+  const [membersLoaded,    setMembersLoaded]    = useState(false)
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
   const [checklistItems,   setChecklistItems]   = useState([])
@@ -49,7 +50,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
       .from('workspace_members_view')
       .select('user_id, email, first_name, last_name')
       .eq('workspace_id', currentWorkspace.id)
-      .then(({ data }) => { if (data) setMembers(data) })
+      .then(({ data }) => { if (data) setMembers(data); setMembersLoaded(true) })
   }, [currentWorkspace?.id])
 
   const sheetRef = useRef(null)
@@ -210,7 +211,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                 </select>
               </div>
 
-              {workspaceTemplate !== 'job-tracker' && (
+              {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
                 <div className="field-block" style={{ flex: 1 }}>
                   <label htmlFor="task-assignee">Assignee</label>
                   <select

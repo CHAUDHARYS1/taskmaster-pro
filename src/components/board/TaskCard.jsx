@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSixVertical, Check, X, ChatCircle, CheckSquare, Square } from '@phosphor-icons/react'
+import { DotsSixVertical, Check, X, Archive, ChatCircle, CheckSquare, Square } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -31,6 +31,7 @@ function TaskCard({
   canEdit = true,
   canDelete = false,
   onDelete,
+  onArchive,
   onOpen,
   onComplete,
   isOverlay = false,
@@ -209,7 +210,7 @@ function TaskCard({
         )
       })()}
 
-      {(canEdit && onComplete && task.status !== 'done' && !isLockedByOther) || (canDelete && !isLockedByOther) ? (
+      {((canEdit && onComplete && task.status !== 'done' && !isLockedByOther) || (canEdit && onArchive && !isLockedByOther) || (canDelete && !isLockedByOther)) ? (
         <div className="task-card-actions">
           {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
             <button
@@ -219,6 +220,16 @@ function TaskCard({
               onClick={e => { e.stopPropagation(); onComplete(task.id) }}
             >
               <Check size={13} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+          {canEdit && onArchive && !isLockedByOther && (
+            <button
+              className="task-archive-btn"
+              aria-label="Archive task"
+              title="Archive task"
+              onClick={e => { e.stopPropagation(); onArchive(task.id) }}
+            >
+              <Archive size={13} weight="bold" aria-hidden="true" />
             </button>
           )}
           {canDelete && !isLockedByOther && (

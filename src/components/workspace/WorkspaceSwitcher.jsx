@@ -43,7 +43,11 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
 
       <ul className="ws-list">
         {workspaces.map(ws => {
-          const isActive   = currentWorkspace?.id === ws.id && location.pathname !== '/dashboard' && location.pathname !== '/calendar' && !location.pathname.startsWith('/writes')
+          const isActive   = currentWorkspace?.id === ws.id
+            && location.pathname !== '/dashboard'
+            && location.pathname !== '/calendar'
+            && location.pathname !== '/archive'
+            && !location.pathname.startsWith('/writes')
           const isPersonal = ws.id === user?.id
           return (
             <li key={ws.id} className="ws-list-item">
@@ -55,7 +59,7 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                       onToggleProjects?.()
                     } else {
                       switchWorkspace(ws)
-                      if (location.pathname === '/dashboard' || location.pathname === '/calendar' || location.pathname.startsWith('/writes')) navigate('/app')
+                      if (location.pathname === '/dashboard' || location.pathname === '/calendar' || location.pathname === '/archive' || location.pathname.startsWith('/writes')) navigate('/app')
                     }
                   }}
                 >

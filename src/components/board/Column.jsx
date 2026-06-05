@@ -5,7 +5,7 @@ import { PaperPlaneTilt } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const { workspaceTemplate } = useWorkspace()
   const isJobTracker = workspaceTemplate === 'job-tracker'
@@ -107,6 +107,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen
               canEdit={canEdit}
               canDelete={canDelete}
               onDelete={onDelete}
+              onArchive={onArchive}
               onOpen={onOpen}
               onComplete={onComplete}
               editingUser={editingMap?.[task.id] ?? null}

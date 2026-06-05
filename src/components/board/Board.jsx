@@ -1,14 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, SignOut, Coffee } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
 import { useTasks } from '../../hooks/useTasks'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
@@ -24,11 +24,10 @@ import { useToast } from '../../contexts/ToastContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
-const AddTaskModal          = lazy(() => import('./AddTaskModal'))
+const ProfileSettingsModal  = lazy(() => import('../ui/ProfileSettingsModal'))
+const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
-const ArchiveView           = lazy(() => import('./ArchiveView'))
-const TrashView             = lazy(() => import('./TrashView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
@@ -48,25 +47,10 @@ export const DEFAULT_COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
-function TrashZone({ visible }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'trash-zone' })
-  return createPortal(
-    <div
-      ref={setNodeRef}
-      className={['trash-zone', visible && 'trash-zone--visible', isOver && 'trash-zone--over'].filter(Boolean).join(' ')}
-      aria-label="Drop here to move task to trash"
-    >
-      <TrashSimple size={22} weight="bold" aria-hidden="true" />
-      <span>Move to Trash</span>
-    </div>,
-    document.body
-  )
-}
-
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user, profile } = useAuth()
+  const { user, profile, displayName, signOut } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -82,21 +66,22 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
+  const [showProfile, setShowProfile]       = useState(false)
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
-  const [viewMode, setViewMode]             = useState(
-    () => localStorage.getItem('tm_view_mode') ?? 'board'
-  )
+  const [viewMode, setViewMode]             = useState(() => {
+    const saved = localStorage.getItem('tm_view_mode')
+    return (saved === 'archive' || saved === 'trash' || !saved) ? 'board' : saved
+  })
   const [welcomeData, setWelcomeData]       = useState(null)
   const [showWsSettings, setShowWsSettings]     = useState(false)
-  const [isDragging, setIsDragging]             = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
 
   const searchRef      = useRef(null)
@@ -239,6 +224,16 @@ export default function Board() {
     scheduleDelete(id, task?.text ?? 'Task')
   }, [allTasks, scheduleDelete])
 
+  const handleColumnArchive = useCallback(async (id) => {
+    if (selectedTaskId === id) setSelectedTaskId(null)
+    try {
+      await archiveTask(id)
+      toast.success('Task archived')
+    } catch (err) {
+      toast.error(err.message || 'Failed to archive task')
+    }
+  }, [archiveTask, selectedTaskId, toast])
+
   const handleQuickAdd = useCallback(async (text, description) => {
     try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
     catch (err) { toast.error(err.message || 'Failed to add task') }
@@ -251,7 +246,6 @@ export default function Board() {
     '?':      () => setShowShortcuts(prev => !prev),
     'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
     'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
-    'ctrl+shift+a': (e) => { e.preventDefault(); setViewMode('archive') },
     'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -276,29 +270,15 @@ export default function Board() {
     if (!canEdit) return
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
-    setIsDragging(true)
   }
 
   const handleDragCancel = () => {
     setActiveTask(null)
-    setIsDragging(false)
   }
 
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
-    setIsDragging(false)
     if (!canEdit) return
-
-    // Trash zone drop
-    if (over?.id === 'trash-zone') {
-      const all = Object.values(tasksByStatus).flat()
-      const draggedTask = all.find(t => t.id === active.id)
-      if (draggedTask) {
-        playDeleteSound()
-        scheduleDelete(draggedTask.id, draggedTask.text)
-      }
-      return
-    }
 
     if (!over || active.id === over.id) return
 
@@ -402,9 +382,10 @@ ${colData.map(c => `<div class="col">
     </div>
   )
 
-  const totalTasks = allTasks.length
-  const doneTasks  = tasksByStatus['done']?.length ?? 0
-  const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+  const totalTasks     = allTasks.length
+  const doneTasks      = tasksByStatus['done']?.length ?? 0
+  const remainingTasks = totalTasks - doneTasks
+  const remainingPct   = totalTasks > 0 ? Math.round((remainingTasks / totalTasks) * 100) : 0
 
   return (
     <div className="app-shell">
@@ -414,6 +395,52 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main id="main-content" className="board-main">
+        <div className="utility-bar">
+          <button
+            className="utility-bar-profile"
+            onClick={() => setShowProfile(true)}
+            aria-label={`Edit profile for ${displayName || user?.email}`}
+          >
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="utility-bar-avatar utility-bar-avatar--photo" />
+            ) : (
+              <span className="utility-bar-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                {displayName ? displayName[0].toUpperCase() : '?'}
+              </span>
+            )}
+            <span className="utility-bar-name">{displayName || user?.email}</span>
+          </button>
+
+          <div className="utility-bar-actions">
+            <a
+              href="https://buymeacoffee.com/schaudhary"
+              target="_blank"
+              rel="noreferrer"
+              className="utility-bar-btn"
+              aria-label="Buy me a coffee"
+              data-tooltip="Buy me a coffee"
+            >
+              <Coffee size={14} weight="bold" aria-hidden="true" />
+            </a>
+            <div className="utility-bar-sep" aria-hidden="true" />
+            <button
+              className="utility-bar-btn"
+              onClick={() => setShowWsSettings(true)}
+              aria-label="Workspace settings"
+              data-tooltip="Workspace settings"
+            >
+              <GearSix size={16} aria-hidden="true" />
+            </button>
+            <button
+              className="utility-bar-btn utility-bar-btn--danger"
+              onClick={signOut}
+              aria-label="Sign out"
+              data-tooltip="Sign out"
+            >
+              <SignOut size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -434,7 +461,7 @@ ${colData.map(c => `<div class="col">
           <div className="board-header-right">
             <PresenceAvatars members={workspaceMembers} present={present} />
 
-            {/* Board / List / Calendar toggle — archive is a separate button */}
+            {/* View mode toggle */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
                 className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
@@ -461,26 +488,6 @@ ${colData.map(c => `<div class="col">
                 <CalendarBlank size={20} aria-hidden="true" />
               </button>
             </div>
-
-            {/* Archive — separate from layout toggle */}
-            <button
-              className={`archive-toggle-btn${viewMode === 'archive' ? ' archive-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
-              aria-pressed={viewMode === 'archive'}
-              title="Archive (A)"
-            >
-              <Archive size={20} aria-hidden="true" />
-            </button>
-
-            {/* Trash */}
-            <button
-              className={`archive-toggle-btn${viewMode === 'trash' ? ' archive-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode(viewMode === 'trash' ? 'board' : 'trash')}
-              aria-pressed={viewMode === 'trash'}
-              title="Trash"
-            >
-              <TrashSimple size={20} aria-hidden="true" />
-            </button>
 
             <button
               className="ws-settings-btn board-header-btn--print"
@@ -529,22 +536,6 @@ ${colData.map(c => `<div class="col">
             <span>Calendar</span>
           </button>
           <button
-            className={`mob-view-btn${viewMode === 'archive' ? ' mob-view-btn--active' : ''}`}
-            onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
-            aria-pressed={viewMode === 'archive'}
-          >
-            <Archive size={22} aria-hidden="true" />
-            <span>Archive</span>
-          </button>
-          <button
-            className={`mob-view-btn${viewMode === 'trash' ? ' mob-view-btn--active' : ''}`}
-            onClick={() => setViewMode(viewMode === 'trash' ? 'board' : 'trash')}
-            aria-pressed={viewMode === 'trash'}
-          >
-            <TrashSimple size={22} aria-hidden="true" />
-            <span>Trash</span>
-          </button>
-          <button
             className="mob-view-btn"
             onClick={handlePrint}
             aria-label="Print task board"
@@ -562,35 +553,33 @@ ${colData.map(c => `<div class="col">
           </button>
         </nav>
 
-        {totalTasks > 0 && viewMode !== 'archive' && viewMode !== 'trash' && (
-          <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
+        {totalTasks > 0 && (
+          <div className="board-progress" title={`${remainingTasks} of ${totalTasks} tasks remaining`}>
             <div
               className="board-progress-bar"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${remainingPct}%` }}
               role="progressbar"
-              aria-valuenow={progress}
+              aria-valuenow={remainingPct}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`${doneTasks} of ${totalTasks} tasks done`}
+              aria-label={`${remainingTasks} of ${totalTasks} tasks remaining`}
             />
             <span className="board-progress-label">
-              {doneTasks} / {totalTasks} done
+              {remainingTasks} {remainingTasks === 1 ? 'task' : 'tasks'} left
             </span>
           </div>
         )}
 
-        {viewMode !== 'archive' && viewMode !== 'trash' && (
-          <div ref={filterBarRef}>
-            <FilterBar
-              workspaceId={currentWorkspace?.id}
-              filters={filters}
-              onChange={setFilters}
-              searchRef={searchRef}
-              onAdd={canEdit && !isGlobalBoard && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
-              projects={isGlobalBoard ? projects : undefined}
-            />
-          </div>
-        )}
+        <div ref={filterBarRef}>
+          <FilterBar
+            workspaceId={currentWorkspace?.id}
+            filters={filters}
+            onChange={setFilters}
+            searchRef={searchRef}
+            onAdd={canEdit && !isGlobalBoard ? () => setShowModal(true) : undefined}
+            projects={isGlobalBoard ? projects : undefined}
+          />
+        </div>
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
@@ -598,117 +587,119 @@ ${colData.map(c => `<div class="col">
           </div>
         )}
 
-        {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'archive' && viewMode !== 'trash' && (
-          <div className="board-empty-state">
-            <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
-            <h2 className="board-empty-title">Your board is empty</h2>
-            <p className="board-empty-body">Add your first task to get started.</p>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
-          </div>
-        )}
-
-        {viewMode === 'board' ? (
-          <div className="board-columns-wrap">
-            <DndContext
-              sensors={sensors}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <div className="board-columns">
-                {columns.map(col => (
-                  <Column
-                    key={col.id}
-                    column={col}
-                    tasks={displayByStatus[col.id] ?? []}
-                    canEdit={canEdit}
-                    hasFilter={hasFilter}
-                    canDelete={canDelete}
-                    editingMap={editingMap}
-                    showProject={isGlobalBoard}
-                    onDelete={handleColumnDelete}
-                    onOpen={setSelectedTaskId}
-                    onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
-                  />
-                ))}
+        {/* ── Canvas: board content + detail panel side-by-side ── */}
+        <div className="board-canvas">
+          <div className="board-canvas__content">
+            {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
+              <div className="board-empty-state">
+                <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
+                <h2 className="board-empty-title">Your board is empty</h2>
+                <p className="board-empty-body">Add your first task to get started.</p>
+                <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
               </div>
+            )}
 
-              <TrashZone visible={isDragging && canEdit} />
+            {viewMode === 'board' ? (
+              <div className="board-columns-wrap">
+                <DndContext
+                  sensors={sensors}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <div className="board-columns">
+                    {columns.map(col => (
+                      <Column
+                        key={col.id}
+                        column={col}
+                        tasks={displayByStatus[col.id] ?? []}
+                        canEdit={canEdit}
+                        hasFilter={hasFilter}
+                        canDelete={canDelete}
+                        editingMap={editingMap}
+                        showProject={isGlobalBoard}
+                        onDelete={handleColumnDelete}
+                        onArchive={handleColumnArchive}
+                        onOpen={setSelectedTaskId}
+                        onComplete={handleComplete}
+                        onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
+                      />
+                    ))}
+                  </div>
 
-              <DragOverlay dropAnimation={null}>
-                {activeTask ? (
-                  <TaskCard
-                    task={activeTask}
-                    isOverlay
-                    canEdit={canEdit}
-                    onOpen={() => {}}
-                    editingUser={editingMap[activeTask.id] ?? null}
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                  <DragOverlay dropAnimation={null}>
+                    {activeTask ? (
+                      <TaskCard
+                        task={activeTask}
+                        isOverlay
+                        canEdit={canEdit}
+                        onOpen={() => {}}
+                        editingUser={editingMap[activeTask.id] ?? null}
+                      />
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="list-view-wrap">
+                <ListView
+                  columns={columns}
+                  tasksByStatus={displayByStatus}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  editingMap={editingMap}
+                  showProject={isGlobalBoard}
+                  onDelete={handleColumnDelete}
+                  onArchive={handleColumnArchive}
+                  onOpen={setSelectedTaskId}
+                  onComplete={handleComplete}
+                />
+              </div>
+            ) : viewMode === 'calendar' ? (
+              <div className="cal-page-body">
+                <Suspense fallback={null}>
+                  <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
+                </Suspense>
+              </div>
+            ) : null}
           </div>
-        ) : viewMode === 'list' ? (
-          <div className="list-view-wrap">
-            <ListView
-              columns={columns}
-              tasksByStatus={displayByStatus}
-              canEdit={canEdit}
-              canDelete={canDelete}
-              editingMap={editingMap}
-              showProject={isGlobalBoard}
-              onDelete={handleColumnDelete}
-              onOpen={setSelectedTaskId}
-              onComplete={handleComplete}
-            />
-          </div>
-        ) : viewMode === 'calendar' ? (
-          <div className="cal-page-body">
-            <Suspense fallback={null}>
-              <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
-            </Suspense>
-          </div>
-        ) : viewMode === 'trash' ? (
+
+          {/* Panels sit inside the canvas as flex siblings — not fixed overlays */}
           <Suspense fallback={null}>
-            <TrashView canEdit={canEdit} canDelete={canDelete} />
+            {showModal && canEdit && (
+              <AddTaskPanel
+                columns={columns}
+                onClose={() => setShowModal(false)}
+                onSave={async (data) => {
+                  const taskId = await addTask(data)
+                  toast.success('Task added')
+                  return taskId
+                }}
+              />
+            )}
+
+            {selectedTask && (
+              <TaskDetailPanel
+                task={selectedTask}
+                columns={columns}
+                canEdit={canEdit}
+                autoSave={autoSave}
+                onUpdate={(id, changes) => {
+                  if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+                  return updateTask(id, changes)
+                }}
+                onChecklistChange={patchTaskChecklist}
+                onClose={() => setSelectedTaskId(null)}
+              />
+            )}
           </Suspense>
-        ) : (
-          <Suspense fallback={null}>
-            <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
-          </Suspense>
-        )}
+        </div>
       </main>
 
       <Suspense fallback={null}>
-        {showModal && canEdit && (
-          <AddTaskModal
-            columns={columns}
-            onClose={() => setShowModal(false)}
-            onSave={async (data) => {
-              try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
-              catch (err) { toast.error(err.message || 'Failed to add task') }
-            }}
-          />
-        )}
-
-        {selectedTask && (
-          <TaskDetailPanel
-            task={selectedTask}
-            columns={columns}
-            canEdit={canEdit}
-            autoSave={autoSave}
-            onUpdate={(id, changes) => {
-              if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
-              return updateTask(id, changes)
-            }}
-            onChecklistChange={patchTaskChecklist}
-            onClose={() => setSelectedTaskId(null)}
-          />
-        )}
-
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
         {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {showProfile    && <ProfileSettingsModal   onClose={() => setShowProfile(false)} />}
         {welcomeData    && (
           <WelcomeModal
             workspaceName={welcomeData.workspace_name}
