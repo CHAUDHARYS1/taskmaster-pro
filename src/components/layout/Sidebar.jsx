@@ -1,81 +1,160 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useProject } from '../../contexts/ProjectContext'
+import { useAuth } from '../../contexts/AuthContext'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 
-export default function Sidebar({ isOpen, viewMode, onViewChange }) {
-  const { currentWorkspace }    = useWorkspace()
+export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange }) {
+  const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
+  const { projects, currentProject, switchProject }       = useProject()
+  const { user }                                          = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
+
   const onDashboard = location.pathname === '/dashboard'
   const onCalendar  = location.pathname === '/calendar'
   const onWrites    = location.pathname.startsWith('/writes')
   const onArchive   = location.pathname === '/archive'
+
   const [showCreate,    setShowCreate]    = useState(false)
-  const [projectsOpen, setProjectsOpen] = useState(true)
+  const [projectsOpen, setProjectsOpen]  = useState(true)
 
   useEffect(() => { setProjectsOpen(true) }, [currentWorkspace?.id])
 
+  const navItems = [
+    { icon: SquaresFour,   label: 'Dashboard', active: onDashboard, onClick: () => navigate(onDashboard ? '/app' : '/dashboard') },
+    { icon: CalendarBlank, label: 'Calendar',  active: onCalendar,  onClick: () => navigate('/calendar') },
+    { icon: NotePencil,    label: 'Writes',    active: onWrites,    onClick: () => navigate('/writes') },
+    { icon: Archive,       label: 'Archive',   active: onArchive,   onClick: () => navigate('/archive') },
+  ]
+
   return (
     <>
-      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`} aria-label="Sidebar navigation">
+      <aside
+        className={[
+          'sidebar',
+          isOpen    ? 'sidebar--open'      : '',
+          collapsed ? 'sidebar--collapsed' : '',
+        ].filter(Boolean).join(' ')}
+        aria-label="Sidebar navigation"
+      >
+        {/* ── Logo — both variants stay in DOM; CSS shows the right one ── */}
         <div className="sidebar-top">
-          <LogoLockup width={164} className="sidebar-lockup" />
+          <div className="sidebar-logo-full">
+            <LogoLockup width={164} className="sidebar-lockup" />
+          </div>
+          <div className="sidebar-logo-mark" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" width="30" height="33">
+              <g transform="translate(2,4)">
+                <rect width="44" height="44" rx="11.4" fill="#2563EB" />
+                <path d="M12.3 22.9 L19.4 29.9 L32.6 15" fill="none" stroke="#FFFFFF" strokeWidth="5.3" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+            </svg>
+          </div>
         </div>
 
-        <div className="sidebar-nav">
-          <button
-            className={`sidebar-dash-btn${onDashboard ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => navigate(onDashboard ? '/app' : '/dashboard')}
-            aria-pressed={onDashboard}
-          >
-            <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
-            Dashboard
-          </button>
+        {/* ── Navigation ── */}
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {navItems.map(({ icon: Icon, label, active, onClick }) => (
+            <button
+              key={label}
+              className={`sidebar-dash-btn${active ? ' sidebar-dash-btn--active' : ''}`}
+              onClick={onClick}
+              aria-pressed={active}
+              aria-label={label}
+              title={collapsed ? label : undefined}
+            >
+              <Icon size={18} className="sidebar-dash-icon" aria-hidden="true" />
+              <span className="sidebar-nav-label">{label}</span>
+            </button>
+          ))}
 
-          <button
-            className={`sidebar-dash-btn${onCalendar ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => navigate('/calendar')}
-            aria-pressed={onCalendar}
-          >
-            <CalendarBlank size={18} className="sidebar-dash-icon" aria-hidden="true" />
-            Calendar
-          </button>
+          {/* ── Expanded: full workspace switcher ── */}
+          <div className="sidebar-ws-section">
+            <WorkspaceSwitcher
+              projectsOpen={projectsOpen}
+              onToggleProjects={() => setProjectsOpen(p => !p)}
+              viewMode={viewMode}
+              onViewChange={onViewChange}
+            />
+          </div>
 
-          <button
-            className={`sidebar-dash-btn${onWrites ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => navigate('/writes')}
-            aria-pressed={onWrites}
-          >
-            <NotePencil size={18} className="sidebar-dash-icon" aria-hidden="true" />
-            Writes
-          </button>
+          {/* ── Collapsed: compact workspace + project list ── */}
+          <div className="sidebar-ws-compact" aria-label="Workspaces">
+            {workspaces.map(ws => {
+              const isPersonal = ws.id === user?.id
+              const isActiveWs = currentWorkspace?.id === ws.id
+              return (
+                <div key={ws.id} className="sidebar-ws-compact-group">
+                  {/* Workspace avatar */}
+                  <button
+                    className={`sidebar-ws-compact-btn${isActiveWs ? ' sidebar-ws-compact-btn--active' : ''}`}
+                    onClick={() => {
+                      switchWorkspace(ws)
+                      if (!isActiveWs) navigate('/app')
+                    }}
+                    title={isPersonal ? 'My Workspace' : ws.name}
+                    aria-label={isPersonal ? 'My Workspace' : ws.name}
+                  >
+                    <span className="ws-avatar sidebar-ws-compact-avatar">
+                      {ws.name.charAt(0).toUpperCase()}
+                    </span>
+                  </button>
 
-          <button
-            className={`sidebar-dash-btn${onArchive ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => navigate('/archive')}
-            aria-pressed={onArchive}
-          >
-            <Archive size={18} className="sidebar-dash-icon" aria-hidden="true" />
-            Archive
-          </button>
+                  {/* Projects for active workspace */}
+                  {isActiveWs && (
+                    <div className="sidebar-projects-compact">
+                      {/* All Projects */}
+                      <button
+                        className={`sidebar-project-compact-btn${!currentProject ? ' sidebar-project-compact-btn--active' : ''}`}
+                        onClick={() => { switchProject(null); navigate('/app') }}
+                        title="All Projects"
+                        aria-label="All Projects"
+                      >
+                        <SquaresFour size={12} aria-hidden="true" />
+                      </button>
 
-          <WorkspaceSwitcher
-            projectsOpen={projectsOpen}
-            onToggleProjects={() => setProjectsOpen(p => !p)}
-            viewMode={viewMode}
-            onViewChange={onViewChange}
-          />
-        </div>
+                      {/* Individual projects */}
+                      {projects.map(p => (
+                        <button
+                          key={p.id}
+                          className={`sidebar-project-compact-btn${currentProject?.id === p.id ? ' sidebar-project-compact-btn--active' : ''}`}
+                          onClick={() => { switchProject(p); navigate('/app') }}
+                          title={p.name}
+                          aria-label={p.name}
+                        >
+                          <span
+                            className="sidebar-project-compact-dot"
+                            style={{ background: p.color }}
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </nav>
 
-        <button className="btn-ghost ws-new-btn" onClick={() => setShowCreate(true)}>
-          + New workspace
+        {/* ── New workspace ── */}
+        <button
+          className="btn-ghost ws-new-btn sidebar-new-ws-btn"
+          onClick={() => setShowCreate(true)}
+          aria-label="New workspace"
+          title={collapsed ? 'New workspace' : undefined}
+        >
+          <Plus size={14} weight="bold" className="sidebar-new-ws-icon" aria-hidden="true" />
+          <span className="sidebar-nav-label">New workspace</span>
         </button>
 
-        <div className="sidebar-footer">
+        {/* ── Footer ── */}
+        <div className="sidebar-footer sidebar-footer--collapsible">
           <p className="sidebar-version">v1.2.00</p>
           <p className="sidebar-credit">
             Designed and built by{' '}
@@ -84,6 +163,21 @@ export default function Sidebar({ isOpen, viewMode, onViewChange }) {
             </a>
           </p>
         </div>
+
+        {/* ── Collapse toggle (desktop only) ── */}
+        {onToggleCollapse && (
+          <button
+            className="sidebar-collapse-btn"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed
+              ? <CaretRight size={12} weight="bold" aria-hidden="true" />
+              : <CaretLeft  size={12} weight="bold" aria-hidden="true" />
+            }
+          </button>
+        )}
       </aside>
 
       {showCreate && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}

@@ -18,7 +18,18 @@ export default function WritesPage() {
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
+  )
   const [docLoading,  setDocLoading]  = useState(false)
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
   // Load full content when docId changes
   useEffect(() => {
@@ -69,7 +80,7 @@ export default function WritesPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} onShowShortcuts={() => {}} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} />
 
       <main className="writes-main">
         {/* Document list panel */}

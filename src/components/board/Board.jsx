@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, SignOut, Coffee } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, SignOut, Coffee, Archive } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -10,6 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 import { useTasks } from '../../hooks/useTasks'
+import { useArchive } from '../../hooks/useArchive'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
@@ -69,6 +70,8 @@ export default function Board() {
   const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
+  const { archiveNow } = useArchive(currentWorkspace?.id)
+
   const [showProfile, setShowProfile]       = useState(false)
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
@@ -76,6 +79,9 @@ export default function Board() {
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
+  )
   const [viewMode, setViewMode]             = useState(() => {
     const saved = localStorage.getItem('tm_view_mode')
     return (saved === 'archive' || saved === 'trash' || !saved) ? 'board' : saved
@@ -150,6 +156,14 @@ export default function Board() {
   useEffect(() => {
     localStorage.setItem('tm_view_mode', viewMode)
   }, [viewMode])
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     const raw = localStorage.getItem('tm_welcome')
@@ -258,6 +272,20 @@ export default function Board() {
       toast.error(err.message || 'Failed to archive task')
     }
   }, [archiveTask, selectedTaskId, toast])
+
+  const doneCount = tasksByStatus['done']?.length ?? 0
+
+  const handleArchiveDone = useCallback(async () => {
+    if (doneCount === 0) return
+    const scope = currentProject ? `in "${currentProject.name}"` : 'across all projects'
+    if (!window.confirm(`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''} ${scope}? They'll be available on the Archive page.`)) return
+    try {
+      const count = await archiveNow(currentProject?.id)
+      toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
+    } catch (err) {
+      toast.error(err.message || 'Failed to archive done tasks')
+    }
+  }, [archiveNow, currentProject, doneCount, toast])
 
   const handleQuickAdd = useCallback(async (text, description) => {
     try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
@@ -396,7 +424,7 @@ ${colData.map(c => `<div class="col">
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
       <main className="board-main">
         <div className="board-empty-state">
           <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
@@ -417,7 +445,7 @@ ${colData.map(c => `<div class="col">
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main id="main-content" className="board-main">
         <div className="utility-bar">
@@ -513,6 +541,18 @@ ${colData.map(c => `<div class="col">
                 <CalendarBlank size={20} aria-hidden="true" />
               </button>
             </div>
+
+            {isOwner && doneCount > 0 && (
+              <button
+                className="ws-settings-btn board-archive-done-btn"
+                onClick={handleArchiveDone}
+                aria-label={`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''}`}
+                title={`Archive done (${doneCount})`}
+              >
+                <Archive size={20} aria-hidden="true" />
+                <span className="board-archive-done-badge">{doneCount}</span>
+              </button>
+            )}
 
             <button
               className="ws-settings-btn board-header-btn--print"

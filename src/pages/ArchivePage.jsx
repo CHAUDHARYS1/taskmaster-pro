@@ -3,7 +3,6 @@ import { List, Archive, MagnifyingGlass, ArrowCounterClockwise, Trash, X } from 
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import Sidebar from '../components/layout/Sidebar'
-import { useWorkspace } from '../contexts/WorkspaceContext'
 import { useArchive } from '../hooks/useArchive'
 import { useToast } from '../contexts/ToastContext'
 
@@ -15,6 +14,13 @@ const TIME_FILTERS = [
   { id: 'month', label: 'This month' },
   { id: 'year',  label: 'This year' },
 ]
+
+const STATUS_LABELS = {
+  toDo:       'To Do',
+  inProgress: 'In Progress',
+  inReview:   'In Review',
+  done:       'Done',
+}
 
 function assigneeName(a) {
   if (!a) return null
@@ -42,36 +48,71 @@ function groupByWeek(tasks) {
 }
 
 export default function ArchivePage() {
-  const { currentWorkspace, columnLabels, userRole } = useWorkspace()
-  const { archives, loading, restoreTask, deleteArchive, archiveNow } =
-    useArchive(currentWorkspace?.id)
+  // null = fetch all workspaces (RLS scopes to user's memberships)
+  const { archives, loading, restoreTask, deleteArchive } = useArchive(null)
   const { toast } = useToast()
 
-  const isOwner = userRole === 'owner'
-  const canEdit = userRole !== 'viewer'
+  const [showSidebar,      setShowSidebar]      = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
+  )
+  const [search,        setSearch]        = useState('')
+  const [timeFilter,    setTimeFilter]    = useState('all')
+  const [statusFilter,  setStatusFilter]  = useState('all')
+  const [wsFilter,      setWsFilter]      = useState('')
+  const [projectFilter, setProjectFilter] = useState('')
 
-  const [showSidebar, setShowSidebar] = useState(false)
-  const [search,      setSearch]      = useState('')
-  const [timeFilter,  setTimeFilter]  = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
+  // Unique workspaces from the archive data
+  const workspaceOptions = useMemo(() => {
+    const map = new Map()
+    for (const t of archives) {
+      if (t.workspace && !map.has(t.workspace_id)) {
+        map.set(t.workspace_id, t.workspace)
+      }
+    }
+    return [...map.entries()].map(([id, ws]) => ({ id, name: ws.name }))
+  }, [archives])
+
+  // Projects for the selected workspace (or all projects if no workspace selected)
+  const projectOptions = useMemo(() => {
+    const map = new Map()
+    const source = wsFilter ? archives.filter(t => t.workspace_id === wsFilter) : archives
+    for (const t of source) {
+      if (t.project && t.project_id && !map.has(t.project_id)) {
+        map.set(t.project_id, t.project)
+      }
+    }
+    return [...map.entries()].map(([id, p]) => ({ id, name: p.name, color: p.color }))
+  }, [archives, wsFilter])
+
+  // Available statuses
   const statuses = useMemo(() => {
     const seen = new Set(archives.map(t => t.status))
     return ['all', ...['toDo', 'inProgress', 'inReview', 'done'].filter(s => seen.has(s))]
   }, [archives])
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q   = search.trim().toLowerCase()
     const now = dayjs()
     return archives.filter(task => {
       if (q && !task.text.toLowerCase().includes(q)) return false
+      if (wsFilter      && task.workspace_id !== wsFilter)      return false
+      if (projectFilter && task.project_id   !== projectFilter) return false
       if (statusFilter !== 'all' && task.status !== statusFilter) return false
       if (timeFilter === 'week'  && !dayjs(task.archived_at).isSame(now, 'week'))  return false
       if (timeFilter === 'month' && !dayjs(task.archived_at).isSame(now, 'month')) return false
       if (timeFilter === 'year'  && !dayjs(task.archived_at).isSame(now, 'year'))  return false
       return true
     })
-  }, [archives, search, statusFilter, timeFilter])
+  }, [archives, search, wsFilter, projectFilter, statusFilter, timeFilter])
 
   const groups = useMemo(() => groupByWeek(filtered), [filtered])
 
@@ -94,26 +135,22 @@ export default function ArchivePage() {
     }
   }
 
-  const handleArchiveNow = async () => {
-    try {
-      const count = await archiveNow()
-      toast.success(count > 0
-        ? `${count} done task${count > 1 ? 's' : ''} archived`
-        : 'No done tasks to archive')
-    } catch (err) {
-      toast.error(err.message || 'Archive failed')
-    }
+  const clearFilters = () => {
+    setSearch('')
+    setTimeFilter('all')
+    setStatusFilter('all')
+    setWsFilter('')
+    setProjectFilter('')
   }
 
-  const clearFilters = () => { setSearch(''); setTimeFilter('all'); setStatusFilter('all') }
-  const hasActiveFilter = search || timeFilter !== 'all' || statusFilter !== 'all'
+  const hasActiveFilter = search || timeFilter !== 'all' || statusFilter !== 'all' || wsFilter || projectFilter
 
   return (
     <div className="app-shell">
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main id="main-content" className="board-main">
 
@@ -129,16 +166,6 @@ export default function ArchivePage() {
             </button>
             <Archive size={18} className="board-header-icon" aria-hidden="true" />
             <span className="board-header-title">Archive</span>
-            {currentWorkspace && (
-              <span className="board-header-ws-name">{currentWorkspace.name}</span>
-            )}
-          </div>
-          <div className="board-header-right">
-            {isOwner && (
-              <button className="btn-ghost btn-sm" onClick={handleArchiveNow}>
-                Archive done tasks now
-              </button>
-            )}
           </div>
         </div>
 
@@ -163,6 +190,36 @@ export default function ArchivePage() {
             )}
           </div>
 
+          {/* Workspace select */}
+          {workspaceOptions.length > 1 && (
+            <select
+              className="archive-filter-select"
+              value={wsFilter}
+              onChange={e => { setWsFilter(e.target.value); setProjectFilter('') }}
+              aria-label="Filter by workspace"
+            >
+              <option value="">All workspaces</option>
+              {workspaceOptions.map(ws => (
+                <option key={ws.id} value={ws.id}>{ws.name}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Project select */}
+          {projectOptions.length > 1 && (
+            <select
+              className="archive-filter-select"
+              value={projectFilter}
+              onChange={e => setProjectFilter(e.target.value)}
+              aria-label="Filter by project"
+            >
+              <option value="">All projects</option>
+              {projectOptions.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
+
           {/* Time chips */}
           <div className="archive-filter-group" role="group" aria-label="Time range">
             {TIME_FILTERS.map(f => (
@@ -177,9 +234,9 @@ export default function ArchivePage() {
             ))}
           </div>
 
-          {/* Status chips — only show statuses that exist in the archive */}
+          {/* Status chips */}
           {statuses.length > 1 && (
-            <div className="archive-filter-group" role="group" aria-label="Filter by column">
+            <div className="archive-filter-group" role="group" aria-label="Filter by status">
               {statuses.map(s => (
                 <button
                   key={s}
@@ -187,7 +244,7 @@ export default function ArchivePage() {
                   onClick={() => setStatusFilter(s)}
                   aria-pressed={statusFilter === s}
                 >
-                  {s === 'all' ? 'All columns' : (columnLabels?.[s] ?? s)}
+                  {s === 'all' ? 'All statuses' : (STATUS_LABELS[s] ?? s)}
                 </button>
               ))}
             </div>
@@ -227,8 +284,27 @@ export default function ArchivePage() {
                       <div key={task.id} className="archive-row">
                         <div className="archive-row-main">
                           <span className="archive-row-text">{task.text}</span>
+
+                          {/* Workspace · Project breadcrumb */}
+                          <span className="archive-row-context">
+                            {task.workspace?.name && (
+                              <span className="archive-row-context-ws">{task.workspace.name}</span>
+                            )}
+                            {task.workspace?.name && task.project?.name && (
+                              <span className="archive-row-context-sep" aria-hidden="true">›</span>
+                            )}
+                            {task.project?.name && (
+                              <span
+                                className="archive-row-context-project"
+                                style={task.project.color ? { '--proj-color': task.project.color } : {}}
+                              >
+                                {task.project.name}
+                              </span>
+                            )}
+                          </span>
+
                           <span className="archive-row-meta">
-                            {columnLabels?.[task.status] ?? task.status}
+                            {STATUS_LABELS[task.status] ?? task.status}
                             {task.due_date && ` · due ${dayjs(task.due_date).format('MMM D')}`}
                             {assigneeName(task.assignee) && ` · ${assigneeName(task.assignee)}`}
                           </span>
@@ -237,17 +313,15 @@ export default function ArchivePage() {
                           </span>
                         </div>
                         <div className="archive-row-actions">
-                          {canEdit && (
-                            <button
-                              className="archive-action-btn"
-                              onClick={() => handleRestore(task)}
-                              title="Restore to To Do"
-                              aria-label={`Restore "${task.text}"`}
-                            >
-                              <ArrowCounterClockwise size={15} weight="bold" aria-hidden="true" />
-                              <span>Restore</span>
-                            </button>
-                          )}
+                          <button
+                            className="archive-action-btn"
+                            onClick={() => handleRestore(task)}
+                            title="Restore to To Do"
+                            aria-label={`Restore "${task.text}"`}
+                          >
+                            <ArrowCounterClockwise size={15} weight="bold" aria-hidden="true" />
+                            <span>Restore</span>
+                          </button>
                           <button
                             className="archive-action-btn archive-action-btn--danger"
                             onClick={() => handleDelete(task)}

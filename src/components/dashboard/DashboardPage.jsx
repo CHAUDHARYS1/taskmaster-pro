@@ -9,8 +9,19 @@ const DashboardAddTaskModal = lazy(() => import('./DashboardAddTaskModal'))
 export default function DashboardPage() {
   const { currentWorkspace, loading } = useWorkspace()
   const [showSidebar,  setShowSidebar]  = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
+  )
   const [refreshKey,   setRefreshKey]   = useState(0)
   const [showAddModal, setShowAddModal] = useState(false)
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
   if (loading) return <div className="loading-screen">Loading…</div>
 
@@ -19,7 +30,7 @@ export default function DashboardPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main className="board-main">
         <div className="board-header">

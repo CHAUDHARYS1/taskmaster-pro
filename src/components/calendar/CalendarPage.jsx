@@ -13,6 +13,17 @@ export default function CalendarPage() {
   const { toast } = useToast()
 
   const [showSidebar,  setShowSidebar]  = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
+  )
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
   const [filterWsId,   setFilterWsId]   = useState('all')
   const [tasks,        setTasks]        = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -54,7 +65,7 @@ export default function CalendarPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main className="board-main">
         <div className="board-header">
