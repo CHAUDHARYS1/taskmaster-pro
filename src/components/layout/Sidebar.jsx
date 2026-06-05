@@ -41,7 +41,7 @@ export default function Sidebar({ isOpen, viewMode, onViewChange, onShowShortcut
         <div className="sidebar-nav">
           <button
             className={`sidebar-dash-btn${onDashboard ? ' sidebar-dash-btn--active' : ''}`}
-            onClick={() => navigate(onDashboard ? '/' : '/dashboard')}
+            onClick={() => navigate(onDashboard ? '/app' : '/dashboard')}
             aria-pressed={onDashboard}
           >
             <SquaresFour size={18} className="sidebar-dash-icon" aria-hidden="true" />
