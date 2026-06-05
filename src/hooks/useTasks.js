@@ -101,7 +101,7 @@ export function useTasks(workspaceId, projectId) {
 
   const deleteTask = async (taskId) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
-    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    const { error } = await supabase.rpc('trash_task', { p_task_id: taskId })
     if (error) { fetchTasks(); throw error }
   }
 

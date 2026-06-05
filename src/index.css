@@ -4588,6 +4588,12 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   color: var(--accent);
 }
 
+/* ── Trash expiry countdown ──────────────────────────────── */
+.trash-expiry {
+  color: var(--orange, #f97316);
+  font-weight: var(--weight-medium);
+}
+
 /* ── Drag-to-trash zone (desktop only) ───────────────────── */
 @media (max-width: 768px) { .trash-zone { display: none !important; } }
 

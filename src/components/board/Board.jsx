@@ -28,6 +28,7 @@ const AddTaskModal          = lazy(() => import('./AddTaskModal'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
 const ArchiveView           = lazy(() => import('./ArchiveView'))
+const TrashView             = lazy(() => import('./TrashView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
@@ -53,10 +54,10 @@ function TrashZone({ visible }) {
     <div
       ref={setNodeRef}
       className={['trash-zone', visible && 'trash-zone--visible', isOver && 'trash-zone--over'].filter(Boolean).join(' ')}
-      aria-label="Drop here to delete task"
+      aria-label="Drop here to move task to trash"
     >
       <TrashSimple size={22} weight="bold" aria-hidden="true" />
-      <span>Drop to delete</span>
+      <span>Move to Trash</span>
     </div>,
     document.body
   )
@@ -471,6 +472,16 @@ ${colData.map(c => `<div class="col">
               <Archive size={20} aria-hidden="true" />
             </button>
 
+            {/* Trash */}
+            <button
+              className={`archive-toggle-btn${viewMode === 'trash' ? ' archive-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode(viewMode === 'trash' ? 'board' : 'trash')}
+              aria-pressed={viewMode === 'trash'}
+              title="Trash"
+            >
+              <TrashSimple size={20} aria-hidden="true" />
+            </button>
+
             <button
               className="ws-settings-btn board-header-btn--print"
               onClick={handlePrint}
@@ -526,6 +537,14 @@ ${colData.map(c => `<div class="col">
             <span>Archive</span>
           </button>
           <button
+            className={`mob-view-btn${viewMode === 'trash' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode(viewMode === 'trash' ? 'board' : 'trash')}
+            aria-pressed={viewMode === 'trash'}
+          >
+            <TrashSimple size={22} aria-hidden="true" />
+            <span>Trash</span>
+          </button>
+          <button
             className="mob-view-btn"
             onClick={handlePrint}
             aria-label="Print task board"
@@ -543,7 +562,7 @@ ${colData.map(c => `<div class="col">
           </button>
         </nav>
 
-        {totalTasks > 0 && viewMode !== 'archive' && (
+        {totalTasks > 0 && viewMode !== 'archive' && viewMode !== 'trash' && (
           <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
             <div
               className="board-progress-bar"
@@ -560,7 +579,7 @@ ${colData.map(c => `<div class="col">
           </div>
         )}
 
-        {viewMode !== 'archive' && (
+        {viewMode !== 'archive' && viewMode !== 'trash' && (
           <div ref={filterBarRef}>
             <FilterBar
               workspaceId={currentWorkspace?.id}
@@ -579,7 +598,7 @@ ${colData.map(c => `<div class="col">
           </div>
         )}
 
-        {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'archive' && (
+        {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'archive' && viewMode !== 'trash' && (
           <div className="board-empty-state">
             <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
             <h2 className="board-empty-title">Your board is empty</h2>
@@ -650,6 +669,10 @@ ${colData.map(c => `<div class="col">
               <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
             </Suspense>
           </div>
+        ) : viewMode === 'trash' ? (
+          <Suspense fallback={null}>
+            <TrashView canEdit={canEdit} canDelete={canDelete} />
+          </Suspense>
         ) : (
           <Suspense fallback={null}>
             <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
