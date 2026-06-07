@@ -1,10 +1,10 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { List, Plus } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
+import UtilityBar from '../layout/UtilityBar'
 import DashboardView from './DashboardView'
-
-const DashboardAddTaskModal = lazy(() => import('./DashboardAddTaskModal'))
+import DashboardAddTaskModal from './DashboardAddTaskModal'
 
 export default function DashboardPage() {
   const { currentWorkspace, loading } = useWorkspace()
@@ -33,6 +33,7 @@ export default function DashboardPage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main className="board-main">
+        <UtilityBar />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -42,12 +43,7 @@ export default function DashboardPage() {
             >
               <List size={22} aria-hidden="true" />
             </button>
-            <span className="board-header-title">
-              {currentWorkspace?.name && (
-                <span className="board-header-project">{currentWorkspace.name} / </span>
-              )}
-              Dashboard
-            </span>
+            <span className="board-header-title">Dashboard</span>
           </div>
         </div>
 
@@ -66,15 +62,13 @@ export default function DashboardPage() {
       )}
 
       {showAddModal && (
-        <Suspense fallback={null}>
-          <DashboardAddTaskModal
-            onClose={() => setShowAddModal(false)}
-            onSaved={() => {
-              setRefreshKey(k => k + 1)
-              setShowAddModal(false)
-            }}
-          />
-        </Suspense>
+        <DashboardAddTaskModal
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => {
+            setRefreshKey(k => k + 1)
+            setShowAddModal(false)
+          }}
+        />
       )}
     </div>
   )

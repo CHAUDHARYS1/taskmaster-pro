@@ -3,6 +3,7 @@ import { List, Archive, MagnifyingGlass, ArrowCounterClockwise, Trash, X } from 
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import Sidebar from '../components/layout/Sidebar'
+import UtilityBar from '../components/layout/UtilityBar'
 import { useArchive } from '../hooks/useArchive'
 import { useToast } from '../contexts/ToastContext'
 
@@ -153,6 +154,7 @@ export default function ArchivePage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main id="main-content" className="board-main">
+        <UtilityBar />
 
         {/* ── Header ───────────────────────────────────────── */}
         <div className="board-header">

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, SignOut, Coffee, Archive, ChartBar, BookmarkSimple } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -8,13 +8,13 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
-import { userColor } from '../../lib/userColor'
 import { useTasks } from '../../hooks/useTasks'
 import { useArchive } from '../../hooks/useArchive'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
+import UtilityBar from '../layout/UtilityBar'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
@@ -31,11 +31,10 @@ const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
 const GanttView             = lazy(() => import('./GanttView'))
-const TemplatesModal        = lazy(() => import('./TemplatesModal'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
-const WorkspaceSettingsModal = lazy(() => import('../workspace/WorkspaceSettingsModal'))
+const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -51,10 +50,38 @@ export const DEFAULT_COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
+function ColumnMoveToast({ event, columns, onDone }) {
+  const toCol = columns.find(c => c.id === event.toId)
+  const label = toCol?.label ?? event.toId
+  const color = toCol?.color ?? 'var(--accent)'
+  const truncated = (event.taskText?.length ?? 0) > 34
+    ? event.taskText.slice(0, 34) + '…'
+    : (event.taskText ?? 'Task')
+
+  useEffect(() => {
+    const t = setTimeout(onDone, 2900)
+    return () => clearTimeout(t)
+  }, [event.key, onDone])
+
+  return (
+    <div className="col-move-toast" key={event.key} style={{ '--move-color': color }}>
+      <div className="col-move-toast-row">
+        <span className="col-move-dot" />
+        <span className="col-move-task">{truncated}</span>
+        <ArrowRight size={12} className="col-move-arrow" aria-hidden="true" />
+        <span className="col-move-dest">{label}</span>
+      </div>
+      <div className="col-move-toast-track">
+        <div className="col-move-toast-fill" />
+      </div>
+    </div>
+  )
+}
+
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user, profile, displayName, signOut, prefs } = useAuth()
+  const { user, profile, displayName, prefs } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -78,6 +105,7 @@ export default function Board() {
   const [showSettings, setShowSettings]     = useState(false)
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
+  const [moveToast, setMoveToast]           = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
@@ -92,7 +120,6 @@ export default function Board() {
   const [welcomeData, setWelcomeData]       = useState(null)
   const [showWsSettings, setShowWsSettings]     = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
-  const [showTemplates, setShowTemplates]       = useState(false)
   const [selectedIds, setSelectedIds]           = useState(new Set())
 
   const searchRef      = useRef(null)
@@ -432,6 +459,9 @@ export default function Board() {
     }
 
     if (targetColumnId === 'done' && draggedTask.status !== 'done') playDoneSound()
+    if (targetColumnId !== draggedTask.status) {
+      setMoveToast({ key: Date.now(), taskText: draggedTask.text, fromId: draggedTask.status, toId: targetColumnId })
+    }
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
@@ -501,10 +531,7 @@ ${colData.map(c => `<div class="col">
     </div>
   )
 
-  const totalTasks     = allTasks.length
-  const doneTasks      = tasksByStatus['done']?.length ?? 0
-  const remainingTasks = totalTasks - doneTasks
-  const remainingPct   = totalTasks > 0 ? Math.round((remainingTasks / totalTasks) * 100) : 0
+  const totalTasks = allTasks.length
 
   return (
     <div className="app-shell">
@@ -514,52 +541,7 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main id="main-content" className="board-main">
-        <div className="utility-bar">
-          <button
-            className="utility-bar-profile"
-            onClick={() => setShowSettings(true)}
-            aria-label={`Edit profile for ${displayName || user?.email}`}
-          >
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="utility-bar-avatar utility-bar-avatar--photo" />
-            ) : (
-              <span className="utility-bar-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                {displayName ? displayName[0].toUpperCase() : '?'}
-              </span>
-            )}
-            <span className="utility-bar-name">{displayName || user?.email}</span>
-          </button>
-
-          <div className="utility-bar-actions">
-            <a
-              href="https://buymeacoffee.com/schaudhary"
-              target="_blank"
-              rel="noreferrer"
-              className="utility-bar-btn"
-              aria-label="Buy me a coffee"
-              data-tooltip="Buy me a coffee"
-            >
-              <Coffee size={14} weight="bold" aria-hidden="true" />
-            </a>
-            <div className="utility-bar-sep" aria-hidden="true" />
-            <button
-              className="utility-bar-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-              data-tooltip="Workspace settings"
-            >
-              <GearSix size={16} aria-hidden="true" />
-            </button>
-            <button
-              className="utility-bar-btn utility-bar-btn--danger"
-              onClick={signOut}
-              aria-label="Sign out"
-              data-tooltip="Sign out"
-            >
-              <SignOut size={16} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
+        <UtilityBar onProfileClick={() => setShowSettings(true)} />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -615,17 +597,6 @@ ${colData.map(c => `<div class="col">
                 <ChartBar size={20} aria-hidden="true" />
               </button>
             </div>
-
-            {isOwner && currentProject && (
-              <button
-                className="ws-settings-btn"
-                onClick={() => setShowTemplates(true)}
-                aria-label="Board templates"
-                title="Templates"
-              >
-                <BookmarkSimple size={20} aria-hidden="true" />
-              </button>
-            )}
 
             {isOwner && doneCount > 0 && (
               <button
@@ -711,22 +682,6 @@ ${colData.map(c => `<div class="col">
           </button>
         </nav>
 
-        {totalTasks > 0 && (
-          <div className="board-progress" title={`${remainingTasks} of ${totalTasks} tasks remaining`}>
-            <div
-              className="board-progress-bar"
-              style={{ width: `${remainingPct}%` }}
-              role="progressbar"
-              aria-valuenow={remainingPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${remainingTasks} of ${totalTasks} tasks remaining`}
-            />
-            <span className="board-progress-label">
-              {remainingTasks} {remainingTasks === 1 ? 'task' : 'tasks'} left
-            </span>
-          </div>
-        )}
 
         <div ref={filterBarRef}>
           <FilterBar
@@ -881,17 +836,8 @@ ${colData.map(c => `<div class="col">
 
       <Suspense fallback={null}>
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-        {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
         {showSettings   && <SettingsModal           onClose={() => setShowSettings(false)} />}
-        {showTemplates  && currentProject && (
-          <TemplatesModal
-            workspaceId={currentWorkspace?.id}
-            projectId={currentProject?.id}
-            projectTasks={allTasks}
-            isOwner={isOwner}
-            onClose={() => setShowTemplates(false)}
-          />
-        )}
         {welcomeData    && (
           <WelcomeModal
             workspaceName={welcomeData.workspace_name}
@@ -907,6 +853,15 @@ ${colData.map(c => `<div class="col">
           />
         )}
       </Suspense>
+
+      {moveToast && (
+        <ColumnMoveToast
+          key={moveToast.key}
+          event={moveToast}
+          columns={columns}
+          onDone={() => setMoveToast(null)}
+        />
+      )}
     </div>
   )
 }

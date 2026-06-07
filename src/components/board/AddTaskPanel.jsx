@@ -22,7 +22,7 @@ function memberDisplayName(m) {
   return full || m.email?.split('@')[0] || m.email
 }
 
-export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave }) {
+export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, initialDate = '' }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
@@ -34,7 +34,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave }
 
   const [title,            setTitle]            = useState('')
   const [desc,             setDesc]             = useState('')
-  const [dueDate,          setDueDate]          = useState('')
+  const [dueDate,          setDueDate]          = useState(initialDate)
   const timeRef                                 = useRef(null)
   const [status,           setStatus]           = useState(columns[0]?.id ?? 'toDo')
   const [priority,         setPriority]         = useState(null)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
@@ -11,7 +11,7 @@ import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange }) {
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
   const { projects, currentProject, switchProject }       = useProject()
-  const { user }                                          = useAuth()
+  const { user, signOut }                                 = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
 
@@ -155,6 +155,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
 
         {/* ── Footer ── */}
         <div className="sidebar-footer sidebar-footer--collapsible">
+          <button
+            className="sidebar-signout-btn"
+            onClick={signOut}
+            aria-label="Sign out"
+          >
+            <SignOut size={14} aria-hidden="true" />
+            <span className="sidebar-nav-label">Sign out</span>
+          </button>
           <p className="sidebar-version">v1.2.00</p>
           <p className="sidebar-credit">
             Designed and built by{' '}
