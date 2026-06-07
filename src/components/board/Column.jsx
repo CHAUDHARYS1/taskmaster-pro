@@ -1,11 +1,11 @@
 import { memo, useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { PaperPlaneTilt } from '@phosphor-icons/react'
+import { ArrowRight } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen, onComplete, editingMap, onQuickAdd, showProject }) {
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const { workspaceTemplate } = useWorkspace()
   const isJobTracker = workspaceTemplate === 'job-tracker'
@@ -78,7 +78,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen
               aria-label="Submit task"
               title="Add task"
             >
-              <PaperPlaneTilt size={15} weight="fill" aria-hidden="true" />
+              <ArrowRight size={15} weight="bold" aria-hidden="true" />
             </button>
           </div>
 
@@ -107,10 +107,14 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onOpen
               canEdit={canEdit}
               canDelete={canDelete}
               onDelete={onDelete}
+              onArchive={onArchive}
               onOpen={onOpen}
               onComplete={onComplete}
               editingUser={editingMap?.[task.id] ?? null}
               showProject={showProject}
+              bulkMode={bulkMode}
+              isSelected={selectedIds?.has(task.id) ?? false}
+              onBulkToggle={onBulkToggle}
             />
           ))}
           {emptyText && (

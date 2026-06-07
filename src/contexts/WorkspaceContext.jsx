@@ -154,6 +154,7 @@ export function WorkspaceProvider({ children }) {
     <WorkspaceContext.Provider value={{
       workspaces, currentWorkspace, userRole, loading,
       autoSave: currentWorkspace?.auto_save ?? false,
+      autoArchiveDays: currentWorkspace?.auto_archive_after_days ?? null,
       columnLabels, workspaceTemplate, workspaceColumns,
       switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace,
       updateWorkspaceSettings, updateColumnLabels,

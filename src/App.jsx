@@ -19,6 +19,7 @@ const ProjectDeepLink   = lazy(() => import('./components/workspace/ProjectDeepL
 const DashboardPage   = lazy(() => import('./components/dashboard/DashboardPage'))
 const WritesPage      = lazy(() => import('./components/writes/WritesPage'))
 const CalendarPage    = lazy(() => import('./components/calendar/CalendarPage'))
+const ArchivePage     = lazy(() => import('./pages/ArchivePage'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/dashboard"             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
+            <Route path="/archive"           element={<ProtectedRoute><ArchivePage /></ProtectedRoute>} />
             <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="/about"          element={<AboutPage />} />
             <Route path="/"               element={<LandingPage />} />

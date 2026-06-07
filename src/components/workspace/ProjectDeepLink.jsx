@@ -29,7 +29,7 @@ export default function ProjectDeepLink() {
         }
       }
 
-      navigate('/', { replace: true })
+      navigate('/app', { replace: true })
     }
 
     run()

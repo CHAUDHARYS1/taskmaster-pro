@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from '@phosphor-icons/react'
 import { isDesktop } from '../../utils/device'
 import dayjs from 'dayjs'
@@ -69,7 +70,7 @@ export default function DashboardAddTaskModal({ onClose, onSaved }) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
         <div className="modal-hdr">
@@ -182,6 +183,7 @@ export default function DashboardAddTaskModal({ onClose, onSaved }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

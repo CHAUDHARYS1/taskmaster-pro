@@ -1,7 +1,16 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Archive, Link, SquaresFour, Rows } from '@phosphor-icons/react'
+import { Archive, Link, SquaresFour, Rows, DotsSix } from '@phosphor-icons/react'
 import { isDesktop } from '../../utils/device'
+import {
+  DndContext, PointerSensor, useSensor, useSensors,
+  closestCenter, DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext, useSortable,
+  verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const COLOR_NAMES = {
   '#2563EB': 'Blue', '#16a34a': 'Green', '#7c3aed': 'Purple', '#dc2626': 'Red',
@@ -32,8 +41,95 @@ function ColorDot({ color, size = 10 }) {
   )
 }
 
+function SortableProjectItem({
+  p, idx, isActive, canEdit, currentWorkspace, viewMode,
+  renaming, renameVal, setRenaming, setRenameVal, handleRename,
+  switchProject, navigate, location, toast,
+}) {
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: p.id, disabled: !canEdit })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ '--i': idx + 1, ...style }}
+      className="project-list-item"
+    >
+      {renaming === p.id ? (
+        <form
+          className="project-rename-form"
+          onSubmit={e => { e.preventDefault(); handleRename(p.id) }}
+        >
+          <input
+            className="project-rename-input"
+            value={renameVal}
+            onChange={e => setRenameVal(e.target.value)}
+            onBlur={() => handleRename(p.id)}
+            onKeyDown={e => { if (e.key === 'Escape') setRenaming(null) }}
+            autoFocus={isDesktop()}
+          />
+        </form>
+      ) : (
+        <div className="project-item-row">
+          {canEdit && (
+            <button
+              className="project-drag-handle"
+              aria-label="Drag to reorder"
+              tabIndex={-1}
+              {...attributes}
+              {...listeners}
+            >
+              <DotsSix size={13} aria-hidden="true" />
+            </button>
+          )}
+          <button
+            className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
+            onClick={() => {
+              switchProject(p)
+              if (location.pathname === '/dashboard') navigate('/')
+            }}
+            onDoubleClick={() => {
+              if (!canEdit) return
+              setRenaming(p.id)
+              setRenameVal(p.name)
+            }}
+          >
+            <ColorDot color={p.color} />
+            <span className="project-item-name">{p.name}</span>
+            {isActive && viewMode && (
+              <span className="project-view-icon" aria-label={`${viewMode} view`}>
+                {VIEW_ICONS[viewMode]}
+              </span>
+            )}
+          </button>
+          <button
+            className="project-link-btn"
+            onClick={() => {
+              const url = `${window.location.origin}/workspace/${currentWorkspace.id}/project/${p.id}`
+              navigator.clipboard.writeText(url)
+              toast.success('Link copied')
+            }}
+            title="Copy project link"
+            aria-label="Copy project link"
+          >
+            <Link size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </li>
+  )
+}
+
 export default function ProjectSwitcher({ viewMode, onViewChange }) {
-  const { projects, currentProject, switchProject, createProject, renameProject } = useProject()
+  const { projects, currentProject, switchProject, createProject, renameProject, reorderProjects } = useProject()
   const { userRole, currentWorkspace } = useWorkspace()
   const { toast }    = useToast()
   const navigate     = useNavigate()
@@ -46,8 +142,13 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
   const [renaming,  setRenaming]  = useState(null)
   const [renameVal, setRenameVal] = useState('')
   const [saving,    setSaving]    = useState(false)
+  const [dragActive, setDragActive] = useState(null)
 
   const newInputRef = useRef(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  )
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -78,6 +179,20 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
     }
   }
 
+  const handleDragStart = ({ active }) => {
+    setDragActive(projects.find(p => p.id === active.id) ?? null)
+  }
+
+  const handleDragEnd = ({ active, over }) => {
+    setDragActive(null)
+    if (!over || active.id === over.id) return
+    const oldIndex = projects.findIndex(p => p.id === active.id)
+    const newIndex = projects.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(projects, oldIndex, newIndex)
+    reorderProjects(reordered)
+  }
+
   return (
     <div className="project-switcher">
       <div className="project-switcher-hdr">
@@ -95,8 +210,10 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
       </div>
 
       <ul className="project-list" role="list">
+        {/* All Projects — not sortable */}
         <li className="project-list-item" style={{ '--i': 0 }}>
           <div className="project-item-row">
+            {canEdit && <span className="project-drag-handle project-drag-handle--spacer" aria-hidden="true" />}
             <button
               className={`project-item-btn${!currentProject ? ' project-item-btn--active' : ''}`}
               onClick={() => {
@@ -109,63 +226,46 @@ export default function ProjectSwitcher({ viewMode, onViewChange }) {
             </button>
           </div>
         </li>
-        {projects.map((p, idx) => {
-          const isActive = currentProject?.id === p.id
-          return (
-            <li key={p.id} className="project-list-item" style={{ '--i': idx + 1 }}>
-              {renaming === p.id ? (
-                <form
-                  className="project-rename-form"
-                  onSubmit={e => { e.preventDefault(); handleRename(p.id) }}
-                >
-                  <input
-                    className="project-rename-input"
-                    value={renameVal}
-                    onChange={e => setRenameVal(e.target.value)}
-                    onBlur={() => handleRename(p.id)}
-                    onKeyDown={e => { if (e.key === 'Escape') setRenaming(null) }}
-                    autoFocus={isDesktop()}
-                  />
-                </form>
-              ) : (
-                <div className="project-item-row">
-                  <button
-                    className={`project-item-btn${isActive ? ' project-item-btn--active' : ''}`}
-                    onClick={() => {
-                      switchProject(p)
-                      if (location.pathname === '/dashboard') navigate('/')
-                    }}
-                    onDoubleClick={() => {
-                      if (!canEdit) return
-                      setRenaming(p.id)
-                      setRenameVal(p.name)
-                    }}
-                  >
-                    <ColorDot color={p.color} />
-                    <span className="project-item-name">{p.name}</span>
-                    {isActive && viewMode && (
-                      <span className="project-view-icon" aria-label={`${viewMode} view`}>
-                        {VIEW_ICONS[viewMode]}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    className="project-link-btn"
-                    onClick={() => {
-                      const url = `${window.location.origin}/workspace/${currentWorkspace.id}/project/${p.id}`
-                      navigator.clipboard.writeText(url)
-                      toast.success('Link copied')
-                    }}
-                    title="Copy project link"
-                    aria-label="Copy project link"
-                  >
-                    <Link size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-            </li>
-          )
-        })}
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setDragActive(null)}
+        >
+          <SortableContext items={projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            {projects.map((p, idx) => (
+              <SortableProjectItem
+                key={p.id}
+                p={p}
+                idx={idx}
+                isActive={currentProject?.id === p.id}
+                canEdit={canEdit}
+                currentWorkspace={currentWorkspace}
+                viewMode={viewMode}
+                renaming={renaming}
+                renameVal={renameVal}
+                setRenaming={setRenaming}
+                setRenameVal={setRenameVal}
+                handleRename={handleRename}
+                switchProject={switchProject}
+                navigate={navigate}
+                location={location}
+                toast={toast}
+              />
+            ))}
+          </SortableContext>
+
+          <DragOverlay dropAnimation={null}>
+            {dragActive ? (
+              <div className="project-item-row project-item-row--overlay">
+                <ColorDot color={dragActive.color} />
+                <span className="project-item-name">{dragActive.name}</span>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </ul>
 
       {showNew && canEdit && (

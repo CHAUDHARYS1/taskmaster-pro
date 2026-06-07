@@ -32,7 +32,7 @@ function EventChip({ task, onClick }) {
   )
 }
 
-function MonthView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
+function MonthView({ cursor, tasksByDate, onTaskClick, onDayClick, onAddTask }) {
   const today     = dayjs().format('YYYY-MM-DD')
   const gridStart = cursor.startOf('month').startOf('week')
   const cells     = Array.from({ length: 42 }, (_, i) => gridStart.add(i, 'day'))
@@ -62,6 +62,15 @@ function MonthView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
               aria-label={`${day.format('MMMM D')}, ${events.length} task${events.length !== 1 ? 's' : ''}`}
             >
               <span className="cal-day-num">{day.date()}</span>
+              {onAddTask && (
+                <button
+                  type="button"
+                  className="cal-day-add-btn"
+                  onClick={e => { e.stopPropagation(); onAddTask(key) }}
+                  aria-label={`Add task on ${day.format('MMMM D')}`}
+                  title="Add task"
+                >+</button>
+              )}
               <div className="cal-day-events">
                 {visible.map(t => <EventChip key={t.id} task={t} onClick={onTaskClick} />)}
                 {overflow > 0 && (
@@ -82,7 +91,7 @@ function MonthView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
   )
 }
 
-function WeekView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
+function WeekView({ cursor, tasksByDate, onTaskClick, onDayClick, onAddTask }) {
   const today = dayjs().format('YYYY-MM-DD')
   const days  = Array.from({ length: 7 }, (_, i) => cursor.startOf('week').add(i, 'day'))
 
@@ -95,12 +104,23 @@ function WeekView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
 
         return (
           <div key={key} className={`cal-week-col${isToday ? ' cal-week-col--today' : ''}`}>
-            <button type="button" className="cal-week-hdr" onClick={() => onDayClick(day)}>
-              <span className="cal-week-dow">{DOW[day.day()]}</span>
-              <span className={`cal-week-date${isToday ? ' cal-week-date--today' : ''}`}>
-                {day.date()}
-              </span>
-            </button>
+            <div className="cal-week-hdr-wrap">
+              <button type="button" className="cal-week-hdr" onClick={() => onDayClick(day)}>
+                <span className="cal-week-dow">{DOW[day.day()]}</span>
+                <span className={`cal-week-date${isToday ? ' cal-week-date--today' : ''}`}>
+                  {day.date()}
+                </span>
+              </button>
+              {onAddTask && (
+                <button
+                  type="button"
+                  className="cal-week-add-btn"
+                  onClick={() => onAddTask(key)}
+                  aria-label={`Add task on ${day.format('MMMM D')}`}
+                  title="Add task"
+                >+</button>
+              )}
+            </div>
             <div className="cal-week-events">
               {events.map(t => <EventChip key={t.id} task={t} onClick={onTaskClick} />)}
             </div>
@@ -111,48 +131,55 @@ function WeekView({ cursor, tasksByDate, onTaskClick, onDayClick }) {
   )
 }
 
-function DayView({ cursor, tasksByDate, onTaskClick }) {
+function DayView({ cursor, tasksByDate, onTaskClick, onAddTask }) {
   const key    = cursor.format('YYYY-MM-DD')
   const events = tasksByDate[key] ?? []
   const allDay = events.filter(t => !t.due_time)
   const timed  = events.filter(t => t.due_time).sort((a, b) => (a.due_time < b.due_time ? -1 : 1))
 
-  if (events.length === 0) {
-    return (
-      <div className="cal-day-view">
-        <p className="cal-day-empty">No tasks due on this day.</p>
-      </div>
-    )
-  }
-
   return (
     <div className="cal-day-view">
-      {allDay.length > 0 && (
-        <div className="cal-day-section">
-          <h3 className="cal-day-section-label">All day</h3>
-          <div className="cal-day-section-events">
-            {allDay.map(t => <EventChip key={t.id} task={t} onClick={onTaskClick} />)}
-          </div>
-        </div>
-      )}
-      {timed.length > 0 && (
-        <div className="cal-day-section">
-          <h3 className="cal-day-section-label">Scheduled</h3>
-          {timed.map(t => (
-            <div key={t.id} className="cal-timed-row">
-              <span className="cal-timed-label">
-                {fmtTimeStr(t.due_time)}
-              </span>
-              <EventChip task={t} onClick={onTaskClick} />
+      {events.length === 0 ? (
+        <p className="cal-day-empty">No tasks due on this day.</p>
+      ) : (
+        <>
+          {allDay.length > 0 && (
+            <div className="cal-day-section">
+              <h3 className="cal-day-section-label">All day</h3>
+              <div className="cal-day-section-events">
+                {allDay.map(t => <EventChip key={t.id} task={t} onClick={onTaskClick} />)}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+          {timed.length > 0 && (
+            <div className="cal-day-section">
+              <h3 className="cal-day-section-label">Scheduled</h3>
+              {timed.map(t => (
+                <div key={t.id} className="cal-timed-row">
+                  <span className="cal-timed-label">
+                    {fmtTimeStr(t.due_time)}
+                  </span>
+                  <EventChip task={t} onClick={onTaskClick} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      {onAddTask && (
+        <button
+          type="button"
+          className="cal-day-add-task"
+          onClick={() => onAddTask(key)}
+        >
+          + Add task
+        </button>
       )}
     </div>
   )
 }
 
-export default function CalendarView({ tasks, onTaskClick }) {
+export default function CalendarView({ tasks, onTaskClick, onAddTask }) {
   const [calView, setCalView] = useState('month')
   const [cursor,  setCursor]  = useState(dayjs())
 
@@ -215,13 +242,13 @@ export default function CalendarView({ tasks, onTaskClick }) {
       </div>
 
       {calView === 'month' && (
-        <MonthView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} onDayClick={jumpToDay} />
+        <MonthView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} onDayClick={jumpToDay} onAddTask={onAddTask} />
       )}
       {calView === 'week' && (
-        <WeekView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} onDayClick={jumpToDay} />
+        <WeekView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} onDayClick={jumpToDay} onAddTask={onAddTask} />
       )}
       {calView === 'day' && (
-        <DayView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} />
+        <DayView cursor={cursor} tasksByDate={tasksByDate} onTaskClick={onTaskClick} onAddTask={onAddTask} />
       )}
     </div>
   )

@@ -59,11 +59,16 @@ serve(async (req) => {
   for (const [workspaceId, workspaceTasks] of Object.entries(byWorkspace)) {
     const workspaceName = (workspaceTasks[0].workspaces as { name: string } | null)?.name ?? 'your workspace'
 
-    // workspace_members_view already joins profiles so we get emails directly
-    const { data: members } = await supabase
-      .from('workspace_members_view')
-      .select('email')
+    // Join workspace_members with profiles to filter by email-reminder preference
+    const { data: memberRows } = await supabase
+      .from('workspace_members')
+      .select('user_id, profiles(email, preferences)')
       .eq('workspace_id', workspaceId)
+
+    // Exclude members who have explicitly opted out of email reminders
+    const members = (memberRows ?? [])
+      .map(r => r.profiles as { email: string; preferences: Record<string, unknown> } | null)
+      .filter(p => p?.email && p?.preferences?.['emailReminders'] !== false)
 
     if (!members || members.length === 0) continue
 
@@ -71,7 +76,7 @@ serve(async (req) => {
     const taskListHtml = workspaceTasks.map(t => `<li>${t.text}</li>`).join('')
     const subject     = `${count} task${count > 1 ? 's' : ''} due tomorrow in ${workspaceName}`
 
-    for (const { email } of members) {
+    for (const { email } of members as { email: string }[]) {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {

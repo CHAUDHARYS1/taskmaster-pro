@@ -11,7 +11,7 @@ export default function WorkspaceDeepLink() {
     if (loading) return
     const ws = workspaces.find(w => w.id === workspaceId)
     if (ws) switchWorkspace(ws)
-    navigate('/', { replace: true })
+    navigate('/app', { replace: true })
   }, [loading, workspaces, workspaceId, switchWorkspace, navigate])
 
   return <div className="loading-screen">Loading…</div>

@@ -27,7 +27,7 @@ function playReminderSound() {
   } catch { /* silently skip if audio unavailable */ }
 }
 
-export function useTaskReminders(tasks, toast, updateTask, columns) {
+export function useTaskReminders(tasks, toast, updateTask, columns, prefs) {
   const tasksRef   = useRef(tasks)
   const toastRef   = useRef(toast)
   const updateRef  = useRef(updateTask)
@@ -40,6 +40,8 @@ export function useTaskReminders(tasks, toast, updateTask, columns) {
 
   useEffect(() => {
     function check() {
+      if (prefs?.inAppReminders === false) return
+
       const now   = dayjs()
       const today = now.format('YYYY-MM-DD')
 

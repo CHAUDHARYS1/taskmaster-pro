@@ -43,7 +43,11 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
 
       <ul className="ws-list">
         {workspaces.map(ws => {
-          const isActive   = currentWorkspace?.id === ws.id && location.pathname !== '/dashboard' && location.pathname !== '/calendar' && !location.pathname.startsWith('/writes')
+          const isActive   = currentWorkspace?.id === ws.id
+            && location.pathname !== '/dashboard'
+            && location.pathname !== '/calendar'
+            && location.pathname !== '/archive'
+            && !location.pathname.startsWith('/writes')
           const isPersonal = ws.id === user?.id
           return (
             <li key={ws.id} className="ws-list-item">
@@ -55,12 +59,15 @@ export default function WorkspaceSwitcher({ projectsOpen, onToggleProjects, view
                       onToggleProjects?.()
                     } else {
                       switchWorkspace(ws)
-                      if (location.pathname === '/dashboard' || location.pathname === '/calendar' || location.pathname.startsWith('/writes')) navigate('/')
+                      if (location.pathname === '/dashboard' || location.pathname === '/calendar' || location.pathname === '/archive' || location.pathname.startsWith('/writes')) navigate('/app')
                     }
                   }}
                 >
-                  <span className="ws-avatar">
-                    {ws.name.charAt(0).toUpperCase()}
+                  <span
+                    className="ws-avatar"
+                    style={{ background: ws.color ?? '#2563EB' }}
+                  >
+                    {ws.emoji || ws.name.charAt(0).toUpperCase()}
                   </span>
                   <span className="ws-name">
                     {isPersonal ? 'My Workspace' : ws.name}

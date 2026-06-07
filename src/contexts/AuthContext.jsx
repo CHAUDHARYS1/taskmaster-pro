@@ -1,7 +1,16 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
+
+const DEFAULT_PREFS = {
+  defaultView:     'board',
+  cardDensity:     'comfortable',
+  dateFormat:      'relative',
+  weekStart:       1,
+  inAppReminders:  true,
+  emailReminders:  true,
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -26,7 +35,7 @@ export function AuthProvider({ children }) {
     if (!user) { setProfile(null); return }
     supabase
       .from('profiles')
-      .select('first_name, last_name, email, avatar_url')
+      .select('first_name, last_name, email, avatar_url, preferences')
       .eq('id', user.id)
       .single()
       .then(({ data }) => setProfile(data ?? null))
@@ -65,6 +74,17 @@ export function AuthProvider({ children }) {
     setProfile(prev => prev ? { ...prev, first_name, last_name } : null)
   }
 
+  const updatePrefs = async (patch) => {
+    if (!user) return
+    const merged = { ...(profile?.preferences ?? {}), ...patch }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ preferences: merged })
+      .eq('id', user.id)
+    if (error) throw error
+    setProfile(prev => prev ? { ...prev, preferences: merged } : null)
+  }
+
   const uploadAvatar = async (file) => {
     if (!user) return
     const ext  = file.name.split('.').pop().toLowerCase() || 'jpg'
@@ -90,8 +110,13 @@ export function AuthProvider({ children }) {
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email?.split('@')[0]
     : user?.email?.split('@')[0] ?? ''
 
+  const prefs = useMemo(
+    () => ({ ...DEFAULT_PREFS, ...(profile?.preferences ?? {}) }),
+    [profile?.preferences]
+  )
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName, prefs, updatePrefs }}>
       {children}
     </AuthContext.Provider>
   )

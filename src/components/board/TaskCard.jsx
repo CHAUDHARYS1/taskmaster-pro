@@ -2,11 +2,12 @@ import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSixVertical, Check, X, ChatCircle, CheckSquare, Square } from '@phosphor-icons/react'
+import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -14,6 +15,19 @@ function urgencyClass(due_date) {
   if (diff < 0)  return 'task-card--overdue'
   if (diff <= 1) return 'task-card--due-soon'
   return ''
+}
+
+function fmtDue(due_date, format = 'relative') {
+  const d     = dayjs(due_date)
+  const today = dayjs().startOf('day')
+  const diff  = d.diff(today, 'day')
+  if (format === 'absolute') return d.format('MMM D')
+  if (diff ===  0) return 'Today'
+  if (diff ===  1) return 'Tomorrow'
+  if (diff === -1) return 'Yesterday'
+  if (diff > 1 && diff < 7) return `${diff}d`
+  if (diff < -1)  return `${Math.abs(diff)}d ago`
+  return d.format('MMM D')
 }
 
 function initials(u) {
@@ -26,22 +40,34 @@ function initials(u) {
   return (u.email ?? '??').split('@')[0].slice(0, 2).toUpperCase()
 }
 
+function firstName(u) {
+  if (u.display_name) return u.display_name.trim().split(/\s+/)[0]
+  return u.email?.split('@')[0] ?? 'Someone'
+}
+
 function TaskCard({
   task,
   canEdit = true,
   canDelete = false,
   onDelete,
+  onArchive,
   onOpen,
   onComplete,
   isOverlay = false,
   editingUser = null,
   showProject = false,
+  bulkMode = false,
+  isSelected = false,
+  onBulkToggle,
 }) {
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
-  const isJobTracker = workspaceTemplate === 'job-tracker'
-  const isLockedByOther = editingUser != null
-  const glowColor = editingUser ? userColor(editingUser.user_id) : null
+  const { prefs } = useAuth()
+  const isJobTracker    = workspaceTemplate === 'job-tracker'
+  const isLockedByOther = editingUser != null && !editingUser.is_self
+  const isSelfEditing   = editingUser?.is_self === true
+  const glowColor       = editingUser ? userColor(editingUser.user_id) : null
+  const priorityColor   = task.priority ? priorityMap[task.priority]?.color : null
 
   const {
     attributes, listeners, setNodeRef,
@@ -49,15 +75,22 @@ function TaskCard({
   } = useSortable({ id: task.id, disabled: !canEdit || isLockedByOther || isOverlay })
 
   const style = {
-    // Overlay card needs no transform — DragOverlay handles positioning itself
     ...(isOverlay ? {} : { transform: CSS.Transform.toString(transform), transition }),
-    ...(glowColor ? { '--editing-color': glowColor } : {}),
+    ...(glowColor    ? { '--editing-color':  glowColor }    : {}),
+    ...(priorityColor ? { '--priority-color': priorityColor } : {}),
   }
 
   const handleOpen = () => {
     if (isLockedByOther) return
+    if (bulkMode) { onBulkToggle?.(task.id); return }
     onOpen(task.id)
   }
+
+  const checklistTotal = task.task_checklist_items?.length ?? 0
+  const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
+  const commentCount   = Number(task.comments?.[0]?.count ?? 0)
+
+  const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
 
   return (
     <li
@@ -66,57 +99,90 @@ function TaskCard({
       className={[
         'task-card',
         task.status !== 'done' ? urgencyClass(task.due_date) : '',
-        task.status === 'done'            ? 'task-card--done'     : '',
-        !isOverlay && isSortableDragging  ? 'task-card--dragging' : '',
-        isOverlay                         ? 'task-card--ghost'    : '',
-        isLockedByOther                   ? 'task-card--locked'   : '',
+        task.status === 'done'            ? 'task-card--done'         : '',
+        !isOverlay && isSortableDragging  ? 'task-card--dragging'     : '',
+        isOverlay                         ? 'task-card--ghost'        : '',
+        isLockedByOther                   ? 'task-card--locked'       : '',
+        isSelfEditing                     ? 'task-card--self-editing' : '',
+        isSelected                        ? 'task-card--selected'     : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
-      {canEdit && !isLockedByOther && (
-        <DotsSixVertical size={18} className="task-drag-handle" aria-hidden="true" />
+      {/* Bulk checkbox OR drag handle */}
+      {bulkMode ? (
+        <button
+          className={`task-bulk-check${isSelected ? ' task-bulk-check--selected' : ''}`}
+          onClick={e => { e.stopPropagation(); onBulkToggle?.(task.id) }}
+          aria-label={isSelected ? 'Deselect task' : 'Select task'}
+          aria-pressed={isSelected}
+        >
+          {isSelected && <Check size={9} weight="bold" aria-hidden="true" />}
+        </button>
+      ) : (
+        canEdit && !isLockedByOther && (
+          <DotsSix size={14} className="task-drag-handle" aria-hidden="true" />
+        )
       )}
 
+      {/* Editing lock — badge + tooltip */}
       {isLockedByOther && (
-        <div
-          className="task-card-editing-badge"
-          style={{ background: glowColor }}
-          title={`${editingUser.display_name || editingUser.email} is editing this task`}
-        >
-          {initials(editingUser)}
+        <>
+          <div
+            className="task-card-editing-badge"
+            style={{ background: glowColor }}
+            aria-hidden="true"
+          >
+            {initials(editingUser)}
+          </div>
+          <div className="task-card-locked-tooltip" role="tooltip">
+            {firstName(editingUser)} is currently editing this
+          </div>
+        </>
+      )}
+
+      {/* Actions cluster — top-right, hover only */}
+      {((canEdit && onComplete && task.status !== 'done' && !isLockedByOther) ||
+        (canEdit && onArchive && !isLockedByOther) ||
+        (canDelete && !isLockedByOther)) && (
+        <div className="task-card-actions" onClick={e => e.stopPropagation()}>
+          {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
+            <button
+              className="task-card-action-btn task-card-action-btn--complete"
+              aria-label="Mark as done"
+              title="Mark as done"
+              onClick={e => { e.stopPropagation(); onComplete(task.id) }}
+            >
+              <Check size={10} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+          {canEdit && onArchive && !isLockedByOther && (
+            <button
+              className="task-card-action-btn task-card-action-btn--archive"
+              aria-label="Archive task"
+              title="Archive task"
+              onClick={e => { e.stopPropagation(); onArchive(task.id) }}
+            >
+              <Archive size={10} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+          {canDelete && !isLockedByOther && (
+            <button
+              className="task-card-action-btn task-card-action-btn--delete"
+              aria-label="Delete task"
+              title="Delete task"
+              onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+            >
+              <X size={10} weight="bold" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
 
-      <div className="task-card-top">
-        {task.priority && (() => {
-          const p = priorityMap[task.priority]
-          return p ? (
-            <span
-              className="task-priority-badge"
-              style={{ '--p-color': p.color, '--p-bg': p.bg }}
-              title={`Priority: ${p.name}`}
-            >
-              {p.icon} {p.name}
-            </span>
-          ) : null
-        })()}
-        {task.due_date && (
-          <span className="task-badge">
-            {dayjs(task.due_date).format('MMM D')}
-          </span>
-        )}
-      </div>
-
+      {/* Title */}
       <p className="task-text">{task.text}</p>
 
-      {showProject && task.project && (
-        <div className="task-project-badge">
-          <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
-          <span className="task-project-name">{task.project.name}</span>
-        </div>
-      )}
-
+      {/* Description preview — 2-line clamp */}
       {task.description && (
         <div
           className="task-desc-preview"
@@ -124,28 +190,7 @@ function TaskCard({
         />
       )}
 
-      {task.task_checklist_items?.length > 0 && (() => {
-        const sorted  = [...task.task_checklist_items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-        const visible  = sorted.slice(0, 3)
-        const overflow = sorted.length - visible.length
-        return (
-          <ul className="card-checklist">
-            {visible.map(item => (
-              <li key={item.id} className={`card-checklist-item${item.checked ? ' card-checklist-item--done' : ''}`}>
-                {item.checked
-                  ? <CheckSquare size={12} weight="fill" className="card-checklist-icon card-checklist-icon--checked" aria-hidden="true" />
-                  : <Square      size={12} weight="regular" className="card-checklist-icon" aria-hidden="true" />
-                }
-                <span className="card-checklist-text">{item.text}</span>
-              </li>
-            ))}
-            {overflow > 0 && (
-              <li className="card-checklist-more">+{overflow} more</li>
-            )}
-          </ul>
-        )
-      })()}
-
+      {/* Labels */}
       {task.labels?.length > 0 && (
         <div className="task-labels">
           {task.labels.slice(0, 3).map(id => {
@@ -170,71 +215,73 @@ function TaskCard({
         </div>
       )}
 
-      {(() => {
-        const checklistTotal = task.task_checklist_items?.length ?? 0
-        const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
-        const commentCount   = Number(task.comments?.[0]?.count ?? 0)
-        const hasFooter      = (!isJobTracker && task.assignee) || commentCount > 0 || checklistTotal > 0
-        if (!hasFooter) return null
-        return (
-          <div className="task-card-footer">
+      {/* Footer metadata row */}
+      {hasFooter && (
+        <div className="task-card-footer">
+          {/* Left cluster */}
+          <div className="task-card-footer-left">
             {!isJobTracker && task.assignee && (
               <span
                 className="task-assignee-avatar"
                 style={{ background: userColor(task.assignee_id), color: '#fff' }}
-                title={task.assignee.email}
+                title={task.assignee.display_name || task.assignee.email}
               >
-                {task.assignee.email.slice(0, 2).toUpperCase()}
+                {initials(task.assignee)}
               </span>
             )}
+            {showProject && task.project && (
+              <span className="task-project-pill" title={task.project.name}>
+                <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
+                {task.project.name}
+              </span>
+            )}
+          </div>
+
+          {/* Right cluster */}
+          <div className="task-card-footer-right">
             {checklistTotal > 0 && (
               <span
-                className="task-checklist-count"
-                title={`${checklistDone} of ${checklistTotal} checklist item${checklistTotal !== 1 ? 's' : ''} done`}
+                className="task-meta-chip"
+                title={`${checklistDone} of ${checklistTotal} done`}
               >
-                <CheckSquare size={13} weight="regular" aria-hidden="true" />
+                <CheckSquare size={11} weight={checklistDone === checklistTotal ? 'fill' : 'regular'} aria-hidden="true" />
                 {checklistDone}/{checklistTotal}
               </span>
             )}
             {commentCount > 0 && (
               <span
-                className="task-comment-count"
+                className="task-meta-chip"
                 title={`${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
               >
-                <ChatCircle size={13} weight="regular" aria-hidden="true" />
+                <ChatCircle size={11} weight="regular" aria-hidden="true" />
                 {commentCount}
               </span>
             )}
+            {task.recurrence && (
+              <span className="task-meta-chip" title="Recurring task" aria-label="Recurring task">
+                <ArrowsClockwise size={11} aria-hidden="true" />
+              </span>
+            )}
+            {task.due_date && (
+              <span className="task-due" title={dayjs(task.due_date).format('MMMM D, YYYY')}>
+                {fmtDue(task.due_date, prefs?.dateFormat)}
+              </span>
+            )}
           </div>
-        )
-      })()}
-
-      {(canEdit && onComplete && task.status !== 'done' && !isLockedByOther) || (canDelete && !isLockedByOther) ? (
-        <div className="task-card-actions">
-          {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
-            <button
-              className="task-complete-btn"
-              aria-label="Mark as done"
-              title="Mark as done"
-              onClick={e => { e.stopPropagation(); onComplete(task.id) }}
-            >
-              <Check size={13} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-          {canDelete && !isLockedByOther && (
-            <button
-              className="task-delete"
-              aria-label="Delete task"
-              title="Delete task"
-              onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-            >
-              <X size={13} weight="bold" aria-hidden="true" />
-            </button>
-          )}
         </div>
-      ) : null}
+      )}
     </li>
   )
+}
+
+function due_or_meta(task, isJobTracker, checklistTotal, commentCount) {
+  if (task.due_date) return true
+  if (task.recurrence) return true
+  if (commentCount > 0) return true
+  if (checklistTotal > 0) return true
+  if (!isJobTracker && task.assignee) return true
+  if (task.project) return true
+  return false
 }
 
 export default memo(TaskCard)

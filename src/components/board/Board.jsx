@@ -1,8 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Archive, List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, TrashSimple, Printer, CalendarBlank } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -10,28 +9,32 @@ import { useProject } from '../../contexts/ProjectContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTasks } from '../../hooks/useTasks'
+import { useArchive } from '../../hooks/useArchive'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
+import UtilityBar from '../layout/UtilityBar'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
 import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
+import BulkActionsBar from './BulkActionsBar'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
-const AddTaskModal          = lazy(() => import('./AddTaskModal'))
+const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
+const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
-const ArchiveView           = lazy(() => import('./ArchiveView'))
+const GanttView             = lazy(() => import('./GanttView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
-const WorkspaceSettingsModal = lazy(() => import('../workspace/WorkspaceSettingsModal'))
+const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -47,25 +50,38 @@ export const DEFAULT_COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
-function TrashZone({ visible }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'trash-zone' })
-  return createPortal(
-    <div
-      ref={setNodeRef}
-      className={['trash-zone', visible && 'trash-zone--visible', isOver && 'trash-zone--over'].filter(Boolean).join(' ')}
-      aria-label="Drop here to delete task"
-    >
-      <TrashSimple size={22} weight="bold" aria-hidden="true" />
-      <span>Drop to delete</span>
-    </div>,
-    document.body
+function ColumnMoveToast({ event, columns, onDone }) {
+  const toCol = columns.find(c => c.id === event.toId)
+  const label = toCol?.label ?? event.toId
+  const color = toCol?.color ?? 'var(--accent)'
+  const truncated = (event.taskText?.length ?? 0) > 34
+    ? event.taskText.slice(0, 34) + '…'
+    : (event.taskText ?? 'Task')
+
+  useEffect(() => {
+    const t = setTimeout(onDone, 2900)
+    return () => clearTimeout(t)
+  }, [event.key, onDone])
+
+  return (
+    <div className="col-move-toast" key={event.key} style={{ '--move-color': color }}>
+      <div className="col-move-toast-row">
+        <span className="col-move-dot" />
+        <span className="col-move-task">{truncated}</span>
+        <ArrowRight size={12} className="col-move-arrow" aria-hidden="true" />
+        <span className="col-move-dest">{label}</span>
+      </div>
+      <div className="col-move-toast-track">
+        <div className="col-move-toast-fill" />
+      </div>
+    </div>
   )
 }
 
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user, profile } = useAuth()
+  const { user, profile, displayName, prefs } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -81,22 +97,30 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, updateTask, patchTaskChecklist } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
+  const { archiveNow } = useArchive(currentWorkspace?.id)
+
+  const [showSettings, setShowSettings]     = useState(false)
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
+  const [moveToast, setMoveToast]           = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
   const [showSidebar, setShowSidebar]       = useState(false)
-  const [viewMode, setViewMode]             = useState(
-    () => localStorage.getItem('tm_view_mode') ?? 'board'
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
+  const [viewMode, setViewMode]             = useState(() => {
+    const saved = localStorage.getItem('tm_view_mode')
+    return (saved === 'archive' || saved === 'trash' || !saved) ? 'board' : saved
+  })
   const [welcomeData, setWelcomeData]       = useState(null)
   const [showWsSettings, setShowWsSettings]     = useState(false)
-  const [isDragging, setIsDragging]             = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
+  const [selectedIds, setSelectedIds]           = useState(new Set())
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -135,6 +159,21 @@ export default function Board() {
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
 
+  // Augment the broadcast map with the current user's own open task so their
+  // card glows while the panel is open, without marking it as locked for them.
+  const displayEditingMap = useMemo(() => {
+    if (!selectedTaskId || !user) return editingMap
+    return {
+      ...editingMap,
+      [selectedTaskId]: {
+        user_id:      user.id,
+        display_name: displayName,
+        email:        user.email,
+        is_self:      true,
+      },
+    }
+  }, [editingMap, selectedTaskId, user, displayName])
+
   const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
@@ -149,6 +188,23 @@ export default function Board() {
   useEffect(() => {
     localStorage.setItem('tm_view_mode', viewMode)
   }, [viewMode])
+
+  // Apply defaultView preference on first load if the user hasn't explicitly chosen a view
+  useEffect(() => {
+    const saved = localStorage.getItem('tm_view_mode')
+    if (!saved || saved === 'archive' || saved === 'trash') {
+      const pref = prefs?.defaultView
+      if (pref) setViewMode(pref)
+    }
+  }, [prefs?.defaultView]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('tm_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     const raw = localStorage.getItem('tm_welcome')
@@ -206,8 +262,18 @@ export default function Board() {
     if (next) setSelectedTaskId(next.id)
   }
 
+  const openAddPanel = () => {
+    setSelectedTaskId(null)
+    setShowModal(true)
+  }
+
+  const openTaskDetail = (id) => {
+    setShowModal(false)
+    setSelectedTaskId(id)
+  }
+
   const { toast } = useToast()
-  useTaskReminders(allTasks, toast, updateTask, columns)
+  useTaskReminders(allTasks, toast, updateTask, columns, prefs)
 
   const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
@@ -238,19 +304,93 @@ export default function Board() {
     scheduleDelete(id, task?.text ?? 'Task')
   }, [allTasks, scheduleDelete])
 
+  const handleColumnArchive = useCallback(async (id) => {
+    if (selectedTaskId === id) setSelectedTaskId(null)
+    try {
+      await archiveTask(id)
+      toast.success('Task archived')
+    } catch (err) {
+      toast.error(err.message || 'Failed to archive task')
+    }
+  }, [archiveTask, selectedTaskId, toast])
+
+  const doneCount = tasksByStatus['done']?.length ?? 0
+
+  const handleArchiveDone = useCallback(async () => {
+    if (doneCount === 0) return
+    const scope = currentProject ? `in "${currentProject.name}"` : 'across all projects'
+    if (!window.confirm(`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''} ${scope}? They'll be available on the Archive page.`)) return
+    try {
+      const count = await archiveNow(currentProject?.id)
+      toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
+    } catch (err) {
+      toast.error(err.message || 'Failed to archive done tasks')
+    }
+  }, [archiveNow, currentProject, doneCount, toast])
+
+  const bulkMode = selectedIds.size > 0
+
+  const handleBulkToggle = useCallback((id) => {
+    if (selectedTaskId) setSelectedTaskId(null)
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [selectedTaskId])
+
+  const handleBulkClearAll = useCallback(() => setSelectedIds(new Set()), [])
+
+  const handleBulkSelectAll = useCallback(() => {
+    const allVisible = Object.values(displayByStatus).flat().map(t => t.id)
+    setSelectedIds(new Set(allVisible))
+  }, [displayByStatus])
+
+  const handleBulkArchive = useCallback(async () => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    const results = await Promise.allSettled(ids.map(id => archiveTask(id)))
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) toast.error(`${failed} task${failed !== 1 ? 's' : ''} failed to archive`)
+    else toast.success(`${ids.length} task${ids.length !== 1 ? 's' : ''} archived`)
+  }, [selectedIds, archiveTask, toast])
+
+  const handleBulkMove = useCallback(async (status) => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => updateTask(id, { status })))
+    toast.success(`Moved ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
+  }, [selectedIds, updateTask, toast])
+
+  const handleBulkAssign = useCallback(async (assigneeId) => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => updateTask(id, { assignee_id: assigneeId })))
+    toast.success(assigneeId ? `Assigned ${ids.length} task${ids.length !== 1 ? 's' : ''}` : `Unassigned ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
+  }, [selectedIds, updateTask, toast])
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = [...selectedIds]
+    const count = ids.length
+    if (!window.confirm(`Delete ${count} task${count !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => deleteTask(id)))
+    toast.success(`${count} task${count !== 1 ? 's' : ''} deleted`)
+  }, [selectedIds, deleteTask, toast])
+
   const handleQuickAdd = useCallback(async (text, description) => {
     try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
     catch (err) { toast.error(err.message || 'Failed to add task') }
   }, [addTask, toast])
 
   useKeyboardShortcuts({
-    'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !showModal && !selectedTaskId && !isGlobalBoard) setShowModal(true) },
+    'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !isGlobalBoard) openAddPanel() },
     '/':      (e) => { e.preventDefault(); searchRef.current?.focus() },
     'ctrl+f': (e) => { e.preventDefault(); filterBarRef.current?.querySelector('input, select')?.focus() },
     '?':      () => setShowShortcuts(prev => !prev),
     'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
     'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
-    'ctrl+shift+a': (e) => { e.preventDefault(); setViewMode('archive') },
+    'ctrl+g': (e) => { e.preventDefault(); setViewMode('gantt') },
     'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -261,9 +401,10 @@ export default function Board() {
       }
     },
     'Escape': () => {
-      if (showShortcuts)  { setShowShortcuts(false); return }
-      if (selectedTaskId) { setSelectedTaskId(null); return }
-      if (showModal)      { setShowModal(false) }
+      if (showShortcuts)        { setShowShortcuts(false); return }
+      if (selectedIds.size > 0) { setSelectedIds(new Set()); return }
+      if (selectedTaskId)       { setSelectedTaskId(null); return }
+      if (showModal)            { setShowModal(false) }
     },
   })
 
@@ -275,29 +416,15 @@ export default function Board() {
     if (!canEdit) return
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
-    setIsDragging(true)
   }
 
   const handleDragCancel = () => {
     setActiveTask(null)
-    setIsDragging(false)
   }
 
   const handleDragEnd = ({ active, over }) => {
     setActiveTask(null)
-    setIsDragging(false)
     if (!canEdit) return
-
-    // Trash zone drop
-    if (over?.id === 'trash-zone') {
-      const all = Object.values(tasksByStatus).flat()
-      const draggedTask = all.find(t => t.id === active.id)
-      if (draggedTask) {
-        playDeleteSound()
-        scheduleDelete(draggedTask.id, draggedTask.text)
-      }
-      return
-    }
 
     if (!over || active.id === over.id) return
 
@@ -332,6 +459,9 @@ export default function Board() {
     }
 
     if (targetColumnId === 'done' && draggedTask.status !== 'done') playDoneSound()
+    if (targetColumnId !== draggedTask.status) {
+      setMoveToast({ key: Date.now(), taskText: draggedTask.text, fromId: draggedTask.status, toId: targetColumnId })
+    }
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
@@ -390,7 +520,7 @@ ${colData.map(c => `<div class="col">
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
       <main className="board-main">
         <div className="board-empty-state">
           <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
@@ -402,17 +532,16 @@ ${colData.map(c => `<div class="col">
   )
 
   const totalTasks = allTasks.length
-  const doneTasks  = tasksByStatus['done']?.length ?? 0
-  const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
   return (
     <div className="app-shell">
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main id="main-content" className="board-main">
+        <UtilityBar onProfileClick={() => setShowSettings(true)} />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -433,7 +562,7 @@ ${colData.map(c => `<div class="col">
           <div className="board-header-right">
             <PresenceAvatars members={workspaceMembers} present={present} />
 
-            {/* Board / List / Calendar toggle — archive is a separate button */}
+            {/* View mode toggle */}
             <div className="view-toggle" role="group" aria-label="View mode">
               <button
                 className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
@@ -459,17 +588,27 @@ ${colData.map(c => `<div class="col">
               >
                 <CalendarBlank size={20} aria-hidden="true" />
               </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'gantt' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('gantt')}
+                aria-pressed={viewMode === 'gantt'}
+                title="Gantt view (Ctrl+G)"
+              >
+                <ChartBar size={20} aria-hidden="true" />
+              </button>
             </div>
 
-            {/* Archive — separate from layout toggle */}
-            <button
-              className={`archive-toggle-btn${viewMode === 'archive' ? ' archive-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
-              aria-pressed={viewMode === 'archive'}
-              title="Archive (A)"
-            >
-              <Archive size={20} aria-hidden="true" />
-            </button>
+            {isOwner && doneCount > 0 && (
+              <button
+                className="ws-settings-btn board-archive-done-btn"
+                onClick={handleArchiveDone}
+                aria-label={`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''}`}
+                title={`Archive done (${doneCount})`}
+              >
+                <Archive size={20} aria-hidden="true" />
+                <span className="board-archive-done-badge">{doneCount}</span>
+              </button>
+            )}
 
             <button
               className="ws-settings-btn board-header-btn--print"
@@ -518,12 +657,12 @@ ${colData.map(c => `<div class="col">
             <span>Calendar</span>
           </button>
           <button
-            className={`mob-view-btn${viewMode === 'archive' ? ' mob-view-btn--active' : ''}`}
-            onClick={() => setViewMode(viewMode === 'archive' ? 'board' : 'archive')}
-            aria-pressed={viewMode === 'archive'}
+            className={`mob-view-btn${viewMode === 'gantt' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('gantt')}
+            aria-pressed={viewMode === 'gantt'}
           >
-            <Archive size={22} aria-hidden="true" />
-            <span>Archive</span>
+            <ChartBar size={22} aria-hidden="true" />
+            <span>Gantt</span>
           </button>
           <button
             className="mob-view-btn"
@@ -543,35 +682,17 @@ ${colData.map(c => `<div class="col">
           </button>
         </nav>
 
-        {totalTasks > 0 && viewMode !== 'archive' && (
-          <div className="board-progress" title={`${doneTasks} of ${totalTasks} tasks done`}>
-            <div
-              className="board-progress-bar"
-              style={{ width: `${progress}%` }}
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${doneTasks} of ${totalTasks} tasks done`}
-            />
-            <span className="board-progress-label">
-              {doneTasks} / {totalTasks} done
-            </span>
-          </div>
-        )}
 
-        {viewMode !== 'archive' && (
-          <div ref={filterBarRef}>
-            <FilterBar
-              workspaceId={currentWorkspace?.id}
-              filters={filters}
-              onChange={setFilters}
-              searchRef={searchRef}
-              onAdd={canEdit && !isGlobalBoard && viewMode !== 'archive' ? () => setShowModal(true) : undefined}
-              projects={isGlobalBoard ? projects : undefined}
-            />
-          </div>
-        )}
+        <div ref={filterBarRef}>
+          <FilterBar
+            workspaceId={currentWorkspace?.id}
+            filters={filters}
+            onChange={setFilters}
+            searchRef={searchRef}
+            onAdd={canEdit && !isGlobalBoard ? openAddPanel : undefined}
+            projects={isGlobalBoard ? projects : undefined}
+          />
+        </div>
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
@@ -579,113 +700,144 @@ ${colData.map(c => `<div class="col">
           </div>
         )}
 
-        {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'archive' && (
-          <div className="board-empty-state">
-            <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
-            <h2 className="board-empty-title">Your board is empty</h2>
-            <p className="board-empty-body">Add your first task to get started.</p>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Task</button>
-          </div>
-        )}
-
-        {viewMode === 'board' ? (
-          <div className="board-columns-wrap">
-            <DndContext
-              sensors={sensors}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <div className="board-columns">
-                {columns.map(col => (
-                  <Column
-                    key={col.id}
-                    column={col}
-                    tasks={displayByStatus[col.id] ?? []}
-                    canEdit={canEdit}
-                    hasFilter={hasFilter}
-                    canDelete={canDelete}
-                    editingMap={editingMap}
-                    showProject={isGlobalBoard}
-                    onDelete={handleColumnDelete}
-                    onOpen={setSelectedTaskId}
-                    onComplete={handleComplete}
-                    onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
-                  />
-                ))}
+        {/* ── Canvas: board content + detail panel side-by-side ── */}
+        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : ''}`}>
+          <div className="board-canvas__content">
+            {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
+              <div className="board-empty-state">
+                <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
+                <h2 className="board-empty-title">Your board is empty</h2>
+                <p className="board-empty-body">Add your first task to get started.</p>
+                <button className="btn-primary" onClick={openAddPanel}>+ Add Task</button>
               </div>
+            )}
 
-              <TrashZone visible={isDragging && canEdit} />
+            {viewMode === 'board' ? (
+              <div className="board-columns-wrap">
+                <DndContext
+                  sensors={sensors}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <div className="board-columns">
+                    {columns.map(col => (
+                      <Column
+                        key={col.id}
+                        column={col}
+                        tasks={displayByStatus[col.id] ?? []}
+                        canEdit={canEdit}
+                        hasFilter={hasFilter}
+                        canDelete={canDelete}
+                        editingMap={displayEditingMap}
+                        showProject={isGlobalBoard}
+                        onDelete={handleColumnDelete}
+                        onArchive={handleColumnArchive}
+                        onOpen={openTaskDetail}
+                        onComplete={handleComplete}
+                        onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
+                        bulkMode={bulkMode}
+                        selectedIds={selectedIds}
+                        onBulkToggle={handleBulkToggle}
+                      />
+                    ))}
+                  </div>
 
-              <DragOverlay dropAnimation={null}>
-                {activeTask ? (
-                  <TaskCard
-                    task={activeTask}
-                    isOverlay
-                    canEdit={canEdit}
-                    onOpen={() => {}}
-                    editingUser={editingMap[activeTask.id] ?? null}
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                  <DragOverlay dropAnimation={null}>
+                    {activeTask ? (
+                      <TaskCard
+                        task={activeTask}
+                        isOverlay
+                        canEdit={canEdit}
+                        onOpen={() => {}}
+                        editingUser={displayEditingMap[activeTask.id] ?? null}
+                      />
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="list-view-wrap">
+                <ListView
+                  columns={columns}
+                  tasksByStatus={displayByStatus}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  editingMap={editingMap}
+                  showProject={isGlobalBoard}
+                  onDelete={handleColumnDelete}
+                  onArchive={handleColumnArchive}
+                  onOpen={setSelectedTaskId}
+                  onComplete={handleComplete}
+                />
+              </div>
+            ) : viewMode === 'calendar' ? (
+              <div className="cal-page-body">
+                <Suspense fallback={null}>
+                  <CalendarView tasks={allTasks} onTaskClick={t => openTaskDetail(t.id)} />
+                </Suspense>
+              </div>
+            ) : viewMode === 'gantt' ? (
+              <div className="gantt-page-body">
+                <Suspense fallback={null}>
+                  <GanttView tasks={allTasks} columns={columns} onTaskClick={openTaskDetail} />
+                </Suspense>
+              </div>
+            ) : null}
           </div>
-        ) : viewMode === 'list' ? (
-          <div className="list-view-wrap">
-            <ListView
-              columns={columns}
-              tasksByStatus={displayByStatus}
-              canEdit={canEdit}
-              canDelete={canDelete}
-              editingMap={editingMap}
-              showProject={isGlobalBoard}
-              onDelete={handleColumnDelete}
-              onOpen={setSelectedTaskId}
-              onComplete={handleComplete}
-            />
-          </div>
-        ) : viewMode === 'calendar' ? (
-          <div className="cal-page-body">
-            <Suspense fallback={null}>
-              <CalendarView tasks={allTasks} onTaskClick={t => setSelectedTaskId(t.id)} />
-            </Suspense>
-          </div>
-        ) : (
+
+          {/* Panels sit inside the canvas as flex siblings — not fixed overlays */}
           <Suspense fallback={null}>
-            <ArchiveView canEdit={canEdit} canDelete={canDelete} canArchiveNow={isOwner} />
+            {showModal && canEdit && (
+              <AddTaskPanel
+                columns={columns}
+                onClose={() => setShowModal(false)}
+                onSave={async (data) => {
+                  const taskId = await addTask(data)
+                  toast.success('Task added')
+                  return taskId
+                }}
+              />
+            )}
+
+            {selectedTask && (
+              <TaskDetailPanel
+                task={selectedTask}
+                columns={columns}
+                canEdit={canEdit}
+                autoSave={autoSave}
+                onUpdate={(id, changes) => {
+                  if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
+                  return updateTask(id, changes)
+                }}
+                onChecklistChange={patchTaskChecklist}
+                onClose={() => setSelectedTaskId(null)}
+                onArchive={canEdit ? handleColumnArchive : undefined}
+              />
+            )}
           </Suspense>
-        )}
+        </div>
       </main>
 
+      {bulkMode && (
+        <BulkActionsBar
+          selectedCount={selectedIds.size}
+          totalCount={Object.values(displayByStatus).flat().length}
+          columns={columns}
+          members={workspaceMembers}
+          onArchive={handleBulkArchive}
+          onMove={handleBulkMove}
+          onAssign={handleBulkAssign}
+          onDelete={handleBulkDelete}
+          onClearAll={handleBulkClearAll}
+          onSelectAll={handleBulkSelectAll}
+        />
+      )}
+
       <Suspense fallback={null}>
-        {showModal && canEdit && (
-          <AddTaskModal
-            columns={columns}
-            onClose={() => setShowModal(false)}
-            onSave={async (data) => {
-              try { const taskId = await addTask(data); toast.success('Task added'); setShowModal(false); return taskId }
-              catch (err) { toast.error(err.message || 'Failed to add task') }
-            }}
-          />
-        )}
-
-        {selectedTask && (
-          <TaskDetailPanel
-            task={selectedTask}
-            columns={columns}
-            canEdit={canEdit}
-            autoSave={autoSave}
-            onUpdate={(id, changes) => {
-              if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
-              return updateTask(id, changes)
-            }}
-            onChecklistChange={patchTaskChecklist}
-            onClose={() => setSelectedTaskId(null)}
-          />
-        )}
-
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-        {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {showSettings   && <SettingsModal           onClose={() => setShowSettings(false)} />}
         {welcomeData    && (
           <WelcomeModal
             workspaceName={welcomeData.workspace_name}
@@ -701,6 +853,15 @@ ${colData.map(c => `<div class="col">
           />
         )}
       </Suspense>
+
+      {moveToast && (
+        <ColumnMoveToast
+          key={moveToast.key}
+          event={moveToast}
+          columns={columns}
+          onDone={() => setMoveToast(null)}
+        />
+      )}
     </div>
   )
 }
