@@ -2,7 +2,7 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
-  Fire, CheckCircle, Warning, TrendUp, Clock,
+  CheckCircle, Warning, TrendUp, Clock,
   ListChecks, ChartBar, CalendarDots,
 } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
@@ -65,6 +65,66 @@ const PRIORITY_COLORS = {
 }
 
 /* ─── sub-components ─────────────────────────────────────────── */
+
+function DonutChart({ completed, active }) {
+  const total    = completed + active
+  const pct      = total === 0 ? 0 : Math.round((completed / total) * 100)
+  const R        = 38
+  const C        = 2 * Math.PI * R
+  const greenArc = total === 0 ? 0 : (completed / total) * C
+  const blueArc  = total === 0 ? 0 : (active    / total) * C
+
+  return (
+    <div className="dash-donut-inner">
+      <div className="dash-donut-wrap">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r={R} fill="none"
+            stroke="var(--surface-2)" strokeWidth="12" />
+          {total > 0 && greenArc > 0 && (
+            <circle cx="50" cy="50" r={R} fill="none"
+              stroke="var(--green)" strokeWidth="12"
+              strokeDasharray={`${greenArc} ${C}`}
+              strokeDashoffset={0}
+              transform="rotate(-90 50 50)" />
+          )}
+          {total > 0 && blueArc > 0 && (
+            <circle cx="50" cy="50" r={R} fill="none"
+              stroke="var(--accent)" strokeWidth="12"
+              strokeDasharray={`${blueArc} ${C}`}
+              strokeDashoffset={-greenArc}
+              transform="rotate(-90 50 50)" />
+          )}
+        </svg>
+        <div className="dash-donut-center">
+          {total === 0
+            ? <span className="dash-donut-empty">No tasks</span>
+            : <>
+                <span className="dash-donut-pct">{pct}%</span>
+                <span className="dash-donut-sub">done</span>
+              </>
+          }
+        </div>
+      </div>
+
+      <div className="dash-donut-legend-row">
+        <div className="dash-donut-leg-item">
+          <span className="dash-donut-dot dash-donut-dot--green" />
+          <div>
+            <div className="dash-donut-leg-count">{completed}</div>
+            <div className="dash-donut-leg-label">done</div>
+          </div>
+        </div>
+        <div className="dash-donut-leg-item">
+          <span className="dash-donut-dot dash-donut-dot--blue" />
+          <div>
+            <div className="dash-donut-leg-count">{active}</div>
+            <div className="dash-donut-leg-label">active</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function StatCard({ icon: Icon, value, label, color, delay, alert }) {
   return (
@@ -292,7 +352,7 @@ export default function DashboardView() {
   if (error) return <p className="dash-error">Failed to load dashboard: {error}</p>
   if (!data)  return null
 
-  const { stats, streak, heatmap, statusBreakdown, priorityBreakdown,
+  const { stats, heatmap, statusBreakdown, priorityBreakdown,
           recentCompletions, dueSoon, weeklyVelocity } = data
 
   const completionRate = stats.totalTasks > 0
@@ -308,16 +368,6 @@ export default function DashboardView() {
           <span className="dash-header-day">{dayjs().format('dddd')}</span>
           <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
         </div>
-        {streak.current > 0 && (
-          <div className="dash-streak-badge">
-            <Fire size={14} weight="fill" className="dash-streak-icon" aria-hidden="true" />
-            <span className="dash-streak-num">{streak.current}</span>
-            <span className="dash-streak-label">day streak</span>
-            {streak.longest > streak.current && (
-              <span className="dash-streak-best">best: {streak.longest}</span>
-            )}
-          </div>
-        )}
       </header>
 
       {/* ── Stat cards ───────────────────────────────── */}
@@ -367,7 +417,7 @@ export default function DashboardView() {
         />
       </div>
 
-      {/* ── Mid row: breakdown + due soon ────────────── */}
+      {/* ── Mid row: breakdown + due soon + progress ─── */}
       <div className="dash-mid-grid">
         <section className="dash-section" style={{ animationDelay: '0.18s' }}>
           <h2 className="dash-section-title">
@@ -394,6 +444,14 @@ export default function DashboardView() {
             )}
           </h2>
           <DueSoon items={dueSoon} />
+        </section>
+
+        <section className="dash-section dash-donut-card" style={{ animationDelay: '0.30s' }}>
+          <h2 className="dash-section-title">
+            <ChartBar size={14} aria-hidden="true" />
+            Task progress
+          </h2>
+          <DonutChart completed={stats.totalCompleted} active={stats.activeTasks} />
         </section>
       </div>
 

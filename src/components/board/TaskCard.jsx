@@ -2,11 +2,12 @@ import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare } from '@phosphor-icons/react'
+import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -16,10 +17,11 @@ function urgencyClass(due_date) {
   return ''
 }
 
-function fmtDue(due_date) {
+function fmtDue(due_date, format = 'relative') {
   const d     = dayjs(due_date)
   const today = dayjs().startOf('day')
   const diff  = d.diff(today, 'day')
+  if (format === 'absolute') return d.format('MMM D')
   if (diff ===  0) return 'Today'
   if (diff ===  1) return 'Tomorrow'
   if (diff === -1) return 'Yesterday'
@@ -54,9 +56,13 @@ function TaskCard({
   isOverlay = false,
   editingUser = null,
   showProject = false,
+  bulkMode = false,
+  isSelected = false,
+  onBulkToggle,
 }) {
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
+  const { prefs } = useAuth()
   const isJobTracker    = workspaceTemplate === 'job-tracker'
   const isLockedByOther = editingUser != null && !editingUser.is_self
   const isSelfEditing   = editingUser?.is_self === true
@@ -76,6 +82,7 @@ function TaskCard({
 
   const handleOpen = () => {
     if (isLockedByOther) return
+    if (bulkMode) { onBulkToggle?.(task.id); return }
     onOpen(task.id)
   }
 
@@ -97,13 +104,25 @@ function TaskCard({
         isOverlay                         ? 'task-card--ghost'        : '',
         isLockedByOther                   ? 'task-card--locked'       : '',
         isSelfEditing                     ? 'task-card--self-editing' : '',
+        isSelected                        ? 'task-card--selected'     : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
-      {/* Drag handle — top center, hover only */}
-      {canEdit && !isLockedByOther && (
-        <DotsSix size={14} className="task-drag-handle" aria-hidden="true" />
+      {/* Bulk checkbox OR drag handle */}
+      {bulkMode ? (
+        <button
+          className={`task-bulk-check${isSelected ? ' task-bulk-check--selected' : ''}`}
+          onClick={e => { e.stopPropagation(); onBulkToggle?.(task.id) }}
+          aria-label={isSelected ? 'Deselect task' : 'Select task'}
+          aria-pressed={isSelected}
+        >
+          {isSelected && <Check size={9} weight="bold" aria-hidden="true" />}
+        </button>
+      ) : (
+        canEdit && !isLockedByOther && (
+          <DotsSix size={14} className="task-drag-handle" aria-hidden="true" />
+        )
       )}
 
       {/* Editing lock — badge + tooltip */}
@@ -238,9 +257,14 @@ function TaskCard({
                 {commentCount}
               </span>
             )}
+            {task.recurrence && (
+              <span className="task-meta-chip" title="Recurring task" aria-label="Recurring task">
+                <ArrowsClockwise size={11} aria-hidden="true" />
+              </span>
+            )}
             {task.due_date && (
               <span className="task-due" title={dayjs(task.due_date).format('MMMM D, YYYY')}>
-                {fmtDue(task.due_date)}
+                {fmtDue(task.due_date, prefs?.dateFormat)}
               </span>
             )}
           </div>
@@ -252,6 +276,7 @@ function TaskCard({
 
 function due_or_meta(task, isJobTracker, checklistTotal, commentCount) {
   if (task.due_date) return true
+  if (task.recurrence) return true
   if (commentCount > 0) return true
   if (checklistTotal > 0) return true
   if (!isJobTracker && task.assignee) return true

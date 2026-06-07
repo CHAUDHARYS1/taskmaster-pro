@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
-import { X } from '@phosphor-icons/react'
+import { X, ArrowsClockwise } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
@@ -16,6 +16,7 @@ import TiptapEditor from '../ui/TiptapEditor'
 import { PRIORITIES } from '../../lib/priority'
 import TaskDocumentLink from './TaskDocumentLink'
 import DocDrawer from '../ui/DocDrawer'
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
 function toHtml(text) {
   if (!text) return ''
@@ -41,7 +42,97 @@ const DEFAULT_STATUS_OPTIONS = [
   { id: 'done',       label: 'Done' },
 ]
 
-export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose }) {
+const FREQ_OPTIONS = [
+  { id: 'daily',   label: 'Daily' },
+  { id: 'weekly',  label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'yearly',  label: 'Yearly' },
+]
+
+function recurrenceLabel(rec) {
+  if (!rec) return null
+  const interval = rec.interval ?? 1
+  const freq = {
+    daily:   interval === 1 ? 'Daily'           : `Every ${interval} days`,
+    weekly:  interval === 1 ? 'Weekly'          : `Every ${interval} weeks`,
+    monthly: interval === 1 ? 'Monthly'         : `Every ${interval} months`,
+    yearly:  interval === 1 ? 'Yearly'          : `Every ${interval} years`,
+  }[rec.frequency] ?? rec.frequency
+  return rec.end_date ? `${freq} until ${dayjs(rec.end_date).format('MMM D, YYYY')}` : freq
+}
+
+function RecurrencePicker({ value, onChange, hasDueDate }) {
+  const isSet      = !!value
+  const frequency  = value?.frequency  ?? 'weekly'
+  const interval   = value?.interval   ?? 1
+  const endDate    = value?.end_date   ?? ''
+
+  const update = (patch) => onChange({ frequency, interval, ...value, ...patch })
+  const clear  = () => onChange(null)
+  const enable = () => onChange({ frequency: 'weekly', interval: 1 })
+
+  if (!hasDueDate) return (
+    <span className="recurrence-no-date">Set a due date first to enable repeat.</span>
+  )
+
+  return (
+    <div className="recurrence-picker">
+      {!isSet ? (
+        <button type="button" className="recurrence-enable-btn" onClick={enable}>
+          <ArrowsClockwise size={13} aria-hidden="true" />
+          Set repeat
+        </button>
+      ) : (
+        <>
+          <div className="recurrence-row">
+            <span className="recurrence-row-label">Every</span>
+            <input
+              type="number"
+              className="recurrence-interval"
+              min={1}
+              max={99}
+              value={interval}
+              onChange={e => update({ interval: Math.max(1, parseInt(e.target.value) || 1) })}
+              aria-label="Repeat interval"
+            />
+            <select
+              className="recurrence-freq"
+              value={frequency}
+              onChange={e => update({ frequency: e.target.value })}
+              aria-label="Repeat frequency"
+            >
+              {FREQ_OPTIONS.map(f => (
+                <option key={f.id} value={f.id}>{interval === 1 ? f.label : f.label.toLowerCase() + 's'}</option>
+              ))}
+            </select>
+          </div>
+          <div className="recurrence-row">
+            <label className="recurrence-row-label" htmlFor="recurrence-end">Until</label>
+            <input
+              id="recurrence-end"
+              type="date"
+              className="recurrence-end-date"
+              value={endDate}
+              onChange={e => update({ end_date: e.target.value || undefined })}
+              aria-label="Repeat end date (optional)"
+            />
+            {endDate && (
+              <button type="button" className="recurrence-clear-end" onClick={() => update({ end_date: undefined })} aria-label="Remove end date">
+                <X size={11} weight="bold" aria-hidden="true" />
+              </button>
+            )}
+            {!endDate && <span className="recurrence-until-hint">optional</span>}
+          </div>
+          <button type="button" className="recurrence-remove-btn" onClick={clear}>
+            Remove repeat
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose, onArchive }) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace, workspaceTemplate } = useWorkspace()
@@ -54,6 +145,13 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
+
+  useKeyboardShortcuts({
+    'ctrl+shift+a': useCallback((e) => {
+      e.preventDefault()
+      if (canEdit && onArchive) { onArchive(task.id); onClose?.() }
+    }, [canEdit, onArchive, task.id, onClose]),
+  })
   const isCustomDate = task.due_date && ![today, tomorrow, nextWeek].includes(task.due_date)
 
   const [title,              setTitle]              = useState(task.text)
@@ -308,6 +406,30 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                     {task.due_date
                       ? `${fmtDateFull(task.due_date)}${task.due_time ? ` at ${fmtTimeStr(task.due_time)}` : ''}`
                       : <span className="task-panel-empty">No due date.</span>
+                    }
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div className="atp-prop">
+              <span className="atp-prop__label">
+                <ArrowsClockwise size={12} aria-hidden="true" style={{ marginRight: 4 }} />
+                Repeat
+              </span>
+              <div className="atp-prop__val">
+                {canEdit ? (
+                  <RecurrencePicker
+                    value={task.recurrence ?? null}
+                    onChange={rec => onUpdate(task.id, { recurrence: rec })}
+                    hasDueDate={!!task.due_date}
+                  />
+                ) : (
+                  <span className="atp-prop-ro">
+                    {task.recurrence
+                      ? recurrenceLabel(task.recurrence)
+                      : <span className="task-panel-empty">Does not repeat.</span>
                     }
                   </span>
                 )}

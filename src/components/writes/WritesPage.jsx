@@ -7,14 +7,15 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
+import UtilityBar from '../layout/UtilityBar'
 import WritesEditor from './WritesEditor'
 
 export default function WritesPage() {
   const { docId }    = useParams()
   const navigate     = useNavigate()
-  const { currentWorkspace, loading: wsLoading } = useWorkspace()
+  const { currentWorkspace, workspaces } = useWorkspace()
   const { toast }    = useToast()
-  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent } = useDocuments(currentWorkspace?.id)
+  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent } = useDocuments(null)
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
@@ -47,8 +48,10 @@ export default function WritesPage() {
   }, [docs, docId])
 
   const handleNew = async () => {
+    const wsId = currentWorkspace?.id ?? workspaces?.[0]?.id
+    if (!wsId) { toast.error('Select a workspace to create a document'); return }
     try {
-      const doc = await createDoc()
+      const doc = await createDoc(wsId)
       navigate('/writes/' + doc.id)
     } catch (err) {
       toast.error(err.message || 'Failed to create document')
@@ -73,8 +76,6 @@ export default function WritesPage() {
     }
   }
 
-  if (wsLoading) return <div className="loading-screen">Loading…</div>
-
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -82,6 +83,8 @@ export default function WritesPage() {
       )}
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} />
 
+      <div className="writes-shell">
+      <UtilityBar />
       <main className="writes-main">
         {/* Document list panel */}
         <aside className="writes-list-panel">
@@ -139,6 +142,7 @@ export default function WritesPage() {
           )}
         </div>
       </main>
+      </div>
     </div>
   )
 }

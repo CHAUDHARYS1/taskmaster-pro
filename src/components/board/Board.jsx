@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, SignOut, Coffee, Archive } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -8,31 +8,33 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
-import { userColor } from '../../lib/userColor'
 import { useTasks } from '../../hooks/useTasks'
 import { useArchive } from '../../hooks/useArchive'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
+import UtilityBar from '../layout/UtilityBar'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
 import FilterBar from './FilterBar'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
+import BulkActionsBar from './BulkActionsBar'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
-const ProfileSettingsModal  = lazy(() => import('../ui/ProfileSettingsModal'))
+const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
 const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
+const GanttView             = lazy(() => import('./GanttView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
-const WorkspaceSettingsModal = lazy(() => import('../workspace/WorkspaceSettingsModal'))
+const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -48,10 +50,38 @@ export const DEFAULT_COLUMNS = [
   { id: 'done',       label: 'Done' },
 ]
 
+function ColumnMoveToast({ event, columns, onDone }) {
+  const toCol = columns.find(c => c.id === event.toId)
+  const label = toCol?.label ?? event.toId
+  const color = toCol?.color ?? 'var(--accent)'
+  const truncated = (event.taskText?.length ?? 0) > 34
+    ? event.taskText.slice(0, 34) + '…'
+    : (event.taskText ?? 'Task')
+
+  useEffect(() => {
+    const t = setTimeout(onDone, 2900)
+    return () => clearTimeout(t)
+  }, [event.key, onDone])
+
+  return (
+    <div className="col-move-toast" key={event.key} style={{ '--move-color': color }}>
+      <div className="col-move-toast-row">
+        <span className="col-move-dot" />
+        <span className="col-move-task">{truncated}</span>
+        <ArrowRight size={12} className="col-move-arrow" aria-hidden="true" />
+        <span className="col-move-dest">{label}</span>
+      </div>
+      <div className="col-move-toast-track">
+        <div className="col-move-toast-fill" />
+      </div>
+    </div>
+  )
+}
+
 export default function Board() {
   const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
-  const { user, profile, displayName, signOut } = useAuth()
+  const { user, profile, displayName, prefs } = useAuth()
   const { toggle: toggleTheme } = useTheme()
 
   // Keep the URL bar in sync so members can copy/share the direct link
@@ -72,9 +102,10 @@ export default function Board() {
 
   const { archiveNow } = useArchive(currentWorkspace?.id)
 
-  const [showProfile, setShowProfile]       = useState(false)
+  const [showSettings, setShowSettings]     = useState(false)
   const [showModal, setShowModal]           = useState(false)
   const [activeTask, setActiveTask]         = useState(null)
+  const [moveToast, setMoveToast]           = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [filters, setFilters]               = useState({ search: '', assigneeId: '', priority: '', label: '', due: '', project: '' })
   const [showShortcuts, setShowShortcuts]   = useState(false)
@@ -89,6 +120,7 @@ export default function Board() {
   const [welcomeData, setWelcomeData]       = useState(null)
   const [showWsSettings, setShowWsSettings]     = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
+  const [selectedIds, setSelectedIds]           = useState(new Set())
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -156,6 +188,15 @@ export default function Board() {
   useEffect(() => {
     localStorage.setItem('tm_view_mode', viewMode)
   }, [viewMode])
+
+  // Apply defaultView preference on first load if the user hasn't explicitly chosen a view
+  useEffect(() => {
+    const saved = localStorage.getItem('tm_view_mode')
+    if (!saved || saved === 'archive' || saved === 'trash') {
+      const pref = prefs?.defaultView
+      if (pref) setViewMode(pref)
+    }
+  }, [prefs?.defaultView]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -232,7 +273,7 @@ export default function Board() {
   }
 
   const { toast } = useToast()
-  useTaskReminders(allTasks, toast, updateTask, columns)
+  useTaskReminders(allTasks, toast, updateTask, columns, prefs)
 
   const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
@@ -287,6 +328,56 @@ export default function Board() {
     }
   }, [archiveNow, currentProject, doneCount, toast])
 
+  const bulkMode = selectedIds.size > 0
+
+  const handleBulkToggle = useCallback((id) => {
+    if (selectedTaskId) setSelectedTaskId(null)
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [selectedTaskId])
+
+  const handleBulkClearAll = useCallback(() => setSelectedIds(new Set()), [])
+
+  const handleBulkSelectAll = useCallback(() => {
+    const allVisible = Object.values(displayByStatus).flat().map(t => t.id)
+    setSelectedIds(new Set(allVisible))
+  }, [displayByStatus])
+
+  const handleBulkArchive = useCallback(async () => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    const results = await Promise.allSettled(ids.map(id => archiveTask(id)))
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) toast.error(`${failed} task${failed !== 1 ? 's' : ''} failed to archive`)
+    else toast.success(`${ids.length} task${ids.length !== 1 ? 's' : ''} archived`)
+  }, [selectedIds, archiveTask, toast])
+
+  const handleBulkMove = useCallback(async (status) => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => updateTask(id, { status })))
+    toast.success(`Moved ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
+  }, [selectedIds, updateTask, toast])
+
+  const handleBulkAssign = useCallback(async (assigneeId) => {
+    const ids = [...selectedIds]
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => updateTask(id, { assignee_id: assigneeId })))
+    toast.success(assigneeId ? `Assigned ${ids.length} task${ids.length !== 1 ? 's' : ''}` : `Unassigned ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
+  }, [selectedIds, updateTask, toast])
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = [...selectedIds]
+    const count = ids.length
+    if (!window.confirm(`Delete ${count} task${count !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    setSelectedIds(new Set())
+    await Promise.allSettled(ids.map(id => deleteTask(id)))
+    toast.success(`${count} task${count !== 1 ? 's' : ''} deleted`)
+  }, [selectedIds, deleteTask, toast])
+
   const handleQuickAdd = useCallback(async (text, description) => {
     try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
     catch (err) { toast.error(err.message || 'Failed to add task') }
@@ -299,6 +390,7 @@ export default function Board() {
     '?':      () => setShowShortcuts(prev => !prev),
     'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
     'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
+    'ctrl+g': (e) => { e.preventDefault(); setViewMode('gantt') },
     'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -309,9 +401,10 @@ export default function Board() {
       }
     },
     'Escape': () => {
-      if (showShortcuts)  { setShowShortcuts(false); return }
-      if (selectedTaskId) { setSelectedTaskId(null); return }
-      if (showModal)      { setShowModal(false) }
+      if (showShortcuts)        { setShowShortcuts(false); return }
+      if (selectedIds.size > 0) { setSelectedIds(new Set()); return }
+      if (selectedTaskId)       { setSelectedTaskId(null); return }
+      if (showModal)            { setShowModal(false) }
     },
   })
 
@@ -366,6 +459,9 @@ export default function Board() {
     }
 
     if (targetColumnId === 'done' && draggedTask.status !== 'done') playDoneSound()
+    if (targetColumnId !== draggedTask.status) {
+      setMoveToast({ key: Date.now(), taskText: draggedTask.text, fromId: draggedTask.status, toId: targetColumnId })
+    }
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
@@ -435,10 +531,7 @@ ${colData.map(c => `<div class="col">
     </div>
   )
 
-  const totalTasks     = allTasks.length
-  const doneTasks      = tasksByStatus['done']?.length ?? 0
-  const remainingTasks = totalTasks - doneTasks
-  const remainingPct   = totalTasks > 0 ? Math.round((remainingTasks / totalTasks) * 100) : 0
+  const totalTasks = allTasks.length
 
   return (
     <div className="app-shell">
@@ -448,52 +541,7 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
 
       <main id="main-content" className="board-main">
-        <div className="utility-bar">
-          <button
-            className="utility-bar-profile"
-            onClick={() => setShowProfile(true)}
-            aria-label={`Edit profile for ${displayName || user?.email}`}
-          >
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="utility-bar-avatar utility-bar-avatar--photo" />
-            ) : (
-              <span className="utility-bar-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                {displayName ? displayName[0].toUpperCase() : '?'}
-              </span>
-            )}
-            <span className="utility-bar-name">{displayName || user?.email}</span>
-          </button>
-
-          <div className="utility-bar-actions">
-            <a
-              href="https://buymeacoffee.com/schaudhary"
-              target="_blank"
-              rel="noreferrer"
-              className="utility-bar-btn"
-              aria-label="Buy me a coffee"
-              data-tooltip="Buy me a coffee"
-            >
-              <Coffee size={14} weight="bold" aria-hidden="true" />
-            </a>
-            <div className="utility-bar-sep" aria-hidden="true" />
-            <button
-              className="utility-bar-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-              data-tooltip="Workspace settings"
-            >
-              <GearSix size={16} aria-hidden="true" />
-            </button>
-            <button
-              className="utility-bar-btn utility-bar-btn--danger"
-              onClick={signOut}
-              aria-label="Sign out"
-              data-tooltip="Sign out"
-            >
-              <SignOut size={16} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
+        <UtilityBar onProfileClick={() => setShowSettings(true)} />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -539,6 +587,14 @@ ${colData.map(c => `<div class="col">
                 title="Calendar view (C)"
               >
                 <CalendarBlank size={20} aria-hidden="true" />
+              </button>
+              <button
+                className={`view-toggle-btn${viewMode === 'gantt' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('gantt')}
+                aria-pressed={viewMode === 'gantt'}
+                title="Gantt view (Ctrl+G)"
+              >
+                <ChartBar size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -601,6 +657,14 @@ ${colData.map(c => `<div class="col">
             <span>Calendar</span>
           </button>
           <button
+            className={`mob-view-btn${viewMode === 'gantt' ? ' mob-view-btn--active' : ''}`}
+            onClick={() => setViewMode('gantt')}
+            aria-pressed={viewMode === 'gantt'}
+          >
+            <ChartBar size={22} aria-hidden="true" />
+            <span>Gantt</span>
+          </button>
+          <button
             className="mob-view-btn"
             onClick={handlePrint}
             aria-label="Print task board"
@@ -618,22 +682,6 @@ ${colData.map(c => `<div class="col">
           </button>
         </nav>
 
-        {totalTasks > 0 && (
-          <div className="board-progress" title={`${remainingTasks} of ${totalTasks} tasks remaining`}>
-            <div
-              className="board-progress-bar"
-              style={{ width: `${remainingPct}%` }}
-              role="progressbar"
-              aria-valuenow={remainingPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${remainingTasks} of ${totalTasks} tasks remaining`}
-            />
-            <span className="board-progress-label">
-              {remainingTasks} {remainingTasks === 1 ? 'task' : 'tasks'} left
-            </span>
-          </div>
-        )}
 
         <div ref={filterBarRef}>
           <FilterBar
@@ -653,7 +701,7 @@ ${colData.map(c => `<div class="col">
         )}
 
         {/* ── Canvas: board content + detail panel side-by-side ── */}
-        <div className="board-canvas">
+        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : ''}`}>
           <div className="board-canvas__content">
             {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
               <div className="board-empty-state">
@@ -688,6 +736,9 @@ ${colData.map(c => `<div class="col">
                         onOpen={openTaskDetail}
                         onComplete={handleComplete}
                         onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
+                        bulkMode={bulkMode}
+                        selectedIds={selectedIds}
+                        onBulkToggle={handleBulkToggle}
                       />
                     ))}
                   </div>
@@ -726,6 +777,12 @@ ${colData.map(c => `<div class="col">
                   <CalendarView tasks={allTasks} onTaskClick={t => openTaskDetail(t.id)} />
                 </Suspense>
               </div>
+            ) : viewMode === 'gantt' ? (
+              <div className="gantt-page-body">
+                <Suspense fallback={null}>
+                  <GanttView tasks={allTasks} columns={columns} onTaskClick={openTaskDetail} />
+                </Suspense>
+              </div>
             ) : null}
           </div>
 
@@ -755,16 +812,32 @@ ${colData.map(c => `<div class="col">
                 }}
                 onChecklistChange={patchTaskChecklist}
                 onClose={() => setSelectedTaskId(null)}
+                onArchive={canEdit ? handleColumnArchive : undefined}
               />
             )}
           </Suspense>
         </div>
       </main>
 
+      {bulkMode && (
+        <BulkActionsBar
+          selectedCount={selectedIds.size}
+          totalCount={Object.values(displayByStatus).flat().length}
+          columns={columns}
+          members={workspaceMembers}
+          onArchive={handleBulkArchive}
+          onMove={handleBulkMove}
+          onAssign={handleBulkAssign}
+          onDelete={handleBulkDelete}
+          onClearAll={handleBulkClearAll}
+          onSelectAll={handleBulkSelectAll}
+        />
+      )}
+
       <Suspense fallback={null}>
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-        {showWsSettings && <WorkspaceSettingsModal onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
-        {showProfile    && <ProfileSettingsModal   onClose={() => setShowProfile(false)} />}
+        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
+        {showSettings   && <SettingsModal           onClose={() => setShowSettings(false)} />}
         {welcomeData    && (
           <WelcomeModal
             workspaceName={welcomeData.workspace_name}
@@ -780,6 +853,15 @@ ${colData.map(c => `<div class="col">
           />
         )}
       </Suspense>
+
+      {moveToast && (
+        <ColumnMoveToast
+          key={moveToast.key}
+          event={moveToast}
+          columns={columns}
+          onDone={() => setMoveToast(null)}
+        />
+      )}
     </div>
   )
 }

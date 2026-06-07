@@ -6,7 +6,7 @@ const ProjectContext = createContext(null)
 
 export function ProjectProvider({ children }) {
   const { currentWorkspace } = useWorkspace()
-  const { projects, loading, addProject, renameProject, deleteProject } =
+  const { projects, loading, addProject, renameProject, deleteProject, reorderProjects } =
     useProjects(currentWorkspace?.id)
 
   const [currentProject, setCurrentProject] = useState(null)
@@ -67,7 +67,7 @@ export function ProjectProvider({ children }) {
   return (
     <ProjectContext.Provider value={{
       projects, currentProject, loading,
-      switchProject, createProject, renameProject: patchProject, removeProject,
+      switchProject, createProject, renameProject: patchProject, removeProject, reorderProjects,
     }}>
       {children}
     </ProjectContext.Provider>

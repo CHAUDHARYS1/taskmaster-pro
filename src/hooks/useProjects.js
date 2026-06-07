@@ -68,5 +68,13 @@ export function useProjects(workspaceId) {
     setProjects(prev => prev.filter(p => p.id !== id))
   }
 
-  return { projects, loading, addProject, renameProject, deleteProject, refetch: fetch }
+  const reorderProjects = async (ordered) => {
+    const updated = ordered.map((p, i) => ({ ...p, position: (i + 1) * 1000 }))
+    setProjects(updated)
+    await Promise.all(
+      updated.map(p => supabase.from('projects').update({ position: p.position }).eq('id', p.id))
+    )
+  }
+
+  return { projects, loading, addProject, renameProject, deleteProject, reorderProjects, refetch: fetch }
 }

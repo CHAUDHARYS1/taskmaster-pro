@@ -7,26 +7,25 @@ export function useDocuments(workspaceId) {
   const [error,   setError]   = useState(null)
 
   const fetchDocs = useCallback(async () => {
-    if (!workspaceId) return
-    const { data, error } = await supabase
+    let query = supabase
       .from('documents')
       .select('id, title, created_by, created_at, updated_at')
-      .eq('workspace_id', workspaceId)
       .order('updated_at', { ascending: false })
+    if (workspaceId) query = query.eq('workspace_id', workspaceId)
+    const { data, error } = await query
     if (error) setError(error.message)
     else setDocs(data ?? [])
     setLoading(false)
   }, [workspaceId])
 
   useEffect(() => {
-    if (!workspaceId) { setDocs([]); setLoading(false); return }
     fetchDocs()
   }, [workspaceId, fetchDocs])
 
-  const createDoc = async () => {
+  const createDoc = async (wsId) => {
     const { data, error } = await supabase
       .from('documents')
-      .insert({ workspace_id: workspaceId, title: 'Untitled' })
+      .insert({ workspace_id: wsId ?? workspaceId, title: 'Untitled' })
       .select()
       .single()
     if (error) throw error
