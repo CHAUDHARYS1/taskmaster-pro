@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { List, Plus, SquaresFour } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
 import DashboardAddTaskModal from './DashboardAddTaskModal'
+
+const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 
 export default function DashboardPage() {
   const { currentWorkspace, loading } = useWorkspace()
@@ -14,6 +16,7 @@ export default function DashboardPage() {
   )
   const [refreshKey,   setRefreshKey]   = useState(0)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -30,7 +33,7 @@ export default function DashboardPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main className="board-main">
         <div className="board-header">
@@ -73,6 +76,10 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }

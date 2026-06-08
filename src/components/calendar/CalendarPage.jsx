@@ -9,6 +9,7 @@ import CalendarView from './CalendarView'
 import PageHint from '../ui/PageHint'
 
 const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
+const SettingsModal   = lazy(() => import('../ui/SettingsModal'))
 
 export default function CalendarPage() {
   const { workspaces, currentWorkspace, loading: wsLoading } = useWorkspace()
@@ -19,6 +20,7 @@ export default function CalendarPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
+  const [showSettings, setShowSettings] = useState(false)
   const [filterWsId,   setFilterWsId]   = useState('all')
   const [tasks,        setTasks]        = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -116,7 +118,7 @@ export default function CalendarPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main className="board-main">
         <div className="board-header">
@@ -174,6 +176,7 @@ export default function CalendarPage() {
             onClose={() => setSelectedTask(null)}
           />
         )}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
     </div>
   )

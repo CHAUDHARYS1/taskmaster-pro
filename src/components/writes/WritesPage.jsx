@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { List, NotePencil } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
+
+const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 import dayjs from 'dayjs'
 import { fmtDate } from '../../utils/format'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -23,6 +25,7 @@ export default function WritesPage() {
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
   const [docLoading,  setDocLoading]  = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -81,7 +84,7 @@ export default function WritesPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} onProfileClick={() => setShowSettings(true)} />
 
       <div className="writes-shell">
         {/* ── Page header ─────────────────────────────────────── */}
@@ -153,6 +156,10 @@ export default function WritesPage() {
         </div>
       </main>
       </div>
+
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }

@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { List, Archive, MagnifyingGlass, ArrowCounterClockwise, Trash, X } from '@phosphor-icons/react'
 import PageHint from '../components/ui/PageHint'
+
+const SettingsModal = lazy(() => import('../components/ui/SettingsModal'))
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import Sidebar from '../components/layout/Sidebar'
@@ -57,6 +59,7 @@ export default function ArchivePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
+  const [showSettings, setShowSettings] = useState(false)
   const [search,        setSearch]        = useState('')
   const [timeFilter,    setTimeFilter]    = useState('all')
   const [statusFilter,  setStatusFilter]  = useState('all')
@@ -151,7 +154,7 @@ export default function ArchivePage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
 
@@ -344,6 +347,10 @@ export default function ArchivePage() {
           )}
         </div>
       </main>
+
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }
