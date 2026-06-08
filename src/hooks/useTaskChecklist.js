@@ -6,15 +6,22 @@ export function useTaskChecklist(taskId) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
 
   const fetchItems = useCallback(async () => {
     if (!taskId) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('task_checklist_items')
       .select('*')
       .eq('task_id', taskId)
       .order('position', { ascending: true })
-    if (data) setItems(data)
+    if (error) {
+      console.error('[useTaskChecklist] fetch failed:', error.message)
+      setFetchError(error.message)
+    } else {
+      setFetchError(null)
+      if (data) setItems(data)
+    }
     setLoading(false)
   }, [taskId])
 
@@ -79,5 +86,5 @@ export function useTaskChecklist(taskId) {
     if (error) { fetchItems(); throw error }
   }
 
-  return { items, loading, addItem, updateItem, deleteItem }
+  return { items, loading, fetchError, addItem, updateItem, deleteItem }
 }

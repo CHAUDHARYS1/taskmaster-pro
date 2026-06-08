@@ -10,6 +10,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import SessionGuard from './components/auth/SessionGuard'
 import ToastContainer from './components/ui/ToastContainer'
+import AuthTransitionOverlay from './components/auth/AuthTransitionOverlay'
 
 const AuthPage        = lazy(() => import('./components/auth/AuthPage'))
 const Board           = lazy(() => import('./components/board/Board'))
@@ -46,6 +47,7 @@ export default function App() {
         <WorkspaceProvider>
           <LabelsProvider>
           <ProjectProvider>
+          <AuthTransitionOverlay />
           <SessionGuard />
           <a href="#main-content" className="skip-link">Skip to main content</a>
           <Suspense fallback={<div className="loading-screen">Loading…</div>}>

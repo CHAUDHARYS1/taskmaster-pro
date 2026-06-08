@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { List, Plus } from '@phosphor-icons/react'
+import { List, Plus, SquaresFour } from '@phosphor-icons/react'
+import PageHint from '../ui/PageHint'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
-import UtilityBar from '../layout/UtilityBar'
 import DashboardView from './DashboardView'
 import DashboardAddTaskModal from './DashboardAddTaskModal'
 
@@ -33,7 +33,6 @@ export default function DashboardPage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main className="board-main">
-        <UtilityBar />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -43,7 +42,11 @@ export default function DashboardPage() {
             >
               <List size={22} aria-hidden="true" />
             </button>
+            <SquaresFour size={18} className="board-header-icon" aria-hidden="true" />
             <span className="board-header-title">Dashboard</span>
+          </div>
+          <div className="board-header-right">
+            <PageHint text="A snapshot of your workspaces — task counts, progress, overdue items, and what's coming up across all your projects." />
           </div>
         </div>
 

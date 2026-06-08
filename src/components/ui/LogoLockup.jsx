@@ -1,4 +1,4 @@
-export default function LogoLockup({ width = 180, className = '' }) {
+export default function LogoLockup({ width = 180, className = '', white = false }) {
   const height = Math.round(width * 52 / 300)
   return (
     <svg
@@ -31,7 +31,7 @@ export default function LogoLockup({ width = 180, className = '' }) {
         fill="currentColor"
       >
         Taskmaster
-        <tspan fill="#2563EB"> Pro</tspan>
+        <tspan fill={white ? 'rgba(255,255,255,0.75)' : '#2563EB'}> Pro</tspan>
       </text>
     </svg>
   )
