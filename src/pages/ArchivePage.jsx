@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { List, Archive, MagnifyingGlass, ArrowCounterClockwise, Trash, X } from '@phosphor-icons/react'
+import PageHint from '../components/ui/PageHint'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import Sidebar from '../components/layout/Sidebar'
-import UtilityBar from '../components/layout/UtilityBar'
 import { useArchive } from '../hooks/useArchive'
 import { useToast } from '../contexts/ToastContext'
 
@@ -154,7 +154,6 @@ export default function ArchivePage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
 
       <main id="main-content" className="board-main">
-        <UtilityBar />
 
         {/* ── Header ───────────────────────────────────────── */}
         <div className="board-header">
@@ -168,6 +167,9 @@ export default function ArchivePage() {
             </button>
             <Archive size={18} className="board-header-icon" aria-hidden="true" />
             <span className="board-header-title">Archive</span>
+          </div>
+          <div className="board-header-right">
+            <PageHint text="Archived tasks live here. Search and filter by workspace, project, or date. Restore a task to To Do, or permanently delete it." />
           </div>
         </div>
 

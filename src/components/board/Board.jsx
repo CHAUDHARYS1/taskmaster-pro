@@ -520,7 +520,7 @@ ${colData.map(c => `<div class="col">
 
   if (!currentWorkspace) return (
     <div className="app-shell">
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} onProfileClick={() => setShowSettings(true)} />
       <main className="board-main">
         <div className="board-empty-state">
           <ClipboardText size={48} className="board-empty-icon" aria-hidden="true" />
@@ -538,10 +538,10 @@ ${colData.map(c => `<div class="col">
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
-        <UtilityBar onProfileClick={() => setShowSettings(true)} />
+        <UtilityBar />
         <div className="board-header">
           <div className="board-header-left">
             <button

@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
 
-export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange }) {
+export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange, onProfileClick }) {
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
   const { projects, currentProject, switchProject }       = useProject()
-  const { user, signOut }                                 = useAuth()
+  const { user, signOut, profile, displayName }           = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
 
@@ -155,14 +156,62 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
 
         {/* ── Footer ── */}
         <div className="sidebar-footer sidebar-footer--collapsible">
-          <button
-            className="sidebar-signout-btn"
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <SignOut size={14} aria-hidden="true" />
-            <span className="sidebar-nav-label">Sign out</span>
-          </button>
+
+          {/* Profile */}
+          {onProfileClick ? (
+            <button
+              className="sidebar-profile-btn"
+              onClick={onProfileClick}
+              aria-label={`Settings for ${displayName || user?.email}`}
+              title={collapsed ? (displayName || user?.email) : undefined}
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                    {(displayName || user?.email || '?')[0].toUpperCase()}
+                  </span>
+              }
+              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+            </button>
+          ) : (
+            <div
+              className="sidebar-profile-btn sidebar-profile-btn--static"
+              aria-label={`Signed in as ${displayName || user?.email}`}
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                    {(displayName || user?.email || '?')[0].toUpperCase()}
+                  </span>
+              }
+              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+            </div>
+          )}
+
+          {/* Coffee + Sign out */}
+          <div className="sidebar-footer-row">
+            <a
+              href="https://buymeacoffee.com/schaudhary"
+              target="_blank"
+              rel="noreferrer"
+              className="sidebar-coffee-btn"
+              aria-label="Buy me a coffee"
+              title="Buy me a coffee"
+            >
+              <Coffee size={14} weight="bold" aria-hidden="true" />
+              <span className="sidebar-nav-label">Buy me a coffee</span>
+            </a>
+            <button
+              className="sidebar-signout-btn"
+              onClick={signOut}
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <SignOut size={14} aria-hidden="true" />
+              <span className="sidebar-nav-label">Sign out</span>
+            </button>
+          </div>
+
           <p className="sidebar-version">v1.2.00</p>
           <p className="sidebar-credit">
             Designed and built by{' '}

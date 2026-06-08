@@ -13,9 +13,10 @@ const DEFAULT_PREFS = {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user,       setUser]       = useState(null)
+  const [profile,    setProfile]    = useState(null)
+  const [loading,    setLoading]    = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) setTimeout(() => setSigningOut(false), 250)
     })
 
     return () => subscription.unsubscribe()
@@ -62,7 +64,10 @@ export function AuthProvider({ children }) {
   const signIn = (email, password) =>
     supabase.auth.signInWithPassword({ email, password })
 
-  const signOut = () => supabase.auth.signOut()
+  const signOut = async () => {
+    setSigningOut(true)
+    await supabase.auth.signOut()
+  }
 
   const updateProfile = async ({ first_name, last_name }) => {
     if (!user) return
@@ -116,7 +121,7 @@ export function AuthProvider({ children }) {
   )
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName, prefs, updatePrefs }}>
+    <AuthContext.Provider value={{ user, profile, loading, signingOut, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName, prefs, updatePrefs }}>
       {children}
     </AuthContext.Provider>
   )
