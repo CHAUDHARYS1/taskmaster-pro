@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Camera, SquaresFour, List, CalendarBlank, ChartBar, Cards, Rows, Clock, CalendarDot, Sun, Moon } from '@phosphor-icons/react'
+import { X, Camera, SquaresFour, List, CalendarBlank, ChartBar, Cards, Rows, Clock, CalendarDot, Sun, Moon, ArrowsOut } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -220,14 +220,15 @@ function PreferencesTab() {
 
       <PrefRow
         label="Card density"
-        hint="Compact hides descriptions and tightens padding."
+        hint="Compact hides descriptions. Expanded shows full content and checklist."
       >
         <SegmentedControl
           value={prefs.cardDensity}
           onChange={v => save({ cardDensity: v })}
           options={[
-            { value: 'comfortable', label: 'Comfortable', icon: <Cards size={13} weight="bold" /> },
-            { value: 'compact',     label: 'Compact',     icon: <Rows  size={13} weight="bold" /> },
+            { value: 'compact',     label: 'Compact',     icon: <Rows      size={13} weight="bold" /> },
+            { value: 'comfortable', label: 'Default',     icon: <Cards     size={13} weight="bold" /> },
+            { value: 'expanded',    label: 'Expanded',    icon: <ArrowsOut size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>

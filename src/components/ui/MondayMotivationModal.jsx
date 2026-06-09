@@ -26,7 +26,7 @@ function motivationMessage(count) {
 export default function MondayMotivationModal({ workspaceId, firstName, onClose }) {
   const { lastWeekCount, lastWeekDays, miniHeatmapCells, currentStreak, loading } = useMondayStats(workspaceId)
 
-  const greeting = firstName ? `Good morning, ${firstName}!` : 'Good morning!'
+  const greeting = firstName ? `Hello, ${firstName}!` : 'Hello!'
   const { main, showCount } = motivationMessage(lastWeekCount)
   const taskWord = lastWeekCount === 1 ? 'task' : 'tasks'
 

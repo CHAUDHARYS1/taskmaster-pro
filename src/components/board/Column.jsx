@@ -1,12 +1,14 @@
 import { memo, useRef, useState } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { useDroppable, useDndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { ArrowRight } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id })
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn }) {
+  const { setNodeRef } = useDroppable({ id: column.id })
+  const { over }       = useDndContext()
+  const isOver         = over?.id === column.id || tasks.some(t => t.id === over?.id)
   const { workspaceTemplate } = useWorkspace()
   const isJobTracker = workspaceTemplate === 'job-tracker'
 
@@ -51,6 +53,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
 
   return (
     <div
+      ref={setNodeRef}
       className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}
       style={column.color ? { '--col-color': column.color } : undefined}
     >
@@ -99,7 +102,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
       )}
 
       <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-        <ul ref={setNodeRef} className="column-list">
+        <ul className="column-list">
           {tasks.map(task => (
             <TaskCard
               key={task.id}
@@ -115,6 +118,9 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
               bulkMode={bulkMode}
               isSelected={selectedIds?.has(task.id) ?? false}
               onBulkToggle={onBulkToggle}
+              onMove={onMove}
+              isFirstColumn={isFirstColumn}
+              isLastColumn={isLastColumn}
             />
           ))}
           {emptyText && (

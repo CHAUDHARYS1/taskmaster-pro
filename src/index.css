@@ -645,11 +645,27 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.12s ease-out, background-color 0.12s ease-out;
 }
 
 .column--over {
-  box-shadow: var(--shadow-card), 0 0 0 2px var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 7%, var(--card));
+  box-shadow: var(--shadow-pop);
+}
+
+.column--over .column-header {
+  background-color: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-bottom-color: color-mix(in srgb, var(--accent) 25%, var(--line));
+}
+
+.column--over .column-label {
+  color: var(--accent);
+}
+
+.column--over .column-list {
+  outline: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -3px;
+  border-radius: 4px;
 }
 
 .column-header {
@@ -844,17 +860,44 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .task-card--overdue[style*="--priority-color"]  { border-left-color: var(--red);   }
 .task-card--due-soon[style*="--priority-color"] { border-left-color: var(--amber); }
 
-.task-card--dragging { opacity: 0.35; }
-.task-card--dragging.task-card--locked { opacity: 1; }
-.task-card--ghost {
-  box-shadow: var(--shadow-float);
-  cursor: grabbing;
-  animation: cardFloat 0.5s ease-in-out infinite alternate;
+.task-card--dragging {
+  opacity: 1;
+  border: 2px dashed color-mix(in srgb, var(--accent) 50%, transparent) !important;
+  background-color: color-mix(in srgb, var(--accent) 6%, var(--card));
+  box-shadow: none !important;
 }
 
-@keyframes cardFloat {
-  from { transform: rotate(-1deg) translateY(0px); }
-  to   { transform: rotate(1deg)  translateY(-3px); }
+.task-card--dragging > * {
+  visibility: hidden;
+}
+
+.task-card--dragging.task-card--locked { opacity: 1; }
+.task-card--ghost {
+  box-shadow: 0 16px 48px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.08);
+  cursor: grabbing;
+  will-change: transform;
+  animation:
+    cardPickup 200ms cubic-bezier(.165, .84, .44, 1) both,
+    cardHeld   3s    ease-in-out                      infinite alternate 200ms;
+}
+
+/* Phase 1: snap to "lifted" on pickup */
+@keyframes cardPickup {
+  from { transform: rotate(0deg)   scale(1)    translateY(0px); }
+  to   { transform: rotate(2deg)   scale(1.02) translateY(-4px); }
+}
+
+/* Phase 2: barely-there sway — both tilts positive so it reads as held, not rocking */
+@keyframes cardHeld {
+  from { transform: rotate(1.5deg) scale(1.02) translateY(-4px); }
+  to   { transform: rotate(2.5deg) scale(1.02) translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-card--ghost {
+    animation: none;
+    transform: scale(1.01);
+  }
 }
 
 /* ── Task text (title) ─────────────────────────────────────── */
@@ -4380,9 +4423,8 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 }
 
 .list-row--self-editing {
-  outline: 2px solid var(--editing-color, var(--accent));
-  outline-offset: -2px;
-  animation: editingPulse 2s ease-in-out infinite;
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: inset -3px 0 0 var(--accent), inset 3px 0 0 var(--accent);
 }
 
 .list-td {
@@ -4515,16 +4557,16 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .task-card:hover .task-drag-handle { opacity: 1; }
 .task-card--ghost .task-drag-handle { opacity: 1; }
 
-/* Self-editing: current user's own card glows while the panel is open */
+/* Self-editing: left + right rail + subtle background tint, no animation */
 .task-card--self-editing {
-  outline: 2px solid var(--editing-color, var(--accent));
-  outline-offset: 0px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--editing-color, var(--accent)) 20%, transparent), var(--shadow-card);
-  animation: editingPulse 2s ease-in-out infinite;
+  border-left-color: var(--accent) !important;
+  border-right: 3px solid var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 5%, var(--card));
+  box-shadow: var(--shadow-card);
 }
 
 .task-card--self-editing:hover {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--editing-color, var(--accent)) 20%, transparent), var(--shadow-card);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05);
 }
 
 /* Locked cards: suppress hover side-effects */
@@ -8175,11 +8217,6 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 .task-card--overdue  { border-left: 3px solid var(--red);   }
 .task-card--due-soon { border-left: 3px solid var(--amber); }
 
-/* ── Drag-drop: stronger drop-zone signal ────────────────── */
-
-.column--over {
-  box-shadow: var(--shadow-pop), 0 0 0 2px var(--accent);
-}
 
 /* ── Filter bar: replace browser-default select arrows ────── */
 

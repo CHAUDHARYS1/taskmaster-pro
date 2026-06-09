@@ -58,7 +58,7 @@ export default function ListView({ columns = DEFAULT_COLS, tasksByStatus, canEdi
             const editingUser     = editingMap?.[task.id]
             const isLockedByOther = editingUser != null && !editingUser.is_self
             const isSelfEditing   = editingUser?.is_self === true
-            const glowColor       = editingUser ? userColor(editingUser.user_id) : null
+            const glowColor       = isSelfEditing ? 'var(--accent)' : editingUser ? userColor(editingUser.user_id) : null
 
             return (
               <tr

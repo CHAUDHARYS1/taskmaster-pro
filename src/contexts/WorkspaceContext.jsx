@@ -70,6 +70,7 @@ export function WorkspaceProvider({ children }) {
         ...template.columnLabels,
         _template: template.id,
         ...(template.columnColors ? { _column_colors: template.columnColors } : {}),
+        ...(template.columns    ? { _columns: template.columns }            : {}),
       }
       await supabase.from('workspaces').update({ column_labels: labels }).eq('id', data.id)
       data.column_labels = labels

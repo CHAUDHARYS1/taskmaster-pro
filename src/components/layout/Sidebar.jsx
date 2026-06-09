@@ -101,8 +101,11 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                     title={isPersonal ? 'My Workspace' : ws.name}
                     aria-label={isPersonal ? 'My Workspace' : ws.name}
                   >
-                    <span className="ws-avatar sidebar-ws-compact-avatar">
-                      {ws.name.charAt(0).toUpperCase()}
+                    <span
+                      className="ws-avatar sidebar-ws-compact-avatar"
+                      style={{ background: ws.color ?? '#2563EB' }}
+                    >
+                      {ws.emoji || ws.name.charAt(0).toUpperCase()}
                     </span>
                   </button>
 
