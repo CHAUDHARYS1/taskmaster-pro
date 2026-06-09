@@ -75,8 +75,8 @@ function TaskCard({
   const isExpanded   = prefs?.cardDensity === 'expanded'
   const isLockedByOther = editingUser != null && !editingUser.is_self
   const isSelfEditing   = editingUser?.is_self === true
-  const glowColor       = isSelfEditing ? 'var(--accent)' : editingUser ? userColor(editingUser.user_id) : null
-  const priorityColor   = task.priority ? priorityMap[task.priority]?.color : null
+  const glowColor   = isSelfEditing ? 'var(--accent)' : editingUser ? userColor(editingUser.user_id) : null
+  const priorityDef = task.priority ? priorityMap[task.priority] : null
 
   const {
     attributes, listeners, setNodeRef,
@@ -85,8 +85,7 @@ function TaskCard({
 
   const style = {
     ...(isOverlay ? {} : { transform: CSS.Transform.toString(transform), transition }),
-    ...(glowColor    ? { '--editing-color':  glowColor }    : {}),
-    ...(priorityColor ? { '--priority-color': priorityColor } : {}),
+    ...(glowColor ? { '--editing-color': glowColor } : {}),
   }
 
   const handleOpen = () => {
@@ -186,6 +185,17 @@ function TaskCard({
             </button>
           )}
         </div>
+      )}
+
+      {/* Priority chip */}
+      {priorityDef && (
+        <span
+          className="task-priority-chip"
+          style={{ '--p-color': priorityDef.color, '--p-bg': priorityDef.bg }}
+        >
+          <span aria-hidden="true">{priorityDef.icon}</span>
+          {priorityDef.name}
+        </span>
       )}
 
       {/* Title */}

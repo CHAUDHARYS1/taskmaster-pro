@@ -244,7 +244,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
         role="complementary"
         aria-label="Task detail"
       >
-        <div className="task-panel-resize" onMouseDown={startResize} aria-hidden="true" title="Drag to resize" />
+        <div className="task-panel-resize" onMouseDown={startResize} onTouchStart={startResize} aria-hidden="true" title="Drag to resize" />
 
         {/* ── Header ──────────────────────────────────────── */}
         <div className="atp-hdr">

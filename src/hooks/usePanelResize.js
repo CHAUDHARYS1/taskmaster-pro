@@ -16,27 +16,34 @@ export function usePanelResize() {
 
   const startResize = useCallback((e) => {
     e.preventDefault()
-    const startX     = e.clientX
+    const isTouch    = e.type === 'touchstart'
+    const startX     = isTouch ? e.touches[0].clientX : e.clientX
     const startWidth = widthRef.current
 
-    document.body.style.userSelect   = 'none'
-    document.body.style.cursor       = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor     = 'col-resize'
 
     const onMove = (ev) => {
-      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (startX - ev.clientX)))
+      if (ev.cancelable) ev.preventDefault()
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (startX - clientX)))
       setWidth(next)
     }
 
-    const onUp = () => {
+    const onEnd = () => {
       document.body.style.userSelect = ''
       document.body.style.cursor     = ''
       document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup',   onUp)
+      document.removeEventListener('mouseup',   onEnd)
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend',  onEnd)
       localStorage.setItem(STORAGE_KEY, String(widthRef.current))
     }
 
     document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup',   onUp)
+    document.addEventListener('mouseup',   onEnd)
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend',  onEnd)
   }, [])
 
   return { width, startResize }

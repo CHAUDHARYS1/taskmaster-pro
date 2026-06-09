@@ -15,26 +15,38 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
   const [text, setText] = useState('')
   const [desc, setDesc] = useState('')
   const inputRef = useRef(null)
+  const descRef  = useRef(null)
 
   const showDesc = text.length > 0
+
+  const resetDescHeight = () => {
+    if (descRef.current) descRef.current.style.height = ''
+  }
 
   const submit = async () => {
     const trimmed = text.trim()
     if (!trimmed) return
     setText('')
     setDesc('')
+    resetDescHeight()
     await onQuickAdd(trimmed, desc.trim() || null)
     inputRef.current?.focus()
   }
 
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter')  { e.preventDefault(); submit() }
-    if (e.key === 'Escape') { setText(''); setDesc('') }
+    if (e.key === 'Escape') { setText(''); setDesc(''); resetDescHeight() }
+  }
+
+  const handleDescChange = (e) => {
+    setDesc(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = e.target.scrollHeight + 'px'
   }
 
   const handleDescKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
-    if (e.key === 'Escape') { setText(''); setDesc('') }
+    if (e.key === 'Escape') { setText(''); setDesc(''); resetDescHeight() }
   }
 
   const JOB_EMPTY = {
@@ -88,9 +100,10 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
           <div className={`quick-add-desc-wrap${showDesc ? ' quick-add-desc-wrap--open' : ''}`}>
             <div className="quick-add-desc-inner">
               <textarea
+                ref={descRef}
                 className="quick-add-desc"
                 value={desc}
-                onChange={e => setDesc(e.target.value)}
+                onChange={handleDescChange}
                 onKeyDown={handleDescKeyDown}
                 placeholder="Add a description… (optional)"
                 rows={2}

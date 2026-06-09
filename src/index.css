@@ -781,16 +781,22 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 
 /* Slide-down description field */
 .quick-add-desc-wrap {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.22s ease;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
 }
 
 .quick-add-desc-wrap--open {
-  max-height: 110px;
+  grid-template-rows: 1fr;
 }
 
 .quick-add-desc-inner {
+  overflow: hidden;
+  padding-top: 0;
+  transition: padding-top 0.22s ease;
+}
+
+.quick-add-desc-wrap--open .quick-add-desc-inner {
   padding-top: var(--space-2);
 }
 
@@ -804,6 +810,7 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   font-size: var(--text-sm);
   font-family: inherit;
   resize: none;
+  overflow: hidden;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
@@ -823,7 +830,7 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   position: relative;
   background-color: var(--card);
   border: 1px solid var(--line-soft);
-  border-left: 3px solid var(--priority-color, var(--line-soft));
+  border-left: 3px solid var(--line-soft);
   border-radius: var(--radius);
   padding: 11px var(--space-4) 10px 13px;
   cursor: grab;
@@ -856,9 +863,6 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .task-card--overdue  { border-left-color: var(--red);   }
 .task-card--due-soon { border-left-color: var(--amber); }
 
-/* When no priority is set, urgency overrides the neutral rule */
-.task-card--overdue[style*="--priority-color"]  { border-left-color: var(--red);   }
-.task-card--due-soon[style*="--priority-color"] { border-left-color: var(--amber); }
 
 .task-card--dragging {
   opacity: 1;
@@ -2524,16 +2528,37 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   top: 0;
   left: 0;
   bottom: 0;
-  width: 6px;
+  width: 16px;
   cursor: col-resize;
   z-index: 10;
-  border-radius: 0;
-  transition: background 0.15s;
+  transition: background-color 0.15s;
 }
-.task-panel-resize:hover,
-.task-panel-resize:active {
-  background: var(--accent);
-  opacity: 0.35;
+
+/* Three grip dots centered vertically */
+.task-panel-resize::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  color: var(--ink-3);
+  background: currentColor;
+  box-shadow: 0 -9px 0 currentColor, 0 9px 0 currentColor;
+  opacity: 0.45;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.task-panel-resize:hover {
+  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.task-panel-resize:hover::after,
+.task-panel-resize:active::after {
+  color: var(--accent);
+  opacity: 1;
 }
 
 @keyframes panelSlideDown {
@@ -3402,6 +3427,24 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 }
 
 /* task-card-top removed — priority is now the left border stripe */
+
+/* Priority chip on task cards */
+.task-priority-chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.03em;
+  color: var(--p-color);
+  background-color: var(--p-bg);
+  padding: 1px 5px 1px 4px;
+  border-radius: 3px;
+  pointer-events: none;
+}
 
 /* task-priority-badge kept for the detail panel */
 .task-priority-badge {
