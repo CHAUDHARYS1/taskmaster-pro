@@ -970,6 +970,9 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   gap: 5px;
 }
 
+/* Move arrows row — hidden on desktop, shown on mobile */
+.task-card-move-row { display: none; }
+
 /* Small metadata chips (comment count, checklist count) */
 .task-meta-chip {
   display: inline-flex;
@@ -992,17 +995,28 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .task-card--overdue  .task-due { color: var(--red);   }
 .task-card--due-soon .task-due { color: var(--amber); }
 
-/* Assignee avatar */
-.task-assignee-avatar {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  font-size: 8px;
-  font-weight: var(--weight-bold);
-  display: flex;
+/* Assignee name chip */
+.task-assignee-name {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  background: var(--paper-2);
+  border-radius: 999px;
+  padding: 2px 8px 2px 5px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: default;
+  flex-shrink: 0;
+}
+.task-assignee-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
@@ -2417,6 +2431,17 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .filter-clear:hover { color: var(--red); background-color: var(--red-tint); }
 
 .filter-add-btn { margin-left: auto; white-space: nowrap; min-height: unset; padding: 5px var(--space-3); }
+
+/* Filter tray: desktop = transparent pass-through, items flow inline */
+.filter-tray        { display: contents; }
+.filter-icon-wrap   { display: contents; }
+.filter-icon        { display: none; }
+
+/* Mobile-only elements: hidden on desktop */
+.filter-tray-toggle { display: none; }
+.filter-tray-badge  { display: none; }
+.filter-add-icon    { display: none; }
+.filter-clear-icon  { display: none; }
 
 /* ── Board canvas: content + panel side-by-side ───────────── */
 .board-canvas {
@@ -3885,59 +3910,155 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   .board-header-right {
     gap: var(--space-2);
   }
-  /* Hide view controls from header — they live in mob-view-bar instead */
-  .board-header-btn--print,
-  .view-toggle,
-  .ws-settings-btn { display: none; }
+  .presence-avatars { display: none; }
 
-  /* ── Mobile view bar ──────────────────────────────────────── */
-  .mob-view-bar {
-    display: flex;
-    align-items: stretch;
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .mob-view-bar::-webkit-scrollbar { display: none; }
 
-  .mob-view-btn {
-    display: flex;
-    flex-direction: column;
+  /* ── Filter bar: search + toggle + add task ─────────────── */
+  .filter-bar {
+    flex-wrap: wrap;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
     align-items: center;
-    justify-content: center;
-    gap: 3px;
+  }
+  .filter-search-wrap {
     flex: 1;
-    min-width: 56px;
-    padding: var(--space-2) var(--space-1);
+    min-width: 0;
+  }
+
+  /* Filter tray: hidden on mobile until toggled */
+  .filter-tray {
+    display: none;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--line);
+  }
+  .filter-tray--open { display: flex; }
+
+  /* Tray items: visible selects with icon prefix */
+  .filter-tray .filter-icon-wrap {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 130px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    padding: 0 var(--space-2);
+    gap: var(--space-1);
+  }
+  .filter-tray .filter-icon-wrap--active {
+    background: var(--accent-tint);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .filter-tray .filter-icon { display: flex; flex-shrink: 0; }
+  .filter-tray .filter-select {
+    flex: 1;
+    height: 100%;
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--ink-4);
-    font-size: var(--text-xs);
-    font-family: var(--font-body);
-    font-weight: var(--weight-medium);
+    padding: 0;
+    font-size: var(--text-sm);
+    color: inherit;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s, background-color 0.15s;
-    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    min-width: 0;
   }
-  .mob-view-btn:hover,
-  .mob-view-btn:focus-visible {
-    color: var(--ink-2);
-    background-color: var(--surface);
+  .filter-tray .filter-select--active { font-weight: var(--weight-medium); }
+
+  /* Clear inside tray */
+  .filter-tray .filter-clear {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 34px;
+    padding: 0 var(--space-2);
   }
-  .mob-view-btn:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
+  .filter-tray .filter-clear .filter-clear-icon  { display: flex; }
+  .filter-tray .filter-clear .filter-clear-label { display: inline; }
+
+  /* Filter toggle button */
+  .filter-tray-toggle {
+    display: flex;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
   }
-  .mob-view-btn--active {
+  .filter-tray-toggle--active {
+    background: var(--accent-tint);
+    border-color: var(--accent);
     color: var(--accent);
-    border-bottom-color: var(--accent);
+  }
+  .filter-tray-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 1px solid var(--card);
   }
 
-  /* ── Filter bar: fix add-button anchor ───────────────────── */
-  .filter-add-btn { margin-left: 0; }
+  /* Add Task: icon only on mobile */
+  .filter-add-btn {
+    height: 34px;
+    padding: 0 var(--space-2);
+    min-height: unset;
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+  .filter-add-icon  { display: flex; }
+  .filter-add-label { display: none; }
+
+  /* ── Task card: column move arrows ───────────────────────── */
+  .task-card-move-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--line-soft);
+  }
+  .task-card-move-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 36px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-card-move-btn:hover,
+  .task-card-move-btn:focus-visible {
+    background-color: var(--paper-2);
+    color: var(--ink);
+  }
+  .task-card-move-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
 
   /* ── Task detail panel: tighter body ─────────────────────── */
   .task-panel-body {
@@ -3947,11 +4068,11 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   .tiptap-toolbar { flex-wrap: wrap; }
 
   /* ── List view: horizontal scroll ────────────────────────── */
-  .list-view-wrap { padding: var(--space-2); }
-  .list-view {
-    overflow-x: auto;
+  .list-view-wrap {
+    padding: var(--space-2);
     -webkit-overflow-scrolling: touch;
   }
+  .list-view { min-width: 540px; }
   .list-table { min-width: 540px; }
   .list-th,
   .list-td { padding: var(--space-2); }
@@ -4066,7 +4187,65 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   transform: translateY(0);
 }
 
-/* ── Mobile view bar (hidden on desktop) ─────────────────── */
+/* ── View tab bar (below breadcrumb, all screen sizes) ──────── */
+.icon-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  padding: 0 var(--space-2);
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.icon-bar::-webkit-scrollbar { display: none; }
+
+.icon-bar-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 38px;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-bar-btn:hover { color: var(--ink-1); }
+.icon-bar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+.icon-bar-btn--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Mobile: icon only, equal-width tabs, taller touch target */
+@media (max-width: 768px) {
+  .icon-bar {
+    padding: 0;
+    gap: 0;
+  }
+  .icon-bar-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0;
+    min-height: 44px;
+  }
+  .icon-bar-label { display: none; }
+}
+/* ── Mobile view bar (legacy — hidden everywhere) ────────── */
 .mob-view-bar { display: none; }
 
 /* ── View toggle ──────────────────────────────────────────── */
@@ -9079,6 +9258,57 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 .board-canvas--compact .task-labels {
   margin-top: 4px;
   gap: 3px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BOARD EXPANDED DENSITY
+   ══════════════════════════════════════════════════════════════ */
+
+.board-canvas--expanded .task-desc-preview {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.task-checklist-preview {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-checklist-preview-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--text-body);
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+.task-checklist-preview-check {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1.5px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  color: transparent;
+}
+
+.task-checklist-preview-item--done .task-checklist-preview-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.task-checklist-preview-item--done .task-checklist-preview-text {
+  text-decoration: line-through;
+  color: var(--ink-5);
 }
 
 /* ── Calendar: create-in selector ───────────────────────── */

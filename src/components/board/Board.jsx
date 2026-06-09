@@ -465,6 +465,18 @@ export default function Board() {
     reorderTask(active.id, targetColumnId, newPosition)
   }
 
+  const handleMoveTask = useCallback((taskId, currentStatus, direction) => {
+    const colIdx = columns.findIndex(c => c.id === currentStatus)
+    const newColIdx = direction === 'next' ? colIdx + 1 : colIdx - 1
+    if (newColIdx < 0 || newColIdx >= columns.length) return
+    const newStatus = columns[newColIdx].id
+    const targetTasks = tasksByStatus[newStatus] ?? []
+    const newPosition = targetTasks.length > 0
+      ? Math.max(...targetTasks.map(t => t.position)) + 1000
+      : 1000
+    reorderTask(taskId, newStatus, newPosition)
+  }, [columns, tasksByStatus, reorderTask])
+
   const escHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
   const handlePrint = () => {
@@ -562,42 +574,6 @@ ${colData.map(c => `<div class="col">
           <div className="board-header-right">
             <PresenceAvatars members={workspaceMembers} present={present} />
 
-            {/* View mode toggle */}
-            <div className="view-toggle" role="group" aria-label="View mode">
-              <button
-                className={`view-toggle-btn${viewMode === 'board' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('board')}
-                aria-pressed={viewMode === 'board'}
-                title="Board view (B)"
-              >
-                <SquaresFour size={20} aria-hidden="true" />
-              </button>
-              <button
-                className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('list')}
-                aria-pressed={viewMode === 'list'}
-                title="List view (L)"
-              >
-                <Rows size={20} aria-hidden="true" />
-              </button>
-              <button
-                className={`view-toggle-btn${viewMode === 'calendar' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('calendar')}
-                aria-pressed={viewMode === 'calendar'}
-                title="Calendar view (C)"
-              >
-                <CalendarBlank size={20} aria-hidden="true" />
-              </button>
-              <button
-                className={`view-toggle-btn${viewMode === 'gantt' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('gantt')}
-                aria-pressed={viewMode === 'gantt'}
-                title="Gantt view (Ctrl+G)"
-              >
-                <ChartBar size={20} aria-hidden="true" />
-              </button>
-            </div>
-
             {isOwner && doneCount > 0 && (
               <button
                 className="ws-settings-btn board-archive-done-btn"
@@ -611,7 +587,7 @@ ${colData.map(c => `<div class="col">
             )}
 
             <button
-              className="ws-settings-btn board-header-btn--print"
+              className="ws-settings-btn"
               onClick={handlePrint}
               aria-label="Print task board"
               title="Print board"
@@ -630,57 +606,45 @@ ${colData.map(c => `<div class="col">
           </div>
         </div>
 
-        {/* ── Mobile view bar (second row, mobile-only) ──────────── */}
-        <nav className="mob-view-bar" aria-label="View options">
+        {/* ── View tab bar (below breadcrumb, all screen sizes) ── */}
+        <div className="icon-bar" role="group" aria-label="View mode">
           <button
-            className={`mob-view-btn${viewMode === 'board' ? ' mob-view-btn--active' : ''}`}
+            className={`icon-bar-btn${viewMode === 'board' ? ' icon-bar-btn--active' : ''}`}
             onClick={() => setViewMode('board')}
             aria-pressed={viewMode === 'board'}
+            title="Board view (Ctrl+B)"
           >
-            <SquaresFour size={22} aria-hidden="true" />
-            <span>Board</span>
+            <SquaresFour size={18} aria-hidden="true" />
+            <span className="icon-bar-label">Board</span>
           </button>
           <button
-            className={`mob-view-btn${viewMode === 'list' ? ' mob-view-btn--active' : ''}`}
+            className={`icon-bar-btn${viewMode === 'list' ? ' icon-bar-btn--active' : ''}`}
             onClick={() => setViewMode('list')}
             aria-pressed={viewMode === 'list'}
+            title="List view (Ctrl+L)"
           >
-            <Rows size={22} aria-hidden="true" />
-            <span>List</span>
+            <Rows size={18} aria-hidden="true" />
+            <span className="icon-bar-label">List</span>
           </button>
           <button
-            className={`mob-view-btn${viewMode === 'calendar' ? ' mob-view-btn--active' : ''}`}
+            className={`icon-bar-btn${viewMode === 'calendar' ? ' icon-bar-btn--active' : ''}`}
             onClick={() => setViewMode('calendar')}
             aria-pressed={viewMode === 'calendar'}
+            title="Calendar view"
           >
-            <CalendarBlank size={22} aria-hidden="true" />
-            <span>Calendar</span>
+            <CalendarBlank size={18} aria-hidden="true" />
+            <span className="icon-bar-label">Calendar</span>
           </button>
           <button
-            className={`mob-view-btn${viewMode === 'gantt' ? ' mob-view-btn--active' : ''}`}
+            className={`icon-bar-btn${viewMode === 'gantt' ? ' icon-bar-btn--active' : ''}`}
             onClick={() => setViewMode('gantt')}
             aria-pressed={viewMode === 'gantt'}
+            title="Gantt view (Ctrl+G)"
           >
-            <ChartBar size={22} aria-hidden="true" />
-            <span>Gantt</span>
+            <ChartBar size={18} aria-hidden="true" />
+            <span className="icon-bar-label">Gantt</span>
           </button>
-          <button
-            className="mob-view-btn"
-            onClick={handlePrint}
-            aria-label="Print task board"
-          >
-            <Printer size={22} aria-hidden="true" />
-            <span>Print</span>
-          </button>
-          <button
-            className="mob-view-btn"
-            onClick={() => setShowWsSettings(true)}
-            aria-label="Workspace settings"
-          >
-            <GearSix size={22} aria-hidden="true" />
-            <span>Settings</span>
-          </button>
-        </nav>
+        </div>
 
 
         <div ref={filterBarRef}>
@@ -701,7 +665,7 @@ ${colData.map(c => `<div class="col">
         )}
 
         {/* ── Canvas: board content + detail panel side-by-side ── */}
-        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : ''}`}>
+        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : prefs?.cardDensity === 'expanded' ? ' board-canvas--expanded' : ''}`}>
           <div className="board-canvas__content">
             {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
               <div className="board-empty-state">
@@ -721,7 +685,7 @@ ${colData.map(c => `<div class="col">
                   onDragCancel={handleDragCancel}
                 >
                   <div className="board-columns">
-                    {columns.map(col => (
+                    {columns.map((col, idx) => (
                       <Column
                         key={col.id}
                         column={col}
@@ -739,6 +703,9 @@ ${colData.map(c => `<div class="col">
                         bulkMode={bulkMode}
                         selectedIds={selectedIds}
                         onBulkToggle={handleBulkToggle}
+                        onMove={canEdit ? handleMoveTask : undefined}
+                        isFirstColumn={idx === 0}
+                        isLastColumn={idx === columns.length - 1}
                       />
                     ))}
                   </div>
