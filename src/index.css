@@ -134,6 +134,12 @@ ul, ol { list-style: none; }
 a { touch-action: manipulation; }
 h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 
+/* ── Page transition ──────────────────────────────────────── */
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ── App Shell ────────────────────────────────────────────── */
 .app-shell {
   display: flex;
@@ -142,6 +148,11 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  animation: pageEnter 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell { animation: none; }
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -838,7 +849,17 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   flex-direction: column;
   gap: 4px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow 0.18s ease, opacity 0.15s ease;
+  transition: box-shadow 0.18s ease, opacity 0.15s ease, transform 0.12s ease;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Touch press feedback — card compresses slightly while holding */
+@media (hover: none) and (pointer: coarse) {
+  .task-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
 }
 
 .task-card:hover {
@@ -2504,6 +2525,11 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: pageEnter 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-canvas__content { animation: none; }
 }
 
 /* ── Task Detail Panel ────────────────────────────────────── */
@@ -6855,11 +6881,13 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 .dashboard {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   width: 100%;
+  max-width: 100%;
 }
 
 /* ── Loading skeleton ─────────────────────────────────────── */
@@ -6904,6 +6932,8 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--line-soft);
   animation: dash-fade-up 0.3s both;
+  position: relative;
+  z-index: 10;
 }
 
 .dash-header-date {
@@ -6983,12 +7013,16 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   flex-direction: column;
   gap: var(--space-4);
   animation: dash-fade-up 0.35s both;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .dash-section-hdr {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .dash-section-title {
@@ -6999,8 +7033,10 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   letter-spacing: 0.08em;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0;
+  min-width: 0;
 }
 
 .dash-section-title-year {
@@ -7121,16 +7157,7 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 .dash-bottom-grid > .dash-section:nth-child(1) { animation-delay: 0.17s; }
 .dash-bottom-grid > .dash-section:nth-child(2) { animation-delay: 0.22s; }
 
-@media (max-width: 900px) {
-  .dash-stat-rail   { grid-template-columns: repeat(3, 1fr); }
-  .dash-bottom-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 560px) {
-  .dash-stat-rail  { grid-template-columns: repeat(2, 1fr); }
-  .dashboard       { padding: var(--space-4); gap: var(--space-4); }
-  .dash-header-day { font-size: 1.5rem; }
-}
+/* (breakpoints consolidated below with .dash-grid — see end of dashboard section) */
 
 /* ── Stat cards (new 6-card grid) ────────────────────────── */
 .dash-stat-cards {
@@ -7397,10 +7424,13 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
   align-items: flex-end;
   gap: var(--space-2);
   padding-bottom: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .velocity-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7458,17 +7488,15 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 
 .dash-grid .dash-widget {
   height: 100%;
+  min-width: 0;
 }
 
 .dash-grid .dash-section {
   height: 100%;
+  min-width: 0;
 }
 
-@media (max-width: 900px) {
-  .dash-grid { grid-template-columns: 1fr; }
-  .dash-grid .dash-widget,
-  .dash-grid .dash-section { height: auto; }
-}
+/* (dash-grid breakpoint consolidated below) */
 
 /* ── Dashboard drag-and-drop ─────────────────────────────── */
 .dash-widget {
@@ -7527,19 +7555,226 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
   cursor: grabbing;
 }
 
-/* ── Responsive overrides (new layout) ──────────────────── */
+/* ── Widget hide button ───────────────────────────────────── */
+.dash-hide-btn {
+  position: absolute;
+  top: 10px;
+  right: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--ink-4);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  z-index: 2;
+}
+
+.dash-widget:hover .dash-hide-btn,
+.dash-hide-btn:focus-visible {
+  opacity: 1;
+}
+
+.dash-hide-btn:hover {
+  background: var(--red-tint);
+  color: var(--red);
+}
+
+.dash-hide-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .dash-hide-btn { opacity: 1; }
+}
+
+/* ── Customize button ────────────────────────────────────── */
+.dash-customize-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dash-customize-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+
+.dash-customize-btn:hover,
+.dash-customize-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.dash-customize-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+/* ── Customize panel ─────────────────────────────────────── */
+.dash-customize-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 230px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  z-index: 200;
+  padding: var(--space-2);
+  animation: pageEnter 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-customize-hint {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  margin: 0;
+}
+
+/* ── Widget toggle row ───────────────────────────────────── */
+.dash-widget-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px var(--space-3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.1s;
+  gap: var(--space-3);
+}
+
+.dash-widget-toggle:hover { background: var(--paper-2); }
+
+.dash-widget-toggle-name {
+  font-size: var(--text-body);
+  color: var(--ink-2);
+  font-weight: var(--weight-medium);
+  flex: 1;
+}
+
+.dash-widget-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.dash-widget-toggle-pill {
+  width: 32px;
+  height: 18px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+
+.dash-widget-toggle-pill::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dash-widget-toggle-input:checked + .dash-widget-toggle-pill {
+  background: var(--accent);
+}
+
+.dash-widget-toggle-input:checked + .dash-widget-toggle-pill::after {
+  transform: translateX(14px);
+}
+
+.dash-widget-toggle-input:focus-visible + .dash-widget-toggle-pill {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── All-hidden empty state ──────────────────────────────── */
+.dash-all-hidden {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--ink-4);
+  font-size: var(--text-body);
+  text-align: center;
+}
+
+.dash-all-hidden-restore {
+  font-size: var(--text-body);
+  font-family: var(--font-body);
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Dashboard responsive breakpoints ───────────────────── */
+
+/* Tablet wide: 3-up stat cards, keep 2-col widget grid */
 @media (max-width: 1100px) {
   .dash-stat-cards { grid-template-columns: repeat(3, 1fr); }
-  .dash-mid-grid   { grid-template-columns: 1fr 1fr; }
 }
 
+/* Tablet narrow: 2-up stat cards, single-col widget grid */
 @media (max-width: 780px) {
   .dash-stat-cards { grid-template-columns: repeat(2, 1fr); }
-  .dash-mid-grid   { grid-template-columns: 1fr; }
+  .dash-grid       { grid-template-columns: 1fr; }
+  .dash-grid .dash-widget,
+  .dash-grid .dash-section { height: auto; }
+  /* drag handle always visible — no hover on touch */
+  .dash-drag-handle { opacity: 1; }
 }
 
+/* Mobile: tighter padding, smaller header, compact stat cards */
 @media (max-width: 480px) {
-  .dash-stat-cards { grid-template-columns: 1fr 1fr; }
+  .dashboard       { padding: var(--space-3); gap: var(--space-3); }
+  .dash-header-day { font-size: 1.5rem; }
+  .dash-stat-cards { grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
+  .dash-stat-card  { padding: var(--space-3); gap: var(--space-2); }
+  .dash-stat-card-icon { width: 30px; height: 30px; }
+  .dash-stat-card-value { font-size: 1.3rem; }
+  .dash-section    { padding: var(--space-4) var(--space-4); }
 }
 
 /* ── Task checklist ──────────────────────────────────────── */

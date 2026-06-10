@@ -1,10 +1,9 @@
 import { lazy, Suspense, useState } from 'react'
-import { List, Plus, SquaresFour } from '@phosphor-icons/react'
+import { List, SquaresFour } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
-import DashboardAddTaskModal from './DashboardAddTaskModal'
 
 const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 
@@ -14,8 +13,6 @@ export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
-  const [refreshKey,   setRefreshKey]   = useState(0)
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
   const handleToggleSidebar = () => {
@@ -53,29 +50,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <DashboardView key={refreshKey} />
+        <DashboardView />
       </main>
-
-      {currentWorkspace && (
-        <button
-          className="dash-fab"
-          onClick={() => setShowAddModal(true)}
-          aria-label="Add new task"
-          title="Add new task"
-        >
-          <Plus size={22} weight="bold" aria-hidden="true" />
-        </button>
-      )}
-
-      {showAddModal && (
-        <DashboardAddTaskModal
-          onClose={() => setShowAddModal(false)}
-          onSaved={() => {
-            setRefreshKey(k => k + 1)
-            setShowAddModal(false)
-          }}
-        />
-      )}
 
       <Suspense fallback={null}>
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

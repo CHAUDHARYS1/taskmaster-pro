@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import dayjs from 'dayjs'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -409,11 +409,20 @@ export default function Board() {
   })
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
   )
 
   const handleDragStart = ({ active }) => {
     if (!canEdit) return
+    if (navigator.vibrate) navigator.vibrate(12)
     const all = Object.values(tasksByStatus).flat()
     setActiveTask(all.find(t => t.id === active.id) ?? null)
   }
@@ -666,7 +675,7 @@ ${colData.map(c => `<div class="col">
 
         {/* ── Canvas: board content + detail panel side-by-side ── */}
         <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : prefs?.cardDensity === 'expanded' ? ' board-canvas--expanded' : ''}`}>
-          <div className="board-canvas__content">
+          <div key={`${currentWorkspace?.id ?? ''}-${currentProject?.id ?? 'all'}`} className="board-canvas__content">
             {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
               <div className="board-empty-state">
                 <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />

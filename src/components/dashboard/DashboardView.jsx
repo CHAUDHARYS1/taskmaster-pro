@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import {
   CheckCircle, Warning, TrendUp, Clock,
   ListChecks, ChartBar, CalendarDots, DotsSixVertical,
+  X, SlidersHorizontal,
 } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
 
@@ -40,6 +41,16 @@ const DEFAULT_GRID_ORDER = [
   'velocity',         'heatmap',
   'recent',
 ]
+
+const WIDGET_LABELS = {
+  'status-breakdown':   'Status Breakdown',
+  'priority-breakdown': 'Priority Breakdown',
+  'due-soon':           'Due in 7 Days',
+  'task-progress':      'Task Progress',
+  'velocity':           'Weekly Velocity',
+  'heatmap':            'Activity Heatmap',
+  'recent':             'Recently Completed',
+}
 
 const HEATMAP_LEVELS = [
   { min: 0,  cls: 'hm-0' },
@@ -90,7 +101,7 @@ const PRIORITY_COLORS = {
 
 /* ─── SortableWidget ─────────────────────────────────────────── */
 
-function SortableWidget({ id, children }) {
+function SortableWidget({ id, children, onHide }) {
   const {
     attributes,
     listeners,
@@ -120,6 +131,14 @@ function SortableWidget({ id, children }) {
         aria-label="Drag to reorder widget"
       >
         <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
+      </button>
+      <button
+        className="dash-hide-btn"
+        onClick={() => onHide(id)}
+        aria-label={`Hide ${WIDGET_LABELS[id] ?? id} widget`}
+        title="Hide widget"
+      >
+        <X size={11} weight="bold" aria-hidden="true" />
       </button>
       {children}
     </div>
@@ -415,6 +434,46 @@ export default function DashboardView() {
 
   const [activeId, setActiveId] = useState(null)
 
+  const [hiddenWidgets, setHiddenWidgets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tm_dashboard_hidden')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+
+  const [showCustomize, setShowCustomize] = useState(false)
+  const customizeRef = useRef(null)
+
+  useEffect(() => {
+    if (!showCustomize) return
+    const handler = (e) => {
+      if (customizeRef.current && !customizeRef.current.contains(e.target)) {
+        setShowCustomize(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showCustomize])
+
+  const hideWidget = (id) => {
+    setHiddenWidgets(prev => {
+      const next = new Set(prev)
+      next.add(id)
+      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  const toggleWidget = (id) => {
+    setHiddenWidgets(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
+      return next
+    })
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -561,6 +620,42 @@ export default function DashboardView() {
           <span className="dash-header-day">{dayjs().format('dddd')}</span>
           <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
         </div>
+
+        <div className="dash-customize-wrap" ref={customizeRef}>
+          <button
+            className={`dash-customize-btn${showCustomize ? ' dash-customize-btn--active' : ''}`}
+            onClick={() => setShowCustomize(p => !p)}
+            aria-label="Customize dashboard widgets"
+            aria-expanded={showCustomize}
+          >
+            <SlidersHorizontal size={13} weight="bold" aria-hidden="true" />
+            Customize
+            {hiddenWidgets.size > 0 && (
+              <span className="dash-customize-badge">{hiddenWidgets.size}</span>
+            )}
+          </button>
+
+          {showCustomize && (
+            <div className="dash-customize-panel" role="dialog" aria-label="Widget visibility">
+              <p className="dash-customize-hint">Show or hide dashboard widgets</p>
+              {DEFAULT_GRID_ORDER.map(id => {
+                const visible = !hiddenWidgets.has(id)
+                return (
+                  <label key={id} className="dash-widget-toggle">
+                    <span className="dash-widget-toggle-name">{WIDGET_LABELS[id]}</span>
+                    <input
+                      type="checkbox"
+                      className="dash-widget-toggle-input"
+                      checked={visible}
+                      onChange={() => toggleWidget(id)}
+                    />
+                    <span className="dash-widget-toggle-pill" aria-hidden="true" />
+                  </label>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </header>
 
       {/* ── Stat cards (static, full-width) ──────────── */}
@@ -581,13 +676,22 @@ export default function DashboardView() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={gridOrder} strategy={rectSortingStrategy}>
-          <div className="dash-grid">
-            {gridOrder.map(id => (
-              <SortableWidget key={id} id={id}>
-                {gridWidgets[id]}
-              </SortableWidget>
-            ))}
-          </div>
+          {gridOrder.every(id => hiddenWidgets.has(id)) ? (
+            <div className="dash-all-hidden">
+              <p>All widgets are hidden.</p>
+              <button className="dash-all-hidden-restore" onClick={() => setShowCustomize(true)}>
+                Open Customize to restore them
+              </button>
+            </div>
+          ) : (
+            <div className="dash-grid">
+              {gridOrder.filter(id => !hiddenWidgets.has(id)).map(id => (
+                <SortableWidget key={id} id={id} onHide={hideWidget}>
+                  {gridWidgets[id]}
+                </SortableWidget>
+              ))}
+            </div>
+          )}
         </SortableContext>
 
         <DragOverlay>
