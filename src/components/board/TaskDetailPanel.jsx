@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
 import { X, ArrowsClockwise } from '@phosphor-icons/react'
@@ -174,11 +174,11 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const commentInputRef = useRef(null)
   const titleRef        = useRef(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = titleRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
+    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px'
   }, [title])
 
   useEffect(() => { setTitle(task.text) },                         [task.text])

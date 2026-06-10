@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { isDesktop } from '../../utils/device'
@@ -57,11 +57,11 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
     setTimeout(onClose, 220)
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = titleRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
+    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px'
   }, [title])
 
   useEffect(() => {
