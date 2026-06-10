@@ -741,10 +741,12 @@ ${colData.map(c => `<div class="col">
                   canDelete={canDelete}
                   editingMap={editingMap}
                   showProject={isGlobalBoard}
+                  members={workspaceMembers}
                   onDelete={handleColumnDelete}
                   onArchive={handleColumnArchive}
                   onOpen={setSelectedTaskId}
                   onComplete={handleComplete}
+                  onUpdate={updateTask}
                 />
               </div>
             ) : viewMode === 'calendar' ? (

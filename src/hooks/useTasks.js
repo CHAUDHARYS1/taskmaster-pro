@@ -113,9 +113,11 @@ export function useTasks(workspaceId, projectId) {
 
   const updateTask = async (taskId, updates) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t))
+    // Strip client-only joined fields before sending to the DB
+    const { assignee, project, comments, task_checklist_items, ...dbUpdates } = updates
     const { error } = await supabase
       .from('tasks')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...dbUpdates, updated_at: new Date().toISOString() })
       .eq('id', taskId)
     if (error) { fetchTasks(); throw error }
   }
