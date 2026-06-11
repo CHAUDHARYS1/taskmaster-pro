@@ -18,6 +18,7 @@ import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
 import FilterBar from './FilterBar'
+import QuickLinksPopover from './QuickLinksPopover'
 import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import BulkActionsBar from './BulkActionsBar'
@@ -674,6 +675,8 @@ ${colData.map(c => `<div class="col">
                 <span className="board-archive-done-badge">{doneCount}</span>
               </button>
             )}
+
+            <QuickLinksPopover />
 
             <button
               className="ws-settings-btn"
