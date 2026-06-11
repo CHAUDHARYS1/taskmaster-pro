@@ -10596,68 +10596,90 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 
 /* ── Notification Center ──────────────────────────────────────────────────── */
 
-/* Bell button in sidebar (extends sidebar-dash-btn) */
+/* Bell button — icon only, lives in sidebar header */
 .notif-bell-btn {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--ink-3);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
 }
+.notif-bell-btn:hover { background: var(--paper-2); color: var(--ink); }
+.notif-bell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .notif-bell-badge {
   position: absolute;
-  top: 3px;
-  right: 6px;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
+  top: 2px;
+  right: 2px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
   background: var(--red, #ef4444);
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 14px;
   text-align: center;
-  padding: 0 3px;
+  padding: 0 2px;
   pointer-events: none;
 }
-/* In collapsed sidebar, badge shifts to icon position */
-.sidebar--collapsed .notif-bell-badge {
-  top: 3px;
-  right: 3px;
+
+/* Logo row — make it flex so bell sits to the right of the wordmark */
+.sidebar-logo-full {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
-/* Overlay */
-.notif-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  z-index: 899;
+/* Bell for collapsed sidebar state — centred below the mark icon */
+.sidebar-logo-bell-collapsed { display: none; }
+.sidebar--collapsed .sidebar-logo-bell-collapsed {
+  display: flex;
+  justify-content: center;
+}
+/* On mobile (sidebar always full), never show the collapsed bell */
+@media (max-width: 768px) {
+  .sidebar-logo-bell-collapsed { display: none !important; }
 }
 
-/* Panel */
-.notif-panel {
+/* ── Floating popover ─────────────────────────────────────────────────────── */
+
+.notif-popover {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 360px;
-  max-width: 100vw;
+  width: 344px;
+  max-height: 520px;
   background: var(--card);
-  border-left: 1px solid var(--line);
-  box-shadow: -4px 0 28px rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
   z-index: 900;
   display: flex;
   flex-direction: column;
-  animation: notif-slide-in 0.2s var(--ease-enter);
+  overflow: hidden;
+  animation: notif-pop-in 0.18s var(--ease-enter);
+  transform-origin: top left;
 }
-@keyframes notif-slide-in {
-  from { transform: translateX(100%); opacity: 0.6; }
-  to   { transform: translateX(0);    opacity: 1; }
+@keyframes notif-pop-in {
+  from { transform: scale(0.93) translateY(-6px); opacity: 0; }
+  to   { transform: scale(1)    translateY(0);    opacity: 1; }
 }
 
-/* ── Header ── */
-.notif-panel-header {
-  padding: var(--space-4) var(--space-4) 0;
+/* ── Popover header ── */
+.notif-popover-header {
+  padding: var(--space-3) var(--space-4) 0;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
-.notif-panel-header-top {
+.notif-popover-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -10913,6 +10935,9 @@ html[data-theme="dark"] .hm-3 { background-color: rgba(79,142,247,0.65); }
 .notif-pref-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 480px) {
-  .notif-panel { width: 100vw; }
+  .notif-popover {
+    width: calc(100vw - 16px);
+    left: 8px !important;
+  }
 }
 

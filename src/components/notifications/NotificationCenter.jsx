@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell, BellSimple, X, Check, Trash,
@@ -132,22 +132,22 @@ function PreferencesPanel({ preferences, onSave }) {
   )
 }
 
-// ── BellButton — rendered inside Sidebar ──────────────────────────────────────
+// ── BellButton — rendered in sidebar header ───────────────────────────────────
 
 export function BellButton() {
   const { unreadCount, togglePanel } = useNotifications()
   return (
     <button
-      className="sidebar-dash-btn notif-bell-btn"
+      className="notif-bell-btn"
+      data-notif-bell="true"
       onClick={togglePanel}
       aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       title="Notifications"
     >
       {unreadCount > 0
-        ? <BellSimple size={18} weight="fill" className="sidebar-dash-icon" aria-hidden="true" />
-        : <Bell       size={18}               className="sidebar-dash-icon" aria-hidden="true" />
+        ? <BellSimple size={17} weight="fill" aria-hidden="true" />
+        : <Bell       size={17}               aria-hidden="true" />
       }
-      <span className="sidebar-nav-label">Notifications</span>
       {unreadCount > 0 && (
         <span className="notif-bell-badge" aria-hidden="true">
           {unreadCount > 99 ? '99+' : unreadCount}
@@ -157,7 +157,7 @@ export function BellButton() {
   )
 }
 
-// ── NotificationPanel — rendered via createPortal at App root ─────────────────
+// ── NotificationPanel — floating popover rendered via portal ──────────────────
 
 export default function NotificationPanel() {
   const {
@@ -167,14 +167,49 @@ export default function NotificationPanel() {
   } = useNotifications()
   const navigate = useNavigate()
 
-  const [tab, setTab] = useState('feed')
-  const panelRef = useRef(null)
+  const [tab, setTab]   = useState('feed')
+  const [pos, setPos]   = useState({ top: 60, left: 240 })
+  const panelRef        = useRef(null)
 
+  // Position the popover next to the bell button
+  useLayoutEffect(() => {
+    if (!panelOpen) return
+    const bell = document.querySelector('[data-notif-bell]')
+    if (!bell) return
+    const rect    = bell.getBoundingClientRect()
+    const MARGIN  = 10
+    const POP_W   = 344
+    const POP_H   = Math.min(520, window.innerHeight - 32)
+
+    let left = rect.right + MARGIN
+    let top  = rect.top
+
+    // Flip left if off right edge
+    if (left + POP_W > window.innerWidth - 8) left = rect.left - POP_W - MARGIN
+    // Clamp vertically
+    if (top + POP_H > window.innerHeight - 8) top = window.innerHeight - POP_H - 8
+    top = Math.max(8, top)
+
+    setPos({ top, left })
+  }, [panelOpen])
+
+  // Close on Escape
   useEffect(() => {
     if (!panelOpen) return
     const handler = (e) => { if (e.key === 'Escape') closePanel() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
+  }, [panelOpen, closePanel])
+
+  // Close on click outside
+  useEffect(() => {
+    if (!panelOpen) return
+    const handler = (e) => {
+      if (e.target.closest('[data-notif-bell]')) return
+      if (panelRef.current && !panelRef.current.contains(e.target)) closePanel()
+    }
+    const t = setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => { clearTimeout(t); document.removeEventListener('mousedown', handler) }
   }, [panelOpen, closePanel])
 
   const handleTaskClick = (taskId) => {
@@ -189,89 +224,87 @@ export default function NotificationPanel() {
   const groups = groupByTime(notifications)
 
   return createPortal(
-    <>
-      <div className="notif-overlay" onClick={closePanel} aria-hidden="true" />
-      <aside
-        ref={panelRef}
-        className="notif-panel"
-        aria-label="Notifications"
-        role="complementary"
-      >
-        {/* Header */}
-        <div className="notif-panel-header">
-          <div className="notif-panel-header-top">
-            <h2 className="notif-panel-title">Notifications</h2>
-            <button className="notif-close-btn" onClick={closePanel} aria-label="Close notifications">
-              <X size={18} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="notif-panel-tabs">
-            <button
-              className={`notif-tab${tab === 'feed' ? ' notif-tab--active' : ''}`}
-              onClick={() => setTab('feed')}
-            >
-              Feed
-              {unreadCount > 0 && <span className="notif-tab-badge">{unreadCount}</span>}
-            </button>
-            <button
-              className={`notif-tab${tab === 'prefs' ? ' notif-tab--active' : ''}`}
-              onClick={() => setTab('prefs')}
-            >
-              <Gear size={13} aria-hidden="true" />
-              Preferences
-            </button>
-          </div>
+    <aside
+      ref={panelRef}
+      className="notif-popover"
+      style={{ top: pos.top, left: pos.left }}
+      aria-label="Notifications"
+      role="complementary"
+    >
+      {/* Header */}
+      <div className="notif-popover-header">
+        <div className="notif-popover-header-top">
+          <h2 className="notif-panel-title">Notifications</h2>
+          <button className="notif-close-btn" onClick={closePanel} aria-label="Close notifications">
+            <X size={16} aria-hidden="true" />
+          </button>
         </div>
+        <div className="notif-panel-tabs">
+          <button
+            className={`notif-tab${tab === 'feed' ? ' notif-tab--active' : ''}`}
+            onClick={() => setTab('feed')}
+          >
+            Feed
+            {unreadCount > 0 && <span className="notif-tab-badge">{unreadCount}</span>}
+          </button>
+          <button
+            className={`notif-tab${tab === 'prefs' ? ' notif-tab--active' : ''}`}
+            onClick={() => setTab('prefs')}
+          >
+            <Gear size={13} aria-hidden="true" />
+            Preferences
+          </button>
+        </div>
+      </div>
 
-        {/* Feed tab */}
-        {tab === 'feed' ? (
-          <>
-            {notifications.length > 0 && (
-              <div className="notif-actions-bar">
-                {unreadCount > 0 && (
-                  <button className="notif-action-btn" onClick={markAllRead}>
-                    <Check size={12} weight="bold" aria-hidden="true" />
-                    Mark all read
-                  </button>
-                )}
-                <button className="notif-action-btn notif-action-btn--danger" onClick={clearRead}>
-                  <Trash size={12} aria-hidden="true" />
-                  Clear read
+      {/* Feed tab */}
+      {tab === 'feed' ? (
+        <>
+          {notifications.length > 0 && (
+            <div className="notif-actions-bar">
+              {unreadCount > 0 && (
+                <button className="notif-action-btn" onClick={markAllRead}>
+                  <Check size={12} weight="bold" aria-hidden="true" />
+                  Mark all read
                 </button>
-              </div>
-            )}
-
-            <div className="notif-list">
-              {groups.length === 0 ? (
-                <div className="notif-empty">
-                  <Bell size={36} className="notif-empty-icon" aria-hidden="true" />
-                  <p>You're all caught up!</p>
-                  <p className="notif-empty-sub">New activity will appear here.</p>
-                </div>
-              ) : (
-                groups.map(group => (
-                  <div key={group.key} className="notif-group">
-                    <p className="notif-group-label">{group.key}</p>
-                    {group.items.map(n => (
-                      <NotifItem
-                        key={n.id}
-                        notif={n}
-                        onRead={markRead}
-                        onTaskClick={n.task_id ? handleTaskClick : undefined}
-                      />
-                    ))}
-                  </div>
-                ))
               )}
+              <button className="notif-action-btn notif-action-btn--danger" onClick={clearRead}>
+                <Trash size={12} aria-hidden="true" />
+                Clear read
+              </button>
             </div>
-          </>
-        ) : (
+          )}
+
           <div className="notif-list">
-            <PreferencesPanel preferences={preferences} onSave={savePreferences} />
+            {groups.length === 0 ? (
+              <div className="notif-empty">
+                <Bell size={32} className="notif-empty-icon" aria-hidden="true" />
+                <p>You're all caught up!</p>
+                <p className="notif-empty-sub">New activity will appear here.</p>
+              </div>
+            ) : (
+              groups.map(group => (
+                <div key={group.key} className="notif-group">
+                  <p className="notif-group-label">{group.key}</p>
+                  {group.items.map(n => (
+                    <NotifItem
+                      key={n.id}
+                      notif={n}
+                      onRead={markRead}
+                      onTaskClick={n.task_id ? handleTaskClick : undefined}
+                    />
+                  ))}
+                </div>
+              ))
+            )}
           </div>
-        )}
-      </aside>
-    </>,
+        </>
+      ) : (
+        <div className="notif-list">
+          <PreferencesPanel preferences={preferences} onSave={savePreferences} />
+        </div>
+      )}
+    </aside>,
     document.body
   )
 }

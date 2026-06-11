@@ -44,11 +44,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         ].filter(Boolean).join(' ')}
         aria-label="Sidebar navigation"
       >
-        {/* ── Logo — both variants stay in DOM; CSS shows the right one ── */}
+        {/* ── Logo + bell ── */}
         <div className="sidebar-top">
+          {/* Expanded: wordmark + bell on the same row */}
           <div className="sidebar-logo-full">
-            <LogoLockup width={164} className="sidebar-lockup" />
+            <LogoLockup width={148} className="sidebar-lockup" />
+            <BellButton />
           </div>
+          {/* Collapsed: mark icon */}
           <div className="sidebar-logo-mark" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" width="30" height="33">
               <g transform="translate(2,4)">
@@ -56,6 +59,10 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                 <path d="M12.3 22.9 L19.4 29.9 L32.6 15" fill="none" stroke="#FFFFFF" strokeWidth="5.3" strokeLinecap="round" strokeLinejoin="round" />
               </g>
             </svg>
+          </div>
+          {/* Collapsed: bell below the mark */}
+          <div className="sidebar-logo-bell-collapsed">
+            <BellButton />
           </div>
         </div>
 
@@ -74,8 +81,6 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
               <span className="sidebar-nav-label">{label}</span>
             </button>
           ))}
-
-          <BellButton />
 
           {/* ── Expanded: full workspace switcher ── */}
           <div className="sidebar-ws-section">
