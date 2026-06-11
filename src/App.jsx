@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { LabelsProvider } from './contexts/LabelsContext'
 import { ProjectProvider } from './contexts/ProjectContext'
@@ -11,6 +12,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import SessionGuard from './components/auth/SessionGuard'
 import ToastContainer from './components/ui/ToastContainer'
 import AuthTransitionOverlay from './components/auth/AuthTransitionOverlay'
+import NotificationPanel from './components/notifications/NotificationCenter'
 
 const AuthPage        = lazy(() => import('./components/auth/AuthPage'))
 const Board           = lazy(() => import('./components/board/Board'))
@@ -44,6 +46,7 @@ export default function App() {
     <ThemeProvider>
     <ToastProvider>
       <AuthProvider>
+        <NotificationProvider>
         <WorkspaceProvider>
           <LabelsProvider>
           <ProjectProvider>
@@ -67,10 +70,12 @@ export default function App() {
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <NotificationPanel />
           <ToastContainer />
           </ProjectProvider>
           </LabelsProvider>
         </WorkspaceProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
     </ThemeProvider>

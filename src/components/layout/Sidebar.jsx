@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
+import { BellButton } from '../notifications/NotificationCenter'
 
 export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange, onProfileClick }) {
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
@@ -43,11 +44,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         ].filter(Boolean).join(' ')}
         aria-label="Sidebar navigation"
       >
-        {/* ── Logo — both variants stay in DOM; CSS shows the right one ── */}
+        {/* ── Logo + bell ── */}
         <div className="sidebar-top">
+          {/* Expanded: wordmark + bell on the same row */}
           <div className="sidebar-logo-full">
-            <LogoLockup width={164} className="sidebar-lockup" />
+            <LogoLockup width={148} className="sidebar-lockup" />
+            <BellButton />
           </div>
+          {/* Collapsed: mark icon */}
           <div className="sidebar-logo-mark" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" width="30" height="33">
               <g transform="translate(2,4)">
@@ -55,6 +59,10 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                 <path d="M12.3 22.9 L19.4 29.9 L32.6 15" fill="none" stroke="#FFFFFF" strokeWidth="5.3" strokeLinecap="round" strokeLinejoin="round" />
               </g>
             </svg>
+          </div>
+          {/* Collapsed: bell below the mark */}
+          <div className="sidebar-logo-bell-collapsed">
+            <BellButton />
           </div>
         </div>
 

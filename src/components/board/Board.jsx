@@ -23,6 +23,7 @@ import BoardSkeleton from './BoardSkeleton'
 import ListView from './ListView'
 import BulkActionsBar from './BulkActionsBar'
 import { useToast } from '../../contexts/ToastContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
@@ -158,6 +159,8 @@ export default function Board() {
   const present                      = usePresence(currentWorkspace?.id)
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
+  const { toast } = useToast()
+  const { notify, checkDueDates } = useNotifications()
 
   // Augment the broadcast map with the current user's own open task so their
   // card glows while the panel is open, without marking it as locked for them.
@@ -274,12 +277,30 @@ export default function Board() {
     setShowModal(true)
   }
 
+  // Open task triggered by notification click (custom event or sessionStorage)
+  useEffect(() => {
+    if (loading) return
+    const taskId = sessionStorage.getItem('tm_openTask')
+    if (taskId) { sessionStorage.removeItem('tm_openTask'); setSelectedTaskId(taskId); setShowModal(false) }
+  }, [loading])
+
+  useEffect(() => {
+    const handler = (e) => { setSelectedTaskId(e.detail); setShowModal(false) }
+    document.addEventListener('tm:openTask', handler)
+    return () => document.removeEventListener('tm:openTask', handler)
+  }, [])
+
+  // Due-soon / overdue notification check — re-runs when checkDueDates
+  // gets a new reference (i.e. when preferences finish loading)
+  useEffect(() => {
+    if (!loading && allTasks.length > 0) checkDueDates(allTasks)
+  }, [loading, checkDueDates]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const openTaskDetail = (id) => {
     setShowModal(false)
     setSelectedTaskId(id)
   }
 
-  const { toast } = useToast()
   useTaskReminders(allTasks, toast, updateTask, columns, prefs)
 
   const handleComplete = useCallback(async (id) => {
@@ -495,6 +516,19 @@ export default function Board() {
       setMoveToast({ key: Date.now(), taskText: draggedTask.text, fromId: draggedTask.status, toId: targetColumnId })
     }
     reorderTask(active.id, targetColumnId, newPosition)
+
+    // Notify the assignee when someone else moves their task
+    if (targetColumnId !== draggedTask.status && draggedTask.assignee_id && draggedTask.assignee_id !== user.id) {
+      const toLabel = columns.find(c => c.id === targetColumnId)?.label ?? targetColumnId
+      notify({
+        type: targetColumnId === 'done' ? 'task_completed' : 'task_moved',
+        user_id: draggedTask.assignee_id,
+        workspace_id: draggedTask.workspace_id,
+        title: targetColumnId === 'done' ? 'Your task was completed' : 'Your task was moved',
+        body: `${displayName || user?.email?.split('@')[0] || 'Someone'} moved "${draggedTask.text}" to ${toLabel}`,
+        task_id: draggedTask.id,
+      })
+    }
   }
 
   const handleMoveTask = useCallback((taskId, currentStatus, direction) => {
