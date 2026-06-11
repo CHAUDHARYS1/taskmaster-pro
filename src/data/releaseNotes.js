@@ -7,24 +7,34 @@ export const RELEASES = [
       {
         title: 'Quick Links',
         body: 'Add up to 4 workspace-specific bookmarks accessible directly from the board header. Site favicons are fetched automatically; you can also set an emoji icon. Links open in a new tab and are saved per workspace — different workspaces can have different toolkits.',
+        image: '/screenshots/quick-links.png',
+        imageAlt: 'Quick Links popover showing four link tiles: Figma, Notion, GitHub, and Staging',
       },
       {
         title: 'Workspace Identity Chip',
         body: 'Replaced the thin colored strip above the board header with a compact workspace avatar and name chip. You always know which workspace you\'re in at a glance — the colored square builds recognition over time the same way a tab color does.',
+        image: '/screenshots/workspace-chip.png',
+        imageAlt: 'Board header showing a purple workspace avatar with the name "Side Projects / Design Sprint Q2"',
       },
       {
         title: 'Notification Center Improvements',
         body: 'Notification center rebuilt as a floating popover off the bell icon in the header. Includes a full activity feed and per-workspace notification preferences so you can tune how and when you\'re alerted.',
+        image: '/screenshots/notification-center.png',
+        imageAlt: 'Notification center popover showing unread and read activity items',
       },
     ],
     fixes: [
       {
         title: 'Assignee shows immediately after selection',
         body: 'Previously, assigning a task required a page reload before the assignee\'s name appeared on the card. The assignee now updates instantly without any refresh.',
+        image: '/screenshots/assignee-update.png',
+        imageAlt: 'Task card detail panel showing an assignee selected and confirmed with a checkmark',
       },
       {
         title: 'Priority label backgrounds adapt to dark mode',
         body: 'Priority chip backgrounds were previously hard-coded colors that looked washed out on dark card surfaces. They now use CSS color-mix to produce solid, theme-adaptive backgrounds in both light and dark mode.',
+        image: '/screenshots/priority-labels.png',
+        imageAlt: 'Four priority chips — Low, Medium, High, Urgent — shown with solid theme-adaptive backgrounds',
       },
       {
         title: 'Ctrl+Shift+A keyboard shortcut',
@@ -99,6 +109,8 @@ export const RELEASES = [
       {
         title: 'Kanban Board',
         body: 'Four-column board (To Do → In Progress → In Review → Done) with drag-and-drop reordering within and across columns. Tasks remember their position.',
+        image: '/screenshots/board-overview.png',
+        imageAlt: 'Kanban board showing four columns with task cards, priority chips, assignees, and due dates',
       },
       {
         title: 'Task Priorities & Due Dates',

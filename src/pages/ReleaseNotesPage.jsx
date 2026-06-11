@@ -80,9 +80,19 @@ export default function ReleaseNotesPage() {
                     </h2>
                     <ul className="rn-entries">
                       {release.features.map((item, i) => (
-                        <li key={i} className="rn-entry">
-                          <p className="rn-entry-title">{item.title}</p>
-                          <p className="rn-entry-body">{item.body}</p>
+                        <li key={i} className={`rn-entry${item.image ? ' rn-entry--media' : ''}`}>
+                          <div className="rn-entry-text">
+                            <p className="rn-entry-title">{item.title}</p>
+                            <p className="rn-entry-body">{item.body}</p>
+                          </div>
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt={item.imageAlt}
+                              className="rn-entry-img"
+                              loading="lazy"
+                            />
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -97,9 +107,19 @@ export default function ReleaseNotesPage() {
                     </h2>
                     <ul className="rn-entries">
                       {release.fixes.map((item, i) => (
-                        <li key={i} className="rn-entry">
-                          <p className="rn-entry-title">{item.title}</p>
-                          <p className="rn-entry-body">{item.body}</p>
+                        <li key={i} className={`rn-entry${item.image ? ' rn-entry--media' : ''}`}>
+                          <div className="rn-entry-text">
+                            <p className="rn-entry-title">{item.title}</p>
+                            <p className="rn-entry-body">{item.body}</p>
+                          </div>
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt={item.imageAlt}
+                              className="rn-entry-img"
+                              loading="lazy"
+                            />
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -114,9 +134,19 @@ export default function ReleaseNotesPage() {
                     </h2>
                     <ul className="rn-entries">
                       {release.hotfixes.map((item, i) => (
-                        <li key={i} className="rn-entry">
-                          <p className="rn-entry-title">{item.title}</p>
-                          <p className="rn-entry-body">{item.body}</p>
+                        <li key={i} className={`rn-entry${item.image ? ' rn-entry--media' : ''}`}>
+                          <div className="rn-entry-text">
+                            <p className="rn-entry-title">{item.title}</p>
+                            <p className="rn-entry-body">{item.body}</p>
+                          </div>
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt={item.imageAlt}
+                              className="rn-entry-img"
+                              loading="lazy"
+                            />
+                          )}
                         </li>
                       ))}
                     </ul>

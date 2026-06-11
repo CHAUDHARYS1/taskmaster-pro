@@ -140,6 +140,39 @@
 .rn-section--fixes    .rn-entry { border-left-color: #16a34a; }
 .rn-section--hotfixes .rn-entry { border-left-color: #d97706; }
 
+/* Entry with image — side-by-side layout */
+.rn-entry--media {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+
+.rn-entry-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rn-entry-img {
+  flex-shrink: 0;
+  width: 220px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  object-fit: cover;
+  display: block;
+}
+
+/* Wider image for the board overview */
+.rn-entry-img[src*="board-overview"] {
+  width: 280px;
+}
+
+/* Narrow image for the workspace chip (it's a thin header strip) */
+.rn-entry-img[src*="workspace-chip"] {
+  width: 240px;
+}
+
 .rn-entry-title {
   font-size: var(--text-body);
   font-weight: var(--weight-semibold);
@@ -165,4 +198,14 @@
   }
 
   .rn-date { margin-left: 0; width: 100%; }
+
+  .rn-entry--media {
+    flex-direction: column;
+  }
+
+  .rn-entry-img,
+  .rn-entry-img[src*="board-overview"],
+  .rn-entry-img[src*="workspace-chip"] {
+    width: 100%;
+  }
 }
