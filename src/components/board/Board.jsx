@@ -159,6 +159,8 @@ export default function Board() {
   const present                      = usePresence(currentWorkspace?.id)
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
+  const { toast } = useToast()
+  const { notify, checkDueDates } = useNotifications()
 
   // Augment the broadcast map with the current user's own open task so their
   // card glows while the panel is open, without marking it as locked for them.
@@ -299,8 +301,6 @@ export default function Board() {
     setSelectedTaskId(id)
   }
 
-  const { toast } = useToast()
-  const { notify, checkDueDates } = useNotifications()
   useTaskReminders(allTasks, toast, updateTask, columns, prefs)
 
   const handleComplete = useCallback(async (id) => {
