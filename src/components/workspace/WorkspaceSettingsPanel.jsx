@@ -5,7 +5,7 @@ import { useProject } from '../../contexts/ProjectContext'
 import { useMembers } from '../../hooks/useMembers'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import { DEFAULT_COLUMNS } from '../board/Board'
+import { DEFAULT_COLUMNS } from '../../lib/columns'
 import { ALL_COLUMN_IDS } from '../../contexts/WorkspaceContext'
 
 const COLUMN_PRESET_COLORS = [

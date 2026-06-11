@@ -13,7 +13,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef, o
     if (!workspaceId) return
     supabase
       .from('workspace_members_view')
-      .select('user_id, email')
+      .select('user_id, email, first_name, last_name')
       .eq('workspace_id', workspaceId)
       .then(({ data }) => { if (data) setMembers(data) })
   }, [workspaceId])
@@ -75,7 +75,7 @@ export default function FilterBar({ workspaceId, filters, onChange, searchRef, o
             <option value="">Assignee</option>
             {members.map(m => (
               <option key={m.user_id} value={m.user_id}>
-                {m.email.split('@')[0]}
+                {[m.first_name, m.last_name].filter(Boolean).join(' ') || m.email.split('@')[0]}
               </option>
             ))}
           </select>

@@ -26,6 +26,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
+import { DEFAULT_COLUMNS } from '../../lib/columns'
 
 const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
 const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
@@ -44,12 +45,6 @@ function midpoint(a, b) {
   return (a + b) / 2
 }
 
-export const DEFAULT_COLUMNS = [
-  { id: 'toDo',       label: 'To Do' },
-  { id: 'inProgress', label: 'In Progress' },
-  { id: 'inReview',   label: 'In Review' },
-  { id: 'done',       label: 'Done' },
-]
 
 function ColumnMoveToast({ event, columns, onDone }) {
   const toCol = columns.find(c => c.id === event.toId)
@@ -344,16 +339,23 @@ export default function Board() {
 
   const doneCount = tasksByStatus['done']?.length ?? 0
 
-  const handleArchiveDone = useCallback(async () => {
+  const handleArchiveDone = useCallback(() => {
     if (doneCount === 0) return
     const scope = currentProject ? `in "${currentProject.name}"` : 'across all projects'
-    if (!window.confirm(`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''} ${scope}? They'll be available on the Archive page.`)) return
-    try {
-      const count = await archiveNow(currentProject?.id)
-      toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
-    } catch (err) {
-      toast.error(err.message || 'Failed to archive done tasks')
-    }
+    toast.info(`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''} ${scope}?`, {
+      duration: 8000,
+      actions: [{
+        label: 'Archive',
+        onClick: async () => {
+          try {
+            const count = await archiveNow(currentProject?.id)
+            toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
+          } catch (err) {
+            toast.error(err.message || 'Failed to archive done tasks')
+          }
+        },
+      }],
+    })
   }, [archiveNow, currentProject, doneCount, toast])
 
   const bulkMode = selectedIds.size > 0
@@ -397,13 +399,21 @@ export default function Board() {
     toast.success(assigneeId ? `Assigned ${ids.length} task${ids.length !== 1 ? 's' : ''}` : `Unassigned ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
   }, [selectedIds, updateTask, toast])
 
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = useCallback(() => {
     const ids = [...selectedIds]
     const count = ids.length
-    if (!window.confirm(`Delete ${count} task${count !== 1 ? 's' : ''}? This cannot be undone.`)) return
-    setSelectedIds(new Set())
-    await Promise.allSettled(ids.map(id => deleteTask(id)))
-    toast.success(`${count} task${count !== 1 ? 's' : ''} deleted`)
+    toast.info(`Delete ${count} task${count !== 1 ? 's' : ''}? This cannot be undone.`, {
+      duration: 8000,
+      actions: [{
+        label: 'Delete',
+        danger: true,
+        onClick: async () => {
+          setSelectedIds(new Set())
+          await Promise.allSettled(ids.map(id => deleteTask(id)))
+          toast.success(`${count} task${count !== 1 ? 's' : ''} deleted`)
+        },
+      }],
+    })
   }, [selectedIds, deleteTask, toast])
 
   const handleQuickAdd = useCallback(async (text, description) => {
