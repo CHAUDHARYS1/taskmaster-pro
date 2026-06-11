@@ -395,9 +395,13 @@ export default function Board() {
   const handleBulkAssign = useCallback(async (assigneeId) => {
     const ids = [...selectedIds]
     setSelectedIds(new Set())
-    await Promise.allSettled(ids.map(id => updateTask(id, { assignee_id: assigneeId })))
+    const member = assigneeId ? workspaceMembers.find(m => m.user_id === assigneeId) : null
+    const assignee = member
+      ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
+      : null
+    await Promise.allSettled(ids.map(id => updateTask(id, { assignee_id: assigneeId, assignee })))
     toast.success(assigneeId ? `Assigned ${ids.length} task${ids.length !== 1 ? 's' : ''}` : `Unassigned ${ids.length} task${ids.length !== 1 ? 's' : ''}`)
-  }, [selectedIds, updateTask, toast])
+  }, [selectedIds, updateTask, toast, workspaceMembers])
 
   const handleBulkDelete = useCallback(() => {
     const ids = [...selectedIds]

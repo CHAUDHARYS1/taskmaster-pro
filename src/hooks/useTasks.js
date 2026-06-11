@@ -37,7 +37,22 @@ export function useTasks(workspaceId, projectId) {
       }, () => fetchTasks())
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tasks', filter,
-      }, ({ new: task }) => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t)))
+      }, ({ new: task }) => {
+        // Realtime payloads contain only raw columns — no joined data.
+        // Spread preserves existing joined fields (assignee, project, etc.)
+        // because undefined keys in `task` don't overwrite keys in `t`.
+        // Exception: if another client changed assignee_id we need a full
+        // refetch to load the new profile; our own optimistic updates already
+        // include the profile object so they won't trigger this path.
+        setTasks(prev => {
+          const existing = prev.find(t => t.id === task.id)
+          if (existing?.assignee_id !== task.assignee_id) {
+            fetchTasks()
+            return prev
+          }
+          return prev.map(t => t.id === task.id ? { ...t, ...task } : t)
+        })
+      })
       .on('postgres_changes', {
         event: 'DELETE', schema: 'public', table: 'tasks', filter,
       }, ({ old: task }) => setTasks(prev => prev.filter(t => t.id !== task.id)))

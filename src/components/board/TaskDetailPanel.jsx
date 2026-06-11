@@ -601,7 +601,13 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       value={task.assignee_id ?? ''}
                       onChange={e => {
                         const newId = e.target.value || null
-                        onUpdate(task.id, { assignee_id: newId })
+                        const member = newId ? members.find(m => m.user_id === newId) : null
+                        onUpdate(task.id, {
+                          assignee_id: newId,
+                          assignee: member
+                            ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
+                            : null,
+                        })
                         if (newId && newId !== user.id) {
                           const assignerName = displayName || user?.email?.split('@')[0] || 'Someone'
                           notify({
