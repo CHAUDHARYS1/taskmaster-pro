@@ -288,10 +288,11 @@ export default function Board() {
     return () => document.removeEventListener('tm:openTask', handler)
   }, [])
 
-  // Due-soon / overdue notification check (once per session after tasks load)
+  // Due-soon / overdue notification check — re-runs when checkDueDates
+  // gets a new reference (i.e. when preferences finish loading)
   useEffect(() => {
     if (!loading && allTasks.length > 0) checkDueDates(allTasks)
-  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, checkDueDates]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openTaskDetail = (id) => {
     setShowModal(false)
