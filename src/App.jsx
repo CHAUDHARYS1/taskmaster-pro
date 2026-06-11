@@ -13,6 +13,7 @@ import SessionGuard from './components/auth/SessionGuard'
 import ToastContainer from './components/ui/ToastContainer'
 import AuthTransitionOverlay from './components/auth/AuthTransitionOverlay'
 import NotificationPanel from './components/notifications/NotificationCenter'
+import DevOverlay from './components/DevOverlay'
 
 const AuthPage        = lazy(() => import('./components/auth/AuthPage'))
 const Board           = lazy(() => import('./components/board/Board'))
@@ -80,6 +81,7 @@ export default function App() {
         </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
+    {import.meta.env.DEV && <DevOverlay />}
     </ThemeProvider>
   )
 }
