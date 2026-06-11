@@ -1,0 +1,168 @@
+/* ── Release Notes Page ─────────────────────────────────────────────────── */
+
+.rn-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+/* ── Page header ─────────────────────────────────────────── */
+.rn-page-header {
+  max-width: 680px;
+  margin: 0 auto var(--space-10);
+}
+
+.rn-page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.rn-page-subtitle {
+  font-size: var(--text-body);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* ── Timeline ────────────────────────────────────────────── */
+.rn-timeline {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* ── Release block ───────────────────────────────────────── */
+.rn-release {
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+/* Vertical line */
+.rn-release::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 28px;
+  bottom: -var(--space-8);
+  width: 2px;
+  background: var(--border);
+}
+.rn-timeline > .rn-release:last-child::before { display: none; }
+
+/* Dot on the line */
+.rn-release::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 3px solid var(--bg);
+}
+.rn-release--current::after {
+  background: var(--accent);
+}
+
+/* ── Release header ──────────────────────────────────────── */
+.rn-release-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.rn-version {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.rn-badge-current {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: #fff;
+  background: var(--accent);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  line-height: 1.6;
+}
+
+.rn-date {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+.rn-section {
+  margin-bottom: var(--space-5);
+}
+
+.rn-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--space-3);
+}
+
+.rn-section-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Entry cards ─────────────────────────────────────────── */
+.rn-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rn-entry {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid transparent;
+}
+
+.rn-section--features .rn-entry { border-left-color: var(--accent); }
+.rn-section--fixes    .rn-entry { border-left-color: #16a34a; }
+.rn-section--hotfixes .rn-entry { border-left-color: #d97706; }
+
+.rn-entry-title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0 0 var(--space-1);
+}
+
+.rn-entry-body {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .rn-main {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .rn-release {
+    padding-left: var(--space-5);
+  }
+
+  .rn-date { margin-left: 0; width: 100%; }
+}

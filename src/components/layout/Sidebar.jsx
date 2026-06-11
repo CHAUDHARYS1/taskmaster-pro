@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -223,7 +223,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
             </button>
           </div>
 
-          <p className="sidebar-version">v1.2.00</p>
+          <Link to="/release-notes" className="sidebar-version sidebar-version-link">v1.2.00</Link>
           <p className="sidebar-credit">
             Designed and built by{' '}
             <a href="https://scdesigns.netlify.app/" target="_blank" rel="noreferrer" className="sidebar-credit-link">
