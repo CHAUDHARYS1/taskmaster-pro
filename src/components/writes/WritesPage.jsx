@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { List } from '@phosphor-icons/react'
+import { List, NotePencil } from '@phosphor-icons/react'
+import PageHint from '../ui/PageHint'
+
+const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 import dayjs from 'dayjs'
 import { fmtDate } from '../../utils/format'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
-import UtilityBar from '../layout/UtilityBar'
 import WritesEditor from './WritesEditor'
 
 export default function WritesPage() {
@@ -23,6 +25,7 @@ export default function WritesPage() {
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
   const [docLoading,  setDocLoading]  = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -81,14 +84,12 @@ export default function WritesPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} onProfileClick={() => setShowSettings(true)} />
 
       <div className="writes-shell">
-      <UtilityBar />
-      <main className="writes-main">
-        {/* Document list panel */}
-        <aside className="writes-list-panel">
-          <div className="writes-list-hdr">
+        {/* ── Page header ─────────────────────────────────────── */}
+        <div className="board-header">
+          <div className="board-header-left">
             <button
               className="sidebar-toggle"
               onClick={() => setShowSidebar(p => !p)}
@@ -96,10 +97,22 @@ export default function WritesPage() {
             >
               <List size={22} aria-hidden="true" />
             </button>
-            <h2 className="writes-list-heading">Writes</h2>
+            <NotePencil size={18} className="board-header-icon" aria-hidden="true" />
+            <span className="board-header-title">Writes</span>
+          </div>
+          <div className="board-header-right">
+            <PageHint text="A lightweight document editor for notes, specs, or anything you need to write. Documents are saved per workspace." />
             <button className="btn-primary btn-sm" onClick={handleNew} aria-label="New document">
               + New
             </button>
+          </div>
+        </div>
+
+      <main className="writes-main">
+        {/* Document list panel */}
+        <aside className="writes-list-panel">
+          <div className="writes-list-hdr">
+            <h2 className="writes-list-heading">Documents</h2>
           </div>
 
           {loading ? (
@@ -143,6 +156,10 @@ export default function WritesPage() {
         </div>
       </main>
       </div>
+
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }

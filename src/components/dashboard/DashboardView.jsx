@@ -1,9 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
-  CheckCircle, Warning, TrendUp, Clock,
-  ListChecks, ChartBar, CalendarDots,
+  CheckCircle, TrendUp, Clock,
+  ListChecks, ChartBar, CalendarDots, DotsSixVertical,
+  X, SlidersHorizontal,
 } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
 
@@ -11,11 +29,28 @@ dayjs.extend(relativeTime)
 
 /* ─── constants ─────────────────────────────────────────────── */
 
-const CURRENT_YEAR   = dayjs().year()
+const CURRENT_YEAR    = dayjs().year()
 const AVAILABLE_YEARS = Array.from(
   { length: CURRENT_YEAR - 2024 + 1 },
   (_, i) => 2025 + i,
 )
+
+const DEFAULT_GRID_ORDER = [
+  'status-breakdown', 'priority-breakdown',
+  'due-soon',         'task-progress',
+  'velocity',         'heatmap',
+  'recent',
+]
+
+const WIDGET_LABELS = {
+  'status-breakdown':   'Status Breakdown',
+  'priority-breakdown': 'Priority Breakdown',
+  'due-soon':           'Due in 7 Days',
+  'task-progress':      'Task Progress',
+  'velocity':           'Weekly Velocity',
+  'heatmap':            'Activity Heatmap',
+  'recent':             'Recently Completed',
+}
 
 const HEATMAP_LEVELS = [
   { min: 0,  cls: 'hm-0' },
@@ -26,10 +61,10 @@ const HEATMAP_LEVELS = [
 ]
 
 const STATUS_META = [
-  { id: 'toDo',       label: 'To Do',       cls: 'sb-todo' },
-  { id: 'inProgress', label: 'In Progress',  cls: 'sb-progress' },
-  { id: 'inReview',   label: 'In Review',    cls: 'sb-review' },
-  { id: 'done',       label: 'Done',         cls: 'sb-done' },
+  { id: 'toDo',       label: 'To Do',      cls: 'sb-todo' },
+  { id: 'inProgress', label: 'In Progress', cls: 'sb-progress' },
+  { id: 'inReview',   label: 'In Review',   cls: 'sb-review' },
+  { id: 'done',       label: 'Done',        cls: 'sb-done' },
 ]
 
 const PRIORITY_META = [
@@ -52,8 +87,8 @@ function dueDateLabel(dateStr) {
   const d     = dayjs(dateStr)
   const today = dayjs().startOf('day')
   const diff  = d.diff(today, 'day')
-  if (diff === 0) return { text: 'Today',     urgent: true  }
-  if (diff === 1) return { text: 'Tomorrow',  urgent: true  }
+  if (diff === 0) return { text: 'Today',    urgent: true  }
+  if (diff === 1) return { text: 'Tomorrow', urgent: true  }
   return { text: `In ${diff}d`, urgent: false }
 }
 
@@ -62,6 +97,52 @@ const PRIORITY_COLORS = {
   high:   '#f59e0b',
   medium: '#3b82f6',
   low:    '#6b7280',
+}
+
+/* ─── SortableWidget ─────────────────────────────────────────── */
+
+function SortableWidget({ id, children, onHide }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="dash-widget"
+    >
+      <button
+        className="dash-drag-handle"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder widget"
+      >
+        <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
+      </button>
+      <button
+        className="dash-hide-btn"
+        onClick={() => onHide(id)}
+        aria-label={`Hide ${WIDGET_LABELS[id] ?? id} widget`}
+        title="Hide widget"
+      >
+        <X size={11} weight="bold" aria-hidden="true" />
+      </button>
+      {children}
+    </div>
+  )
 }
 
 /* ─── sub-components ─────────────────────────────────────────── */
@@ -340,6 +421,78 @@ export default function DashboardView() {
   const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
   const { data, loading, error } = useDashboard(heatmapYear)
 
+  const [gridOrder, setGridOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tm_dashboard_grid_order')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (DEFAULT_GRID_ORDER.every(id => parsed.includes(id))) return parsed
+      }
+    } catch {}
+    return [...DEFAULT_GRID_ORDER]
+  })
+
+  const [activeId, setActiveId] = useState(null)
+
+  const [hiddenWidgets, setHiddenWidgets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tm_dashboard_hidden')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+
+  const [showCustomize, setShowCustomize] = useState(false)
+  const customizeRef = useRef(null)
+
+  useEffect(() => {
+    if (!showCustomize) return
+    const handler = (e) => {
+      if (customizeRef.current && !customizeRef.current.contains(e.target)) {
+        setShowCustomize(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showCustomize])
+
+  const hideWidget = (id) => {
+    setHiddenWidgets(prev => {
+      const next = new Set(prev)
+      next.add(id)
+      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  const toggleWidget = (id) => {
+    setHiddenWidgets(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragStart = ({ active }) => setActiveId(active.id)
+
+  const handleDragEnd = ({ active, over }) => {
+    setActiveId(null)
+    if (!over || active.id === over.id) return
+    setGridOrder(prev => {
+      const next = arrayMove(prev, prev.indexOf(active.id), prev.indexOf(over.id))
+      localStorage.setItem('tm_dashboard_grid_order', JSON.stringify(next))
+      return next
+    })
+  }
+
   if (loading) return (
     <div className="dash-loading">
       <div className="dash-skeleton dash-skeleton--header" />
@@ -359,104 +512,48 @@ export default function DashboardView() {
     ? Math.round((stats.totalCompleted / stats.totalTasks) * 100)
     : 0
 
-  return (
-    <div className="dashboard">
-
-      {/* ── Header ───────────────────────────────────── */}
-      <header className="dash-header">
-        <div className="dash-header-date">
-          <span className="dash-header-day">{dayjs().format('dddd')}</span>
-          <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
-        </div>
-      </header>
-
-      {/* ── Stat cards ───────────────────────────────── */}
-      <div className="dash-stat-cards">
-        <StatCard
-          icon={ListChecks}
-          value={stats.activeTasks}
-          label="Active tasks"
-          color="var(--accent)"
-          delay="0.05s"
-        />
-        <StatCard
-          icon={CheckCircle}
-          value={stats.completedThisWeek}
-          label="Done this week"
-          color="var(--green)"
-          delay="0.10s"
-        />
-        <StatCard
-          icon={Clock}
-          value={stats.completedToday}
-          label="Done today"
-          color="#8b5cf6"
-          delay="0.15s"
-        />
-        <StatCard
-          icon={Warning}
-          value={stats.overdue}
-          label="Overdue"
-          color={stats.overdue > 0 ? 'var(--red)' : 'var(--ink-4)'}
-          alert={stats.overdue > 0}
-          delay="0.20s"
-        />
-        <StatCard
-          icon={TrendUp}
-          value={`${completionRate}%`}
-          label="Completion rate"
-          color={completionRate >= 80 ? 'var(--green)' : 'var(--accent)'}
-          delay="0.25s"
-        />
-        <StatCard
-          icon={ChartBar}
-          value={stats.totalTasks}
-          label="Total tasks"
-          color="var(--ink-3)"
-          delay="0.30s"
-        />
-      </div>
-
-      {/* ── Mid row: breakdown + due soon + progress ─── */}
-      <div className="dash-mid-grid">
-        <section className="dash-section" style={{ animationDelay: '0.18s' }}>
-          <h2 className="dash-section-title">
-            <ListChecks size={14} aria-hidden="true" />
-            Status breakdown
-          </h2>
-          <StatusBreakdown breakdown={statusBreakdown} total={stats.totalTasks} />
-        </section>
-
-        <section className="dash-section" style={{ animationDelay: '0.22s' }}>
-          <h2 className="dash-section-title">
-            <ChartBar size={14} aria-hidden="true" />
-            Priority (active tasks)
-          </h2>
-          <PriorityBreakdown breakdown={priorityBreakdown} />
-        </section>
-
-        <section className="dash-section" style={{ animationDelay: '0.26s' }}>
-          <h2 className="dash-section-title">
-            <CalendarDots size={14} aria-hidden="true" />
-            Due in 7 days
-            {dueSoon.length > 0 && (
-              <span className="dash-due-badge">{dueSoon.length}</span>
-            )}
-          </h2>
-          <DueSoon items={dueSoon} />
-        </section>
-
-        <section className="dash-section dash-donut-card" style={{ animationDelay: '0.30s' }}>
-          <h2 className="dash-section-title">
-            <ChartBar size={14} aria-hidden="true" />
-            Task progress
-          </h2>
-          <DonutChart completed={stats.totalCompleted} active={stats.activeTasks} />
-        </section>
-      </div>
-
-      {/* ── Velocity ─────────────────────────────────── */}
-      <section className="dash-section dash-section--velocity" style={{ animationDelay: '0.30s' }}>
+  const gridWidgets = {
+    'status-breakdown': (
+      <section className="dash-section">
+        <h2 className="dash-section-title">
+          <ListChecks size={14} aria-hidden="true" />
+          Status breakdown
+        </h2>
+        <StatusBreakdown breakdown={statusBreakdown} total={stats.totalTasks} />
+      </section>
+    ),
+    'priority-breakdown': (
+      <section className="dash-section">
+        <h2 className="dash-section-title">
+          <ChartBar size={14} aria-hidden="true" />
+          Priority (active tasks)
+        </h2>
+        <PriorityBreakdown breakdown={priorityBreakdown} />
+      </section>
+    ),
+    'due-soon': (
+      <section className="dash-section">
+        <h2 className="dash-section-title">
+          <CalendarDots size={14} aria-hidden="true" />
+          Due in 7 days
+          {dueSoon.length > 0 && (
+            <span className="dash-due-badge">{dueSoon.length}</span>
+          )}
+        </h2>
+        <DueSoon items={dueSoon} />
+      </section>
+    ),
+    'task-progress': (
+      <section className="dash-section dash-donut-card">
+        <h2 className="dash-section-title">
+          <ChartBar size={14} aria-hidden="true" />
+          Task progress
+        </h2>
+        <DonutChart completed={stats.totalCompleted} active={stats.activeTasks} />
+      </section>
+    ),
+    'velocity': (
+      <section className="dash-section dash-section--velocity">
         <div className="dash-section-hdr">
           <h2 className="dash-section-title">
             <TrendUp size={14} aria-hidden="true" />
@@ -481,9 +578,9 @@ export default function DashboardView() {
         </div>
         <VelocityChart weeks={weeklyVelocity} />
       </section>
-
-      {/* ── Activity heatmap ─────────────────────────── */}
-      <section className="dash-section dash-section--heatmap" style={{ animationDelay: '0.35s' }}>
+    ),
+    'heatmap': (
+      <section className="dash-section dash-section--heatmap">
         <div className="dash-section-hdr">
           <h2 className="dash-section-title">
             Activity
@@ -502,15 +599,110 @@ export default function DashboardView() {
         </div>
         <Heatmap cells={heatmap} />
       </section>
-
-      {/* ── Bottom: recent completions ────────────────── */}
-      <section className="dash-section" style={{ animationDelay: '0.40s' }}>
+    ),
+    'recent': (
+      <section className="dash-section">
         <h2 className="dash-section-title">
           <CheckCircle size={14} aria-hidden="true" />
           Recently completed
         </h2>
         <RecentCompletions items={recentCompletions} />
       </section>
+    ),
+  }
+
+  return (
+    <div className="dashboard">
+
+      {/* ── Header ───────────────────────────────────── */}
+      <header className="dash-header">
+        <div className="dash-header-date">
+          <span className="dash-header-day">{dayjs().format('dddd')}</span>
+          <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
+        </div>
+
+        <div className="dash-customize-wrap" ref={customizeRef}>
+          <button
+            className={`dash-customize-btn${showCustomize ? ' dash-customize-btn--active' : ''}`}
+            onClick={() => setShowCustomize(p => !p)}
+            aria-label="Customize dashboard widgets"
+            aria-expanded={showCustomize}
+          >
+            <SlidersHorizontal size={13} weight="bold" aria-hidden="true" />
+            Customize
+            {hiddenWidgets.size > 0 && (
+              <span className="dash-customize-badge">{hiddenWidgets.size}</span>
+            )}
+          </button>
+
+          {showCustomize && (
+            <div className="dash-customize-panel" role="dialog" aria-label="Widget visibility">
+              <p className="dash-customize-hint">Show or hide dashboard widgets</p>
+              {DEFAULT_GRID_ORDER.map(id => {
+                const visible = !hiddenWidgets.has(id)
+                return (
+                  <label key={id} className="dash-widget-toggle">
+                    <span className="dash-widget-toggle-name">{WIDGET_LABELS[id]}</span>
+                    <input
+                      type="checkbox"
+                      className="dash-widget-toggle-input"
+                      checked={visible}
+                      onChange={() => toggleWidget(id)}
+                    />
+                    <span className="dash-widget-toggle-pill" aria-hidden="true" />
+                  </label>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── Stat cards (static, full-width) ──────────── */}
+      <div className="dash-stat-cards">
+        <StatCard icon={ListChecks}  value={stats.activeTasks}       label="Active tasks"    color="var(--accent)"                                           delay="0.05s" />
+        <StatCard icon={CheckCircle} value={stats.completedThisWeek} label="Done this week"  color="var(--green)"                                            delay="0.10s" />
+        <StatCard icon={Clock}       value={stats.completedToday}    label="Done today"      color="#8b5cf6"                                                 delay="0.15s" />
+<StatCard icon={TrendUp}     value={`${completionRate}%`}    label="Completion rate" color={completionRate >= 80 ? 'var(--green)' : 'var(--accent)'} delay="0.25s" />
+        <StatCard icon={ChartBar}    value={stats.totalTasks}        label="Total tasks"     color="var(--ink-3)"                                            delay="0.30s" />
+      </div>
+
+      {/* ── 2-column free-drag grid ───────────────────── */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={gridOrder} strategy={rectSortingStrategy}>
+          {gridOrder.every(id => hiddenWidgets.has(id)) ? (
+            <div className="dash-all-hidden">
+              <p>All widgets are hidden.</p>
+              <button className="dash-all-hidden-restore" onClick={() => setShowCustomize(true)}>
+                Open Customize to restore them
+              </button>
+            </div>
+          ) : (
+            <div className="dash-grid">
+              {gridOrder.filter(id => !hiddenWidgets.has(id)).map(id => (
+                <SortableWidget key={id} id={id} onHide={hideWidget}>
+                  {gridWidgets[id]}
+                </SortableWidget>
+              ))}
+            </div>
+          )}
+        </SortableContext>
+
+        <DragOverlay>
+          {activeId
+            ? (
+              <div className="dash-widget dash-widget--overlay">
+                {gridWidgets[activeId]}
+              </div>
+            )
+            : null}
+        </DragOverlay>
+      </DndContext>
 
     </div>
   )

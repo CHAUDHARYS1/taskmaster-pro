@@ -8,6 +8,15 @@ export const WORKSPACE_TEMPLATES = [
     defaultLabels: [],
   },
   {
+    id: 'simple-todo',
+    name: 'Simple To-Do',
+    description: 'Two columns — To Do and Done. Nothing more, nothing less.',
+    columnLabels: { toDo: 'To Do', done: 'Done' },
+    columnColors: { toDo: '#6366f1', done: '#22c55e' },
+    columns: ['toDo', 'done'],
+    defaultLabels: [],
+  },
+  {
     id: 'job-tracker',
     name: 'Job Application Tracker',
     description: 'Track every application — from saved listings to closed offers.',

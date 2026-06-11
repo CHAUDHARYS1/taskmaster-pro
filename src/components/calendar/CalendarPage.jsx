@@ -1,25 +1,31 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { List, CalendarBlank } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../contexts/ToastContext'
 import Sidebar from '../layout/Sidebar'
-import UtilityBar from '../layout/UtilityBar'
 import CalendarView from './CalendarView'
+import PageHint from '../ui/PageHint'
 
 const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
-const AddTaskPanel    = lazy(() => import('../board/AddTaskPanel'))
+const SettingsModal   = lazy(() => import('../ui/SettingsModal'))
 
 export default function CalendarPage() {
   const { workspaces, currentWorkspace, loading: wsLoading } = useWorkspace()
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const [showSidebar,  setShowSidebar]  = useState(false)
+  const [showSidebar,      setShowSidebar]      = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
+  const [showSettings, setShowSettings] = useState(false)
+  const [filterWsId,   setFilterWsId]   = useState('all')
+  const [tasks,        setTasks]        = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [allProjects,  setAllProjects]  = useState([])
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -28,17 +34,8 @@ export default function CalendarPage() {
       return next
     })
   }
-  const [filterWsId,   setFilterWsId]   = useState('all')
-  const [tasks,        setTasks]        = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [selectedTask, setSelectedTask] = useState(null)
-  const [showAddPanel,    setShowAddPanel]    = useState(false)
-  const [addPanelDate,    setAddPanelDate]    = useState('')
-  // value format: "wsId|projectId" — lets us derive both from one select
-  const [createSelection, setCreateSelection] = useState('')
-  const [allProjects,     setAllProjects]     = useState([])
 
-  // Load projects for all workspaces in one query (no realtime subscription needed here)
+  // Load all projects once workspaces are ready
   useEffect(() => {
     if (wsLoading || workspaces.length === 0) return
     const wsIds = workspaces.map(w => w.id)
@@ -50,15 +47,18 @@ export default function CalendarPage() {
       .then(({ data }) => setAllProjects(data ?? []))
   }, [workspaces, wsLoading])
 
-  const [createWsId, createProjectId] = createSelection
-    ? createSelection.split('|')
-    : ['', '']
+  // Flat list of project options for the quick-add form
+  const projectOptions = useMemo(() =>
+    workspaces.flatMap(ws =>
+      allProjects
+        .filter(p => p.workspace_id === ws.id)
+        .map(p => ({
+          value: `${ws.id}|${p.id}`,
+          label: workspaces.length > 1 ? `${ws.name} / ${p.name}` : p.name,
+        }))
+    ), [workspaces, allProjects])
 
-  // Group projects by workspace for optgroups
-  const projectGroups = workspaces
-    .map(ws => ({ ws, projects: allProjects.filter(p => p.workspace_id === ws.id) }))
-    .filter(g => g.projects.length > 0)
-
+  // Load tasks that have a due date
   useEffect(() => {
     if (wsLoading || workspaces.length === 0) return
     setLoading(true)
@@ -90,39 +90,54 @@ export default function CalendarPage() {
     if (error) toast.error(error.message || 'Failed to update task')
   }
 
-  const handleAddTask = (date) => {
-    if (!createWsId || !createProjectId) {
-      toast.error('Choose a workspace and project before adding a task')
-      return
+  const handleDeleteTask = async (taskId) => {
+    const deleted = tasks.find(t => t.id === taskId)
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    if (selectedTask?.id === taskId) setSelectedTask(null)
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) {
+      toast.error(error.message || 'Failed to delete task')
+      if (deleted) setTasks(prev => [...prev, deleted])
+    } else {
+      toast.success('Task deleted')
     }
-    setAddPanelDate(date)
-    setShowAddPanel(true)
   }
 
-  const handleSaveTask = async ({ text, description, due_date, due_time, status, priority, assignee_id, labels }) => {
-    if (!createWsId || !createProjectId) throw new Error('Workspace and project are required')
-    const { data, error } = await supabase
+  const handleReschedule = async (taskId, newDate) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: newDate } : t))
+    const { error } = await supabase
       .from('tasks')
-      .insert({
-        workspace_id: createWsId,
-        project_id:   createProjectId,
-        created_by:   user.id,
-        text,
-        description:  description || null,
-        due_date:     due_date    || null,
-        due_time:     due_time    || null,
-        status:       status      || 'toDo',
-        priority:     priority    || null,
-        assignee_id:  assignee_id || null,
-        labels:       labels      || [],
-        position:     (tasks.length + 1) * 1000,
-      })
-      .select('*, assignee:profiles!assignee_id(email), project:projects(id,name,color), task_checklist_items(id,checked)')
-      .single()
-    if (error) throw error
-    if (data.due_date) setTasks(prev => [...prev, data])
-    toast.success('Task created')
-    return data.id
+      .update({ due_date: newDate, updated_at: new Date().toISOString() })
+      .eq('id', taskId)
+    if (error) {
+      toast.error(error.message || 'Failed to reschedule task')
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: t.due_date } : t))
+    } else {
+      toast.success('Task rescheduled')
+    }
+  }
+
+  const handleQuickAdd = async (date, text, wsId, projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          workspace_id: wsId,
+          project_id:   projectId,
+          created_by:   user.id,
+          text,
+          due_date:     date,
+          status:       'toDo',
+          position:     (tasks.length + 1) * 1000,
+        })
+        .select('*, assignee:profiles!assignee_id(email), project:projects(id,name,color), task_checklist_items(id,checked)')
+        .single()
+      if (error) throw error
+      setTasks(prev => [...prev, data])
+      toast.success('Task added')
+    } catch (err) {
+      toast.error(err.message || 'Failed to add task')
+    }
   }
 
   return (
@@ -130,10 +145,9 @@ export default function CalendarPage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main className="board-main">
-        <UtilityBar />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -161,24 +175,7 @@ export default function CalendarPage() {
                 ))}
               </select>
             )}
-            <div className={`cal-create-in${!createSelection ? ' cal-create-in--empty' : ''}`}>
-              <span className="cal-create-in__label">Add tasks to</span>
-              <select
-                className="cal-create-select"
-                value={createSelection}
-                onChange={e => setCreateSelection(e.target.value)}
-                aria-label="Workspace and project for new tasks"
-              >
-                <option value="">— choose project —</option>
-                {projectGroups.map(({ ws, projects: wsPros }) => (
-                  <optgroup key={ws.id} label={ws.name}>
-                    {wsPros.map(p => (
-                      <option key={p.id} value={`${ws.id}|${p.id}`}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
+            <PageHint text="View all tasks that have a due date. Click + on any day to add a task, or click a task to open it." />
           </div>
         </div>
 
@@ -186,7 +183,14 @@ export default function CalendarPage() {
           {loading ? (
             <div className="cal-loading">Loading…</div>
           ) : (
-            <CalendarView tasks={tasks} onTaskClick={t => setSelectedTask(t)} onAddTask={handleAddTask} />
+            <CalendarView
+              tasks={tasks}
+              onTaskClick={t => setSelectedTask(t)}
+              onQuickAdd={handleQuickAdd}
+              onReschedule={handleReschedule}
+              onDeleteTask={handleDeleteTask}
+              projectOptions={projectOptions}
+            />
           )}
         </div>
       </main>
@@ -201,13 +205,7 @@ export default function CalendarPage() {
             onClose={() => setSelectedTask(null)}
           />
         )}
-        {showAddPanel && (
-          <AddTaskPanel
-            initialDate={addPanelDate}
-            onClose={() => setShowAddPanel(false)}
-            onSave={handleSaveTask}
-          />
-        )}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
     </div>
   )

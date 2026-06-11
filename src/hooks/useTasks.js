@@ -12,7 +12,7 @@ export function useTasks(workspaceId, projectId) {
     if (!workspaceId) return
     let query = supabase
       .from('tasks')
-      .select('*, assignee:profiles!assignee_id(email), comments(count), project:projects(id,name,color), task_checklist_items(id,text,checked,position)')
+      .select('*, assignee:profiles!assignee_id(email, first_name, last_name), comments(count), project:projects(id,name,color), task_checklist_items(id,text,checked,position)')
       .eq('workspace_id', workspaceId)
     if (projectId) query = query.eq('project_id', projectId)
     const { data, error } = await query.order('position', { ascending: true })
@@ -37,7 +37,22 @@ export function useTasks(workspaceId, projectId) {
       }, () => fetchTasks())
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tasks', filter,
-      }, ({ new: task }) => setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t)))
+      }, ({ new: task }) => {
+        // Realtime payloads contain only raw columns — no joined data.
+        // Spread preserves existing joined fields (assignee, project, etc.)
+        // because undefined keys in `task` don't overwrite keys in `t`.
+        // Exception: if another client changed assignee_id we need a full
+        // refetch to load the new profile; our own optimistic updates already
+        // include the profile object so they won't trigger this path.
+        setTasks(prev => {
+          const existing = prev.find(t => t.id === task.id)
+          if (existing?.assignee_id !== task.assignee_id) {
+            fetchTasks()
+            return prev
+          }
+          return prev.map(t => t.id === task.id ? { ...t, ...task } : t)
+        })
+      })
       .on('postgres_changes', {
         event: 'DELETE', schema: 'public', table: 'tasks', filter,
       }, ({ old: task }) => setTasks(prev => prev.filter(t => t.id !== task.id)))
@@ -113,9 +128,11 @@ export function useTasks(workspaceId, projectId) {
 
   const updateTask = async (taskId, updates) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t))
+    // Strip client-only joined fields before sending to the DB
+    const { assignee, project, comments, task_checklist_items, ...dbUpdates } = updates
     const { error } = await supabase
       .from('tasks')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...dbUpdates, updated_at: new Date().toISOString() })
       .eq('id', taskId)
     if (error) { fetchTasks(); throw error }
   }

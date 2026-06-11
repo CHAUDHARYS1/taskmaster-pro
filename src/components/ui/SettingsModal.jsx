@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { X, Camera, SquaresFour, List, CalendarBlank, ChartBar, Cards, Rows, Clock, CalendarDot } from '@phosphor-icons/react'
+import { X, Camera, SquaresFour, List, CalendarBlank, ChartBar, Cards, Rows, Clock, CalendarDot, Sun, Moon, ArrowsOut } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { userColor } from '../../lib/userColor'
 
 const TABS = [
@@ -174,6 +175,7 @@ function AccountTab({ onClose }) {
 // ── Preferences tab ───────────────────────────────────────────────────────
 function PreferencesTab() {
   const { prefs, updatePrefs } = useAuth()
+  const { isDark, toggle: toggleTheme } = useTheme()
   const { showToast } = useToast()
 
   const save = async (patch) => {
@@ -186,6 +188,20 @@ function PreferencesTab() {
 
   return (
     <div className="modal-body settings-prefs-body">
+      <PrefRow
+        label="Theme"
+        hint="Switch between light and dark interface."
+      >
+        <SegmentedControl
+          value={isDark ? 'dark' : 'light'}
+          onChange={v => { if ((v === 'dark') !== isDark) toggleTheme() }}
+          options={[
+            { value: 'light', label: 'Light', icon: <Sun  size={13} weight="bold" /> },
+            { value: 'dark',  label: 'Dark',  icon: <Moon size={13} weight="bold" /> },
+          ]}
+        />
+      </PrefRow>
+
       <PrefRow
         label="Default view"
         hint="The view mode loaded when you open a project."
@@ -204,14 +220,15 @@ function PreferencesTab() {
 
       <PrefRow
         label="Card density"
-        hint="Compact hides descriptions and tightens padding."
+        hint="Compact hides descriptions. Expanded shows full content and checklist."
       >
         <SegmentedControl
           value={prefs.cardDensity}
           onChange={v => save({ cardDensity: v })}
           options={[
-            { value: 'comfortable', label: 'Comfortable', icon: <Cards size={13} weight="bold" /> },
-            { value: 'compact',     label: 'Compact',     icon: <Rows  size={13} weight="bold" /> },
+            { value: 'compact',     label: 'Compact',     icon: <Rows      size={13} weight="bold" /> },
+            { value: 'comfortable', label: 'Default',     icon: <Cards     size={13} weight="bold" /> },
+            { value: 'expanded',    label: 'Expanded',    icon: <ArrowsOut size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>

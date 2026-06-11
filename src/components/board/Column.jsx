@@ -1,38 +1,52 @@
 import { memo, useRef, useState } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { useDroppable, useDndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { ArrowRight } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id })
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn }) {
+  const { setNodeRef } = useDroppable({ id: column.id })
+  const { over }       = useDndContext()
+  const isOver         = over?.id === column.id || tasks.some(t => t.id === over?.id)
   const { workspaceTemplate } = useWorkspace()
   const isJobTracker = workspaceTemplate === 'job-tracker'
 
   const [text, setText] = useState('')
   const [desc, setDesc] = useState('')
   const inputRef = useRef(null)
+  const descRef  = useRef(null)
 
   const showDesc = text.length > 0
+
+  const resetDescHeight = () => {
+    if (descRef.current) descRef.current.style.height = ''
+  }
 
   const submit = async () => {
     const trimmed = text.trim()
     if (!trimmed) return
     setText('')
     setDesc('')
+    resetDescHeight()
     await onQuickAdd(trimmed, desc.trim() || null)
     inputRef.current?.focus()
   }
 
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter')  { e.preventDefault(); submit() }
-    if (e.key === 'Escape') { setText(''); setDesc('') }
+    if (e.key === 'Escape') { setText(''); setDesc(''); resetDescHeight() }
+  }
+
+  const handleDescChange = (e) => {
+    setDesc(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = e.target.scrollHeight + 'px'
   }
 
   const handleDescKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
-    if (e.key === 'Escape') { setText(''); setDesc('') }
+    if (e.key === 'Escape') { setText(''); setDesc(''); resetDescHeight() }
   }
 
   const JOB_EMPTY = {
@@ -51,6 +65,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
 
   return (
     <div
+      ref={setNodeRef}
       className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}
       style={column.color ? { '--col-color': column.color } : undefined}
     >
@@ -85,9 +100,10 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
           <div className={`quick-add-desc-wrap${showDesc ? ' quick-add-desc-wrap--open' : ''}`}>
             <div className="quick-add-desc-inner">
               <textarea
+                ref={descRef}
                 className="quick-add-desc"
                 value={desc}
-                onChange={e => setDesc(e.target.value)}
+                onChange={handleDescChange}
                 onKeyDown={handleDescKeyDown}
                 placeholder="Add a description… (optional)"
                 rows={2}
@@ -99,7 +115,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
       )}
 
       <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-        <ul ref={setNodeRef} className="column-list">
+        <ul className="column-list">
           {tasks.map(task => (
             <TaskCard
               key={task.id}
@@ -115,6 +131,9 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
               bulkMode={bulkMode}
               isSelected={selectedIds?.has(task.id) ?? false}
               onBulkToggle={onBulkToggle}
+              onMove={onMove}
+              isFirstColumn={isFirstColumn}
+              isLastColumn={isLastColumn}
             />
           ))}
           {emptyText && (

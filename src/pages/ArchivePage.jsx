@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { List, Archive, MagnifyingGlass, ArrowCounterClockwise, Trash, X } from '@phosphor-icons/react'
+import PageHint from '../components/ui/PageHint'
+
+const SettingsModal = lazy(() => import('../components/ui/SettingsModal'))
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import Sidebar from '../components/layout/Sidebar'
-import UtilityBar from '../components/layout/UtilityBar'
 import { useArchive } from '../hooks/useArchive'
 import { useToast } from '../contexts/ToastContext'
 
@@ -57,6 +59,7 @@ export default function ArchivePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
+  const [showSettings, setShowSettings] = useState(false)
   const [search,        setSearch]        = useState('')
   const [timeFilter,    setTimeFilter]    = useState('all')
   const [statusFilter,  setStatusFilter]  = useState('all')
@@ -151,10 +154,9 @@ export default function ArchivePage() {
       {showSidebar && (
         <div className="sidebar-backdrop" onClick={() => setShowSidebar(false)} aria-hidden="true" />
       )}
-      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} />
+      <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
-        <UtilityBar />
 
         {/* ── Header ───────────────────────────────────────── */}
         <div className="board-header">
@@ -168,6 +170,9 @@ export default function ArchivePage() {
             </button>
             <Archive size={18} className="board-header-icon" aria-hidden="true" />
             <span className="board-header-title">Archive</span>
+          </div>
+          <div className="board-header-right">
+            <PageHint text="Archived tasks live here. Search and filter by workspace, project, or date. Restore a task to To Do, or permanently delete it." />
           </div>
         </div>
 
@@ -342,6 +347,10 @@ export default function ArchivePage() {
           )}
         </div>
       </main>
+
+      <Suspense fallback={null}>
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }

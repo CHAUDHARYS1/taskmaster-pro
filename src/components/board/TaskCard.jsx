@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise } from '@phosphor-icons/react'
+import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise, ArrowLeft, ArrowRight } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -40,6 +40,11 @@ function initials(u) {
   return (u.email ?? '??').split('@')[0].slice(0, 2).toUpperCase()
 }
 
+function assigneeDisplayName(u) {
+  const full = [u.first_name, u.last_name].filter(Boolean).join(' ')
+  return full || u.display_name || u.email?.split('@')[0] || '?'
+}
+
 function firstName(u) {
   if (u.display_name) return u.display_name.trim().split(/\s+/)[0]
   return u.email?.split('@')[0] ?? 'Someone'
@@ -59,15 +64,19 @@ function TaskCard({
   bulkMode = false,
   isSelected = false,
   onBulkToggle,
+  onMove,
+  isFirstColumn = false,
+  isLastColumn = false,
 }) {
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
   const { prefs } = useAuth()
-  const isJobTracker    = workspaceTemplate === 'job-tracker'
+  const isJobTracker = workspaceTemplate === 'job-tracker'
+  const isExpanded   = prefs?.cardDensity === 'expanded'
   const isLockedByOther = editingUser != null && !editingUser.is_self
   const isSelfEditing   = editingUser?.is_self === true
-  const glowColor       = editingUser ? userColor(editingUser.user_id) : null
-  const priorityColor   = task.priority ? priorityMap[task.priority]?.color : null
+  const glowColor   = isSelfEditing ? 'var(--accent)' : editingUser ? userColor(editingUser.user_id) : null
+  const priorityDef = task.priority ? priorityMap[task.priority] : null
 
   const {
     attributes, listeners, setNodeRef,
@@ -76,8 +85,7 @@ function TaskCard({
 
   const style = {
     ...(isOverlay ? {} : { transform: CSS.Transform.toString(transform), transition }),
-    ...(glowColor    ? { '--editing-color':  glowColor }    : {}),
-    ...(priorityColor ? { '--priority-color': priorityColor } : {}),
+    ...(glowColor ? { '--editing-color': glowColor } : {}),
   }
 
   const handleOpen = () => {
@@ -179,6 +187,17 @@ function TaskCard({
         </div>
       )}
 
+      {/* Priority chip */}
+      {priorityDef && (
+        <span
+          className="task-priority-chip"
+          style={{ '--p-color': priorityDef.color }}
+        >
+          <span aria-hidden="true">{priorityDef.icon}</span>
+          {priorityDef.name}
+        </span>
+      )}
+
       {/* Title */}
       <p className="task-text">{task.text}</p>
 
@@ -193,7 +212,7 @@ function TaskCard({
       {/* Labels */}
       {task.labels?.length > 0 && (
         <div className="task-labels">
-          {task.labels.slice(0, 3).map(id => {
+          {task.labels.slice(0, isExpanded ? undefined : 3).map(id => {
             const label = labelMap[id]
             if (!label) return null
             const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
@@ -207,7 +226,7 @@ function TaskCard({
               </span>
             )
           })}
-          {task.labels.length > 3 && (
+          {!isExpanded && task.labels.length > 3 && (
             <span className="label-chip label-chip--sm label-chip--overflow">
               +{task.labels.length - 3}
             </span>
@@ -221,12 +240,13 @@ function TaskCard({
           {/* Left cluster */}
           <div className="task-card-footer-left">
             {!isJobTracker && task.assignee && (
-              <span
-                className="task-assignee-avatar"
-                style={{ background: userColor(task.assignee_id), color: '#fff' }}
-                title={task.assignee.display_name || task.assignee.email}
-              >
-                {initials(task.assignee)}
+              <span className="task-assignee-name">
+                <span
+                  className="task-assignee-dot"
+                  style={{ background: userColor(task.assignee_id) }}
+                  aria-hidden="true"
+                />
+                {assigneeDisplayName(task.assignee)}
               </span>
             )}
             {showProject && task.project && (
@@ -268,6 +288,48 @@ function TaskCard({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Checklist items preview — expanded mode only */}
+      {isExpanded && checklistTotal > 0 && (
+        <ul className="task-checklist-preview" aria-label="Checklist">
+          {task.task_checklist_items
+            .slice()
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+            .map(item => (
+              <li
+                key={item.id}
+                className={`task-checklist-preview-item${item.checked ? ' task-checklist-preview-item--done' : ''}`}
+              >
+                <span className="task-checklist-preview-check" aria-hidden="true">
+                  {item.checked && <Check size={9} weight="bold" />}
+                </span>
+                <span className="task-checklist-preview-text">{item.text}</span>
+              </li>
+            ))}
+        </ul>
+      )}
+
+      {/* Column move arrows — mobile only, hidden on desktop via CSS */}
+      {onMove && !isOverlay && !bulkMode && (
+        <div className="task-card-move-row">
+          <button
+            className="task-card-move-btn"
+            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'prev') }}
+            aria-label="Move to previous column"
+            disabled={isFirstColumn}
+          >
+            <ArrowLeft size={15} weight="bold" aria-hidden="true" />
+          </button>
+          <button
+            className="task-card-move-btn"
+            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'next') }}
+            aria-label="Move to next column"
+            disabled={isLastColumn}
+          >
+            <ArrowRight size={15} weight="bold" aria-hidden="true" />
+          </button>
         </div>
       )}
     </li>

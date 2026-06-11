@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut } from '@phosphor-icons/react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
+import { BellButton } from '../notifications/NotificationCenter'
 
-export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange }) {
+export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange, onProfileClick }) {
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
   const { projects, currentProject, switchProject }       = useProject()
-  const { user, signOut }                                 = useAuth()
+  const { user, signOut, profile, displayName }           = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
 
@@ -42,11 +44,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         ].filter(Boolean).join(' ')}
         aria-label="Sidebar navigation"
       >
-        {/* ── Logo — both variants stay in DOM; CSS shows the right one ── */}
+        {/* ── Logo + bell ── */}
         <div className="sidebar-top">
+          {/* Expanded: wordmark + bell on the same row */}
           <div className="sidebar-logo-full">
-            <LogoLockup width={164} className="sidebar-lockup" />
+            <LogoLockup width={148} className="sidebar-lockup" />
+            <BellButton />
           </div>
+          {/* Collapsed: mark icon */}
           <div className="sidebar-logo-mark" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" width="30" height="33">
               <g transform="translate(2,4)">
@@ -54,6 +59,10 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                 <path d="M12.3 22.9 L19.4 29.9 L32.6 15" fill="none" stroke="#FFFFFF" strokeWidth="5.3" strokeLinecap="round" strokeLinejoin="round" />
               </g>
             </svg>
+          </div>
+          {/* Collapsed: bell below the mark */}
+          <div className="sidebar-logo-bell-collapsed">
+            <BellButton />
           </div>
         </div>
 
@@ -100,8 +109,11 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                     title={isPersonal ? 'My Workspace' : ws.name}
                     aria-label={isPersonal ? 'My Workspace' : ws.name}
                   >
-                    <span className="ws-avatar sidebar-ws-compact-avatar">
-                      {ws.name.charAt(0).toUpperCase()}
+                    <span
+                      className="ws-avatar sidebar-ws-compact-avatar"
+                      style={{ background: ws.color ?? '#2563EB' }}
+                    >
+                      {ws.emoji || ws.name.charAt(0).toUpperCase()}
                     </span>
                   </button>
 
@@ -155,15 +167,63 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
 
         {/* ── Footer ── */}
         <div className="sidebar-footer sidebar-footer--collapsible">
-          <button
-            className="sidebar-signout-btn"
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <SignOut size={14} aria-hidden="true" />
-            <span className="sidebar-nav-label">Sign out</span>
-          </button>
-          <p className="sidebar-version">v1.2.00</p>
+
+          {/* Profile */}
+          {onProfileClick ? (
+            <button
+              className="sidebar-profile-btn"
+              onClick={onProfileClick}
+              aria-label={`Settings for ${displayName || user?.email}`}
+              title={collapsed ? (displayName || user?.email) : undefined}
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                    {(displayName || user?.email || '?')[0].toUpperCase()}
+                  </span>
+              }
+              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+            </button>
+          ) : (
+            <div
+              className="sidebar-profile-btn sidebar-profile-btn--static"
+              aria-label={`Signed in as ${displayName || user?.email}`}
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                    {(displayName || user?.email || '?')[0].toUpperCase()}
+                  </span>
+              }
+              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+            </div>
+          )}
+
+          {/* Coffee + Sign out */}
+          <div className="sidebar-footer-row">
+            <a
+              href="https://buymeacoffee.com/schaudhary"
+              target="_blank"
+              rel="noreferrer"
+              className="sidebar-coffee-btn"
+              aria-label="Buy me a coffee"
+              title="Buy me a coffee"
+            >
+              <Coffee size={14} weight="bold" aria-hidden="true" />
+              <span className="sidebar-nav-label">Buy me a coffee</span>
+            </a>
+            <button
+              className="sidebar-signout-btn"
+              onClick={signOut}
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <SignOut size={14} aria-hidden="true" />
+              <span className="sidebar-nav-label">Sign out</span>
+            </button>
+          </div>
+
+          <Link to="/release-notes" className="sidebar-version sidebar-version-link">v1.2.00</Link>
           <p className="sidebar-credit">
             Designed and built by{' '}
             <a href="https://scdesigns.netlify.app/" target="_blank" rel="noreferrer" className="sidebar-credit-link">

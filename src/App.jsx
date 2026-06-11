@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { LabelsProvider } from './contexts/LabelsContext'
 import { ProjectProvider } from './contexts/ProjectContext'
@@ -10,6 +11,8 @@ import { ToastProvider } from './contexts/ToastContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import SessionGuard from './components/auth/SessionGuard'
 import ToastContainer from './components/ui/ToastContainer'
+import AuthTransitionOverlay from './components/auth/AuthTransitionOverlay'
+import NotificationPanel from './components/notifications/NotificationCenter'
 
 const AuthPage        = lazy(() => import('./components/auth/AuthPage'))
 const Board           = lazy(() => import('./components/board/Board'))
@@ -19,7 +22,8 @@ const ProjectDeepLink   = lazy(() => import('./components/workspace/ProjectDeepL
 const DashboardPage   = lazy(() => import('./components/dashboard/DashboardPage'))
 const WritesPage      = lazy(() => import('./components/writes/WritesPage'))
 const CalendarPage    = lazy(() => import('./components/calendar/CalendarPage'))
-const ArchivePage     = lazy(() => import('./pages/ArchivePage'))
+const ArchivePage        = lazy(() => import('./pages/ArchivePage'))
+const ReleaseNotesPage   = lazy(() => import('./pages/ReleaseNotesPage'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -43,9 +47,11 @@ export default function App() {
     <ThemeProvider>
     <ToastProvider>
       <AuthProvider>
+        <NotificationProvider>
         <WorkspaceProvider>
           <LabelsProvider>
           <ProjectProvider>
+          <AuthTransitionOverlay />
           <SessionGuard />
           <a href="#main-content" className="skip-link">Skip to main content</a>
           <Suspense fallback={<div className="loading-screen">Loading…</div>}>
@@ -59,16 +65,19 @@ export default function App() {
             <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/archive"           element={<ProtectedRoute><ArchivePage /></ProtectedRoute>} />
+            <Route path="/release-notes"     element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
             <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="/about"          element={<AboutPage />} />
             <Route path="/"               element={<LandingPage />} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <NotificationPanel />
           <ToastContainer />
           </ProjectProvider>
           </LabelsProvider>
         </WorkspaceProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
     </ThemeProvider>

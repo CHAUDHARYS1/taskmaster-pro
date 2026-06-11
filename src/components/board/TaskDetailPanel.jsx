@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
 import { X, ArrowsClockwise } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
@@ -134,12 +135,13 @@ function RecurrencePicker({ value, onChange, hasDueDate }) {
 
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose, onArchive }) {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, displayName } = useAuth()
+  const { notify } = useNotifications()
   const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { toast } = useToast()
   const { labels, labelMap } = useLabelsCtx()
   const { comments, loading: commentsLoading, addComment, deleteComment, updateComment } = useTaskDetail(task.id)
-  const { items: checklistItems, addItem: addChecklistItem, updateItem: updateChecklistItem, deleteItem: deleteChecklistItem } = useTaskChecklist(task.id)
+  const { items: checklistItems, fetchError: checklistError, addItem: addChecklistItem, updateItem: updateChecklistItem, deleteItem: deleteChecklistItem } = useTaskChecklist(task.id)
   const { width, startResize } = usePanelResize()
 
   const today    = dayjs().format('YYYY-MM-DD')
@@ -174,11 +176,11 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const commentInputRef = useRef(null)
   const titleRef        = useRef(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = titleRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
+    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px'
   }, [title])
 
   useEffect(() => { setTitle(task.text) },                         [task.text])
@@ -229,6 +231,49 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
       await addComment(body)
       setCommentBody('')
       toast.success('Comment added')
+
+      // Notify task creator and assignee, plus any @mentions
+      const commenterName = displayName || user?.email?.split('@')[0] || 'Someone'
+      const preview = `"${body.slice(0, 80)}${body.length > 80 ? '…' : ''}"`
+      const notifySet = new Set()
+      if (task.created_by && task.created_by !== user.id) notifySet.add(task.created_by)
+      if (task.assignee_id && task.assignee_id !== user.id) notifySet.add(task.assignee_id)
+
+      // Detect @mentions (match against member email local-part or first name)
+      const mentioned = new Set()
+      const mentionRe = /@(\S+)/g
+      let m
+      while ((m = mentionRe.exec(body)) !== null) {
+        const handle = m[1].toLowerCase().replace(/[^a-z0-9._-]/g, '')
+        const member = members.find(mb =>
+          mb.email?.split('@')[0]?.toLowerCase() === handle ||
+          mb.first_name?.toLowerCase() === handle ||
+          mb.email?.toLowerCase() === handle
+        )
+        if (member && member.user_id !== user.id) {
+          mentioned.add(member.user_id)
+          notifySet.delete(member.user_id)
+          notify({
+            type: 'mention',
+            user_id: member.user_id,
+            workspace_id: task.workspace_id,
+            title: `${commenterName} mentioned you`,
+            body: `In "${task.text}": ${preview}`,
+            task_id: task.id,
+          })
+        }
+      }
+
+      for (const uid of notifySet) {
+        notify({
+          type: 'comment_added',
+          user_id: uid,
+          workspace_id: task.workspace_id,
+          title: `${commenterName} commented on a task`,
+          body: `On "${task.text}": ${preview}`,
+          task_id: task.id,
+        })
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to add comment')
     } finally {
@@ -244,7 +289,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
         role="complementary"
         aria-label="Task detail"
       >
-        <div className="task-panel-resize" onMouseDown={startResize} aria-hidden="true" title="Drag to resize" />
+        <div className="task-panel-resize" onMouseDown={startResize} onTouchStart={startResize} aria-hidden="true" title="Drag to resize" />
 
         {/* ── Header ──────────────────────────────────────── */}
         <div className="atp-hdr">
@@ -288,6 +333,114 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             />
           </div>
 
+          {/* ── Checklist ────────────────────────────────── */}
+          <div className="atp-section">
+            <div className="atp-section__hdr">
+              <span className="atp-prop__label">
+                Checklist
+                {checklistItems.length > 0 && (
+                  <span className="task-panel-count">
+                    {checklistItems.filter(i => i.checked).length}/{checklistItems.length}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {checklistItems.length > 0 && (
+              <div
+                className="checklist-progress"
+                style={{ '--progress-pct': `${Math.round((checklistItems.filter(i => i.checked).length / checklistItems.length) * 100)}%` }}
+                aria-label={`${checklistItems.filter(i => i.checked).length} of ${checklistItems.length} items complete`}
+              />
+            )}
+
+            <ul className="checklist-list">
+              {checklistItems.map(item => (
+                <li key={item.id} className="checklist-item">
+                  <input
+                    type="checkbox"
+                    id={`chk-${item.id}`}
+                    checked={item.checked}
+                    onChange={async () => {
+                      if (!canEdit) return
+                      const newChecked = !item.checked
+                      try {
+                        await updateChecklistItem(item.id, { checked: newChecked })
+                        onChecklistChange?.(task.id, items => items.map(i => i.id === item.id ? { ...i, checked: newChecked } : i))
+                      } catch (err) {
+                        toast.error(err.message || 'Failed to update item')
+                      }
+                    }}
+                    disabled={!canEdit}
+                    aria-label={item.text}
+                  />
+                  <label
+                    htmlFor={`chk-${item.id}`}
+                    className={`checklist-item__text${item.checked ? ' checklist-item__text--done' : ''}`}
+                  >
+                    {item.text}
+                  </label>
+                  {canEdit && (
+                    <button
+                      className="checklist-item__delete"
+                      onClick={async () => {
+                        try {
+                          await deleteChecklistItem(item.id)
+                          onChecklistChange?.(task.id, items => items.filter(i => i.id !== item.id))
+                        } catch (err) {
+                          toast.error(err.message || 'Failed to delete item')
+                        }
+                      }}
+                      aria-label="Delete checklist item"
+                      title="Delete item"
+                    >
+                      <X size={13} weight="bold" aria-hidden="true" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {checklistError && (
+              <span className="task-panel-empty" style={{ color: 'var(--red)' }}>
+                Failed to load checklist: {checklistError}
+              </span>
+            )}
+
+            {!checklistError && !canEdit && checklistItems.length === 0 && (
+              <span className="task-panel-empty">No checklist items.</span>
+            )}
+
+            {canEdit && (
+              <form
+                className="checklist-add-row"
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!newItemText.trim()) return
+                  try {
+                    const newItem = await addChecklistItem(newItemText)
+                    setNewItemText('')
+                    if (newItem) onChecklistChange?.(task.id, items => [...items, { id: newItem.id, checked: false }])
+                  } catch (err) {
+                    toast.error(err.message || 'Failed to add item')
+                  }
+                }}
+              >
+                <input
+                  type="text"
+                  className="checklist-add-input"
+                  value={newItemText}
+                  onChange={e => setNewItemText(e.target.value)}
+                  placeholder="Add an item…"
+                  aria-label="New checklist item"
+                />
+                <button type="submit" className="btn-primary checklist-add-btn" disabled={!newItemText.trim()}>
+                  Add
+                </button>
+              </form>
+            )}
+          </div>
+
           <div className="atp-divider" aria-hidden="true" />
 
           {/* ── Properties ──────────────────────────────── */}
@@ -329,7 +482,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         key={p.id}
                         type="button"
                         className={`atp-pill${active ? ' atp-pill--active' : ''}`}
-                        style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                        style={{ '--p-color': p.color }}
                         onClick={() => onUpdate(task.id, { priority: active ? null : p.id })}
                         aria-pressed={active}
                         title={active ? `Clear ${p.name}` : p.name}
@@ -341,7 +494,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       <span
                         key={p.id}
                         className="atp-pill atp-pill--active"
-                        style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                        style={{ '--p-color': p.color }}
                       >
                         <span aria-hidden="true">{p.icon}</span>
                         {p.name}
@@ -367,7 +520,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       <button type="button" className={`atp-pill${task.due_date === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: nextWeek })} aria-pressed={task.due_date === nextWeek}>Next week</button>
                       <button type="button" className={`atp-pill${!task.due_date          ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: null, due_time: null })} aria-pressed={!task.due_date}>None</button>
                       {isCustomDate && (
-                        <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)', '--p-bg': 'var(--accent-tint)' }}>
+                        <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                           {dayjs(task.due_date).format('MMM D')}
                         </span>
                       )}
@@ -446,7 +599,27 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       id="tdp-assignee"
                       className="atp-select"
                       value={task.assignee_id ?? ''}
-                      onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
+                      onChange={e => {
+                        const newId = e.target.value || null
+                        const member = newId ? members.find(m => m.user_id === newId) : null
+                        onUpdate(task.id, {
+                          assignee_id: newId,
+                          assignee: member
+                            ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
+                            : null,
+                        })
+                        if (newId && newId !== user.id) {
+                          const assignerName = displayName || user?.email?.split('@')[0] || 'Someone'
+                          notify({
+                            type: 'task_assigned',
+                            user_id: newId,
+                            workspace_id: task.workspace_id,
+                            title: 'Task assigned to you',
+                            body: `${assignerName} assigned "${task.text}" to you`,
+                            task_id: task.id,
+                          })
+                        }
+                      }}
                     >
                       <option value="">Unassigned</option>
                       {members.map(m => (
@@ -521,100 +694,6 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             </div>
 
           </div>{/* /atp-props */}
-
-          {/* ── Checklist ────────────────────────────────── */}
-          <div className="atp-section">
-            <div className="atp-section__hdr">
-              <span className="atp-prop__label">
-                Checklist
-                {checklistItems.length > 0 && (
-                  <span className="task-panel-count">
-                    {checklistItems.filter(i => i.checked).length}/{checklistItems.length}
-                  </span>
-                )}
-              </span>
-            </div>
-
-            {checklistItems.length > 0 && (
-              <div
-                className="checklist-progress"
-                style={{ '--progress-pct': `${Math.round((checklistItems.filter(i => i.checked).length / checklistItems.length) * 100)}%` }}
-                aria-label={`${checklistItems.filter(i => i.checked).length} of ${checklistItems.length} items complete`}
-              />
-            )}
-
-            <ul className="checklist-list">
-              {checklistItems.map(item => (
-                <li key={item.id} className="checklist-item">
-                  <input
-                    type="checkbox"
-                    id={`chk-${item.id}`}
-                    checked={item.checked}
-                    onChange={() => {
-                      if (!canEdit) return
-                      const newChecked = !item.checked
-                      updateChecklistItem(item.id, { checked: newChecked })
-                      onChecklistChange?.(task.id, items => items.map(i => i.id === item.id ? { ...i, checked: newChecked } : i))
-                    }}
-                    disabled={!canEdit}
-                    aria-label={item.text}
-                  />
-                  <label
-                    htmlFor={`chk-${item.id}`}
-                    className={`checklist-item__text${item.checked ? ' checklist-item__text--done' : ''}`}
-                  >
-                    {item.text}
-                  </label>
-                  {canEdit && (
-                    <button
-                      className="checklist-item__delete"
-                      onClick={() => {
-                        deleteChecklistItem(item.id)
-                        onChecklistChange?.(task.id, items => items.filter(i => i.id !== item.id))
-                      }}
-                      aria-label="Delete checklist item"
-                      title="Delete item"
-                    >
-                      <X size={13} weight="bold" aria-hidden="true" />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            {!canEdit && checklistItems.length === 0 && (
-              <span className="task-panel-empty">No checklist items.</span>
-            )}
-
-            {canEdit && (
-              <form
-                className="checklist-add-row"
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!newItemText.trim()) return
-                  try {
-                    const newItem = await addChecklistItem(newItemText)
-                    setNewItemText('')
-                    if (newItem) onChecklistChange?.(task.id, items => [...items, { id: newItem.id, checked: false }])
-                  } catch (err) {
-                    toast.error(err.message || 'Failed to add item')
-                  }
-                }}
-              >
-                <input
-                  type="text"
-                  className="checklist-add-input"
-                  value={newItemText}
-                  onChange={e => setNewItemText(e.target.value)}
-                  placeholder="Add an item…"
-                  aria-label="New checklist item"
-                />
-                <button type="submit" className="btn-primary checklist-add-btn" disabled={!newItemText.trim()}>
-                  Add
-                </button>
-              </form>
-            )}
-          </div>
 
           {/* ── Document link ────────────────────────────── */}
           <div className="atp-section">

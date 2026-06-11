@@ -270,7 +270,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
                       key={p.id}
                       type="button"
                       className={`priority-btn${active ? ' priority-btn--active' : ''}`}
-                      style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                      style={{ '--p-color': p.color }}
                       onClick={() => setPriority(active ? null : p.id)}
                       aria-pressed={active}
                       title={active ? 'Click to clear' : undefined}

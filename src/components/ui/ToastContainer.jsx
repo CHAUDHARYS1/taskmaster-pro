@@ -51,7 +51,7 @@ export default function ToastContainer() {
                 {buttons.map((a, i) => (
                   <button
                     key={i}
-                    className="toast-action"
+                    className={`toast-action${a.danger ? ' toast-action--danger' : ''}`}
                     onClick={() => { a.onClick(); dismiss(t.id) }}
                   >
                     {a.label}
