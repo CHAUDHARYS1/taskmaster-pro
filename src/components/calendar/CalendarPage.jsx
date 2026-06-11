@@ -90,6 +90,33 @@ export default function CalendarPage() {
     if (error) toast.error(error.message || 'Failed to update task')
   }
 
+  const handleDeleteTask = async (taskId) => {
+    const deleted = tasks.find(t => t.id === taskId)
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    if (selectedTask?.id === taskId) setSelectedTask(null)
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) {
+      toast.error(error.message || 'Failed to delete task')
+      if (deleted) setTasks(prev => [...prev, deleted])
+    } else {
+      toast.success('Task deleted')
+    }
+  }
+
+  const handleReschedule = async (taskId, newDate) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: newDate } : t))
+    const { error } = await supabase
+      .from('tasks')
+      .update({ due_date: newDate, updated_at: new Date().toISOString() })
+      .eq('id', taskId)
+    if (error) {
+      toast.error(error.message || 'Failed to reschedule task')
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: t.due_date } : t))
+    } else {
+      toast.success('Task rescheduled')
+    }
+  }
+
   const handleQuickAdd = async (date, text, wsId, projectId) => {
     try {
       const { data, error } = await supabase
@@ -160,6 +187,8 @@ export default function CalendarPage() {
               tasks={tasks}
               onTaskClick={t => setSelectedTask(t)}
               onQuickAdd={handleQuickAdd}
+              onReschedule={handleReschedule}
+              onDeleteTask={handleDeleteTask}
               projectOptions={projectOptions}
             />
           )}

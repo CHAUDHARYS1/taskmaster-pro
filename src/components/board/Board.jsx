@@ -177,6 +177,13 @@ export default function Board() {
   const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
+  // Calendar view — project options for the quick-add form
+  const calProjectOptions = useMemo(() => {
+    if (!currentWorkspace) return []
+    if (currentProject) return [{ value: `${currentWorkspace.id}|${currentProject.id}`, label: currentProject.name }]
+    return (projects ?? []).map(p => ({ value: `${currentWorkspace.id}|${p.id}`, label: p.name }))
+  }, [currentWorkspace, currentProject, projects])
+
   const columns = currentProject?.enabled_columns
     ? workspaceColumns.filter(c => currentProject.enabled_columns.includes(c.id))
     : workspaceColumns
@@ -382,6 +389,22 @@ export default function Board() {
     try { await addTask({ text, description, status: 'toDo' }); toast.success('Task added') }
     catch (err) { toast.error(err.message || 'Failed to add task') }
   }, [addTask, toast])
+
+  // Calendar view handlers — addTask already has workspace/project from the hook
+  const handleCalQuickAdd = useCallback(async (date, text) => {
+    try { await addTask({ text, due_date: date, status: 'toDo' }); toast.success('Task added') }
+    catch (err) { toast.error(err.message || 'Failed to add task') }
+  }, [addTask, toast])
+
+  const handleCalReschedule = useCallback(async (taskId, newDate) => {
+    try { await updateTask(taskId, { due_date: newDate }); toast.success('Task rescheduled') }
+    catch (err) { toast.error(err.message || 'Failed to reschedule task') }
+  }, [updateTask, toast])
+
+  const handleCalDelete = useCallback(async (taskId) => {
+    try { await deleteTask(taskId); toast.success('Task deleted') }
+    catch (err) { toast.error(err.message || 'Failed to delete task') }
+  }, [deleteTask, toast])
 
   useKeyboardShortcuts({
     'ctrl+n': (e) => { e.preventDefault(); if (canEdit && !isGlobalBoard) openAddPanel() },
@@ -752,7 +775,14 @@ ${colData.map(c => `<div class="col">
             ) : viewMode === 'calendar' ? (
               <div className="cal-page-body">
                 <Suspense fallback={null}>
-                  <CalendarView tasks={allTasks} onTaskClick={t => openTaskDetail(t.id)} />
+                  <CalendarView
+                    tasks={allTasks}
+                    onTaskClick={t => openTaskDetail(t.id)}
+                    onQuickAdd={canEdit ? handleCalQuickAdd : undefined}
+                    onReschedule={canEdit ? handleCalReschedule : undefined}
+                    onDeleteTask={canEdit ? handleCalDelete : undefined}
+                    projectOptions={calProjectOptions}
+                  />
                 </Suspense>
               </div>
             ) : viewMode === 'gantt' ? (
