@@ -2028,12 +2028,6 @@ a:focus-visible,
   padding: var(--space-2) var(--space-3);
 }
 
-/* ── Workspace accent strip ────────────────────────────────── */
-.utility-bar {
-  height: 6px;
-  flex-shrink: 0;
-}
-
 /* ── Profile chip ──────────────────────────────────────────── */
 .utility-bar-profile {
   display: flex;
@@ -2175,10 +2169,16 @@ a:focus-visible,
 /* Hidden on desktop — only shown via mobile media query */
 .sidebar-toggle { display: none; }
 
-.board-header-title {
+.board-ws-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.board-ws-name {
   font-size: var(--text-body);
-  font-weight: var(--weight-medium);
-  color: var(--ink-3);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
 }
 
 .board-header-right {

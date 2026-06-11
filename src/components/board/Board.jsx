@@ -14,7 +14,6 @@ import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
-import UtilityBar from '../layout/UtilityBar'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
@@ -633,7 +632,6 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
-        <UtilityBar />
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -643,13 +641,24 @@ ${colData.map(c => `<div class="col">
             >
               <List size={22} aria-hidden="true" />
             </button>
-            <span className="board-header-title">
-              {currentWorkspace?.name}
-              {isGlobalBoard
-                ? <span className="board-header-project"> / All Projects</span>
-                : currentProject && <span className="board-header-project"> / {currentProject.name}</span>
-              }
-            </span>
+            <div className="board-ws-chip">
+              {currentWorkspace && (
+                <span
+                  className="ws-avatar"
+                  style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                  aria-hidden="true"
+                >
+                  {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="board-ws-name">
+                {currentWorkspace?.name}
+                {isGlobalBoard
+                  ? <span className="board-header-project"> / All Projects</span>
+                  : currentProject && <span className="board-header-project"> / {currentProject.name}</span>
+                }
+              </span>
+            </div>
           </div>
           <div className="board-header-right">
             <PresenceAvatars members={workspaceMembers} present={present} />
