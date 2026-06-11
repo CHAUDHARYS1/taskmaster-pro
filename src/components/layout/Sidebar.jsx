@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher'
 import CreateWorkspaceModal from '../workspace/CreateWorkspaceModal'
+import { BellButton } from '../notifications/NotificationCenter'
 
 export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode, onViewChange, onProfileClick }) {
   const { workspaces, currentWorkspace, switchWorkspace } = useWorkspace()
@@ -73,6 +74,8 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
               <span className="sidebar-nav-label">{label}</span>
             </button>
           ))}
+
+          <BellButton />
 
           {/* ── Expanded: full workspace switcher ── */}
           <div className="sidebar-ws-section">

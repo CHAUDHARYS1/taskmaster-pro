@@ -5,6 +5,7 @@ import { X, ArrowsClockwise } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
@@ -134,7 +135,8 @@ function RecurrencePicker({ value, onChange, hasDueDate }) {
 
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose, onArchive }) {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, displayName } = useAuth()
+  const { notify } = useNotifications()
   const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { toast } = useToast()
   const { labels, labelMap } = useLabelsCtx()
@@ -229,6 +231,49 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
       await addComment(body)
       setCommentBody('')
       toast.success('Comment added')
+
+      // Notify task creator and assignee, plus any @mentions
+      const commenterName = displayName || user?.email?.split('@')[0] || 'Someone'
+      const preview = `"${body.slice(0, 80)}${body.length > 80 ? '…' : ''}"`
+      const notifySet = new Set()
+      if (task.created_by && task.created_by !== user.id) notifySet.add(task.created_by)
+      if (task.assignee_id && task.assignee_id !== user.id) notifySet.add(task.assignee_id)
+
+      // Detect @mentions (match against member email local-part or first name)
+      const mentioned = new Set()
+      const mentionRe = /@(\S+)/g
+      let m
+      while ((m = mentionRe.exec(body)) !== null) {
+        const handle = m[1].toLowerCase().replace(/[^a-z0-9._-]/g, '')
+        const member = members.find(mb =>
+          mb.email?.split('@')[0]?.toLowerCase() === handle ||
+          mb.first_name?.toLowerCase() === handle ||
+          mb.email?.toLowerCase() === handle
+        )
+        if (member && member.user_id !== user.id) {
+          mentioned.add(member.user_id)
+          notifySet.delete(member.user_id)
+          notify({
+            type: 'mention',
+            user_id: member.user_id,
+            workspace_id: task.workspace_id,
+            title: `${commenterName} mentioned you`,
+            body: `In "${task.text}": ${preview}`,
+            task_id: task.id,
+          })
+        }
+      }
+
+      for (const uid of notifySet) {
+        notify({
+          type: 'comment_added',
+          user_id: uid,
+          workspace_id: task.workspace_id,
+          title: `${commenterName} commented on a task`,
+          body: `On "${task.text}": ${preview}`,
+          task_id: task.id,
+        })
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to add comment')
     } finally {
@@ -554,7 +599,21 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       id="tdp-assignee"
                       className="atp-select"
                       value={task.assignee_id ?? ''}
-                      onChange={e => onUpdate(task.id, { assignee_id: e.target.value || null })}
+                      onChange={e => {
+                        const newId = e.target.value || null
+                        onUpdate(task.id, { assignee_id: newId })
+                        if (newId && newId !== user.id) {
+                          const assignerName = displayName || user?.email?.split('@')[0] || 'Someone'
+                          notify({
+                            type: 'task_assigned',
+                            user_id: newId,
+                            workspace_id: task.workspace_id,
+                            title: 'Task assigned to you',
+                            body: `${assignerName} assigned "${task.text}" to you`,
+                            task_id: task.id,
+                          })
+                        }
+                      }}
                     >
                       <option value="">Unassigned</option>
                       {members.map(m => (
