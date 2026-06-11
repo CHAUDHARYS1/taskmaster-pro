@@ -175,6 +175,18 @@ export default function Board() {
   const allTasks     = useMemo(() => Object.values(tasksByStatus).flat(), [tasksByStatus])
   const selectedTask = allTasks.find(t => t.id === selectedTaskId) ?? null
 
+  // Open a task from a notification click. The notification handler stores the
+  // task ID in sessionStorage and navigates to /workspace/:id, which switches
+  // the workspace context before landing back here. We wait until tasks have
+  // finished loading so the task is guaranteed to be in allTasks.
+  useEffect(() => {
+    if (loading) return
+    const pendingId = sessionStorage.getItem('tm_openTask')
+    if (!pendingId) return
+    sessionStorage.removeItem('tm_openTask')
+    if (allTasks.find(t => t.id === pendingId)) setSelectedTaskId(pendingId)
+  }, [loading, allTasks])
+
   // Calendar view — project options for the quick-add form
   const calProjectOptions = useMemo(() => {
     if (!currentWorkspace) return []

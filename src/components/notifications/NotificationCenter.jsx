@@ -51,7 +51,7 @@ function NotifItem({ notif, onRead, onTaskClick }) {
 
   const handleClick = () => {
     if (!notif.read) onRead(notif.id)
-    if (notif.task_id && onTaskClick) onTaskClick(notif.task_id)
+    if (notif.task_id && onTaskClick) onTaskClick(notif.task_id, notif.workspace_id)
   }
 
   return (
@@ -212,11 +212,10 @@ export default function NotificationPanel() {
     return () => { clearTimeout(t); document.removeEventListener('mousedown', handler) }
   }, [panelOpen, closePanel])
 
-  const handleTaskClick = (taskId) => {
+  const handleTaskClick = (taskId, workspaceId) => {
     closePanel()
     sessionStorage.setItem('tm_openTask', taskId)
-    navigate('/app')
-    document.dispatchEvent(new CustomEvent('tm:openTask', { detail: taskId }))
+    navigate(workspaceId ? `/workspace/${workspaceId}` : '/app')
   }
 
   if (!panelOpen) return null
