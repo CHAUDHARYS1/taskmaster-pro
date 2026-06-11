@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
-  CheckCircle, Warning, TrendUp, Clock,
+  CheckCircle, TrendUp, Clock,
   ListChecks, ChartBar, CalendarDots, DotsSixVertical,
   X, SlidersHorizontal,
 } from '@phosphor-icons/react'
@@ -663,8 +663,7 @@ export default function DashboardView() {
         <StatCard icon={ListChecks}  value={stats.activeTasks}       label="Active tasks"    color="var(--accent)"                                           delay="0.05s" />
         <StatCard icon={CheckCircle} value={stats.completedThisWeek} label="Done this week"  color="var(--green)"                                            delay="0.10s" />
         <StatCard icon={Clock}       value={stats.completedToday}    label="Done today"      color="#8b5cf6"                                                 delay="0.15s" />
-        <StatCard icon={Warning}     value={stats.overdue}           label="Overdue"         color={stats.overdue > 0 ? 'var(--red)' : 'var(--ink-4)'} alert={stats.overdue > 0} delay="0.20s" />
-        <StatCard icon={TrendUp}     value={`${completionRate}%`}    label="Completion rate" color={completionRate >= 80 ? 'var(--green)' : 'var(--accent)'} delay="0.25s" />
+<StatCard icon={TrendUp}     value={`${completionRate}%`}    label="Completion rate" color={completionRate >= 80 ? 'var(--green)' : 'var(--accent)'} delay="0.25s" />
         <StatCard icon={ChartBar}    value={stats.totalTasks}        label="Total tasks"     color="var(--ink-3)"                                            delay="0.30s" />
       </div>
 
