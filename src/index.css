@@ -3451,7 +3451,7 @@ a:focus-visible,
 
 .priority-btn--active {
   color: var(--p-color);
-  background-color: var(--p-bg);
+  background-color: color-mix(in srgb, var(--p-color) 15%, var(--card));
   border-color: var(--p-color);
 }
 
@@ -3476,7 +3476,7 @@ a:focus-visible,
   font-weight: var(--weight-bold);
   letter-spacing: 0.03em;
   color: var(--p-color);
-  background-color: var(--p-bg);
+  background-color: color-mix(in srgb, var(--p-color) 15%, var(--card));
   padding: 1px 5px 1px 4px;
   border-radius: 3px;
   pointer-events: none;
@@ -3490,7 +3490,7 @@ a:focus-visible,
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   color: var(--p-color);
-  background-color: var(--p-bg);
+  background-color: color-mix(in srgb, var(--p-color) 15%, var(--card));
   padding: 2px 6px;
   border-radius: var(--radius);
 }
@@ -5676,7 +5676,7 @@ a:focus-visible,
   border-color: var(--paper-3);
 }
 .atp-pill--active {
-  background: var(--p-bg, var(--accent-tint));
+  background: color-mix(in srgb, var(--p-color, var(--accent)) 15%, var(--card));
   border-color: var(--p-color, var(--accent));
   color: var(--p-color, var(--accent));
   font-weight: var(--weight-semibold);

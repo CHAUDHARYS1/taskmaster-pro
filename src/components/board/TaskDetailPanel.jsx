@@ -482,7 +482,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         key={p.id}
                         type="button"
                         className={`atp-pill${active ? ' atp-pill--active' : ''}`}
-                        style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                        style={{ '--p-color': p.color }}
                         onClick={() => onUpdate(task.id, { priority: active ? null : p.id })}
                         aria-pressed={active}
                         title={active ? `Clear ${p.name}` : p.name}
@@ -494,7 +494,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       <span
                         key={p.id}
                         className="atp-pill atp-pill--active"
-                        style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                        style={{ '--p-color': p.color }}
                       >
                         <span aria-hidden="true">{p.icon}</span>
                         {p.name}
@@ -520,7 +520,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       <button type="button" className={`atp-pill${task.due_date === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: nextWeek })} aria-pressed={task.due_date === nextWeek}>Next week</button>
                       <button type="button" className={`atp-pill${!task.due_date          ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: null, due_time: null })} aria-pressed={!task.due_date}>None</button>
                       {isCustomDate && (
-                        <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)', '--p-bg': 'var(--accent-tint)' }}>
+                        <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                           {dayjs(task.due_date).format('MMM D')}
                         </span>
                       )}

@@ -295,7 +295,7 @@ export default function DashboardQuickAdd({ onSaved }) {
                 return (
                   <button key={p.id} type="button"
                     className={`priority-btn${active ? ' priority-btn--active' : ''}`}
-                    style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                    style={{ '--p-color': p.color }}
                     onClick={() => setPriority(active ? null : p.id)}
                     title={active ? 'Click to clear' : undefined}>
                     <span className="priority-icon">{p.icon}</span>

@@ -208,7 +208,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                       key={p.id}
                       type="button"
                       className={`atp-pill${active ? ' atp-pill--active' : ''}`}
-                      style={{ '--p-color': p.color, '--p-bg': p.bg }}
+                      style={{ '--p-color': p.color }}
                       onClick={() => setPriority(active ? null : p.id)}
                       aria-pressed={active}
                       title={active ? `Clear ${p.name}` : p.name}
@@ -232,7 +232,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                 <button type="button" className={`atp-pill${dueDate === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(nextWeek)} aria-pressed={dueDate === nextWeek}>Next week</button>
                 <button type="button" className={`atp-pill${!dueDate ? ' atp-pill--active' : ''}`} onClick={() => setDueDate('')} aria-pressed={!dueDate}>None</button>
                 {isCustomDate && (
-                  <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)', '--p-bg': 'var(--accent-tint)' }}>
+                  <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                     {dayjs(dueDate).format('MMM D')}
                   </span>
                 )}

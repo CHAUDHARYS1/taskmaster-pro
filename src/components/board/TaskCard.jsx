@@ -191,7 +191,7 @@ function TaskCard({
       {priorityDef && (
         <span
           className="task-priority-chip"
-          style={{ '--p-color': priorityDef.color, '--p-bg': priorityDef.bg }}
+          style={{ '--p-color': priorityDef.color }}
         >
           <span aria-hidden="true">{priorityDef.icon}</span>
           {priorityDef.name}
