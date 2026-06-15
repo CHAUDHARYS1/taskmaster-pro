@@ -3101,6 +3101,8 @@ a:focus-visible,
 }
 
 .wr-list {
+  width: 280px;
+  flex-shrink: 0;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
