@@ -2,9 +2,10 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   List, NotePencil, BookOpen, Star, Target, Briefcase,
-  FileText, MagnifyingGlass, PushPin,
+  FileText, MagnifyingGlass, PushPin, ArrowLeft,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
+import { BellButton } from '../notifications/NotificationCenter'
 
 const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 import { fmtDate } from '../../utils/format'
@@ -55,7 +56,9 @@ export default function WritesPage() {
   }, [docId])
 
   useEffect(() => {
-    if (!docId && docs.length > 0) navigate('/writes/' + docs[0].id, { replace: true })
+    if (!docId && docs.length > 0 && window.innerWidth > 768) {
+      navigate('/writes/' + docs[0].id, { replace: true })
+    }
   }, [docs, docId])
 
   const handleNew = async () => {
@@ -109,6 +112,18 @@ export default function WritesPage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onShowShortcuts={() => {}} onProfileClick={() => setShowSettings(true)} />
 
       <div className="writes-shell">
+        {/* ── Mobile appbar ───────────────────────────────────── */}
+        <div className="mobile-appbar">
+          <button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)} aria-label="Toggle sidebar">
+            <List size={22} aria-hidden="true" />
+          </button>
+          <div className="mobile-appbar-title">
+            <div className="mobile-appbar-ws"><span>Writes</span></div>
+            <div className="mobile-appbar-sub">{currentWorkspace?.name ?? 'My Workspace'}</div>
+          </div>
+          <BellButton />
+        </div>
+
         {/* ── Page header ─────────────────────────────────────── */}
         <div className="board-header">
           <div className="board-header-left">
@@ -127,9 +142,10 @@ export default function WritesPage() {
           </div>
         </div>
 
-        <main className="writes-main">
+        <main className={`writes-main${docId ? ' writes-main--doc-open' : ''}`}>
           {/* ── Left panel ────────────────────────────────────── */}
           <div className="wr-list">
+            <h2 className="wr-mobile-title">Writes</h2>
             <div className="wr-list-head">
               <div className="wr-search">
                 <i>
@@ -249,6 +265,10 @@ export default function WritesPage() {
 
           {/* ── Editor area ───────────────────────────────────── */}
           <div className="writes-editor-area">
+            <button className="wr-mobile-back" onClick={() => navigate('/writes')} aria-label="Back to list">
+              <ArrowLeft size={18} aria-hidden="true" />
+              <span>Writes</span>
+            </button>
             {docLoading ? (
               <div className="writes-editor-loading">Loading…</div>
             ) : currentDoc ? (

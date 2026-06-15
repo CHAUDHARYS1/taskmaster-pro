@@ -11721,3 +11721,131 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     color: var(--card);
   }
 }
+
+/* ── Desktop: hide mobile-only writes elements ───────────── */
+.wr-mobile-title { display: none; }
+.wr-mobile-back  { display: none; }
+
+/* ── Mobile writes ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* writes-shell is the scroll container */
+  .writes-shell {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* Stack panels vertically, natural height */
+  .writes-main {
+    flex-direction: column;
+    overflow: visible !important;
+    min-height: unset !important;
+  }
+
+  /* List panel: full width, no border, natural height */
+  .wr-list {
+    border-right: none;
+    background: var(--bg);
+    overflow: visible !important;
+    flex: none;
+  }
+
+  /* Let wr-notes overflow naturally for scroll */
+  .wr-notes {
+    overflow: visible !important;
+    flex: none;
+    padding: 0 0 var(--space-4);
+  }
+
+  /* "Writes" big heading */
+  .wr-mobile-title {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    padding: 20px 20px 8px;
+    margin: 0;
+  }
+
+  /* Search + New row */
+  .wr-list-head {
+    padding: 4px 16px 12px;
+    border-bottom: none;
+    gap: var(--space-2);
+  }
+  .wr-search input {
+    height: 40px;
+    font-size: var(--text-body);
+    border-radius: var(--radius);
+  }
+  .wr-new {
+    height: 40px;
+    padding: 0 14px;
+    font-size: var(--text-body);
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+
+  /* Section labels */
+  .wr-sec {
+    padding: 16px 20px 4px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    margin-top: 0;
+  }
+
+  /* Note cards: larger, full-width rows */
+  .wr-note {
+    padding: 14px 20px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .wr-note:last-child { border-bottom: none; }
+  .wr-note.on { background: none; }
+  .wr-note.on::before { display: none; }
+
+  .wr-note-top { margin-bottom: 6px; }
+  .wr-note-title {
+    font-size: 17px;
+    font-weight: 700;
+    white-space: normal;
+    overflow: visible;
+  }
+  .wr-note-snip {
+    font-size: 15px;
+    color: var(--ink-3);
+  }
+  .wr-note-meta {
+    font-size: 12px;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .wr-pin-ico { display: none; }
+
+  /* Panel visibility: list vs editor */
+  .writes-main:not(.writes-main--doc-open) .writes-editor-area { display: none; }
+  .writes-main.writes-main--doc-open .wr-list { display: none; }
+  .writes-main.writes-main--doc-open .writes-editor-area {
+    flex: 1;
+    min-height: calc(100dvh - 60px);
+    overflow-y: auto;
+  }
+
+  /* Mobile back button */
+  .wr-mobile-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    border-bottom: 1px solid var(--line-soft);
+    width: 100%;
+  }
+}
