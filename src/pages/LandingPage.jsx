@@ -34,6 +34,7 @@ function Nav() {
       <div className="lp-nav-links">
         <a href="#product" className="lp-nav-link">Features</a>
         <a href="#templates" className="lp-nav-link">Templates</a>
+        <Link to="/pricing" className="lp-nav-link">Pricing</Link>
         <Link to="/about" className="lp-nav-link">About</Link>
       </div>
       <div className="lp-nav-actions">

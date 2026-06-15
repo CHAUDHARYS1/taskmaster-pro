@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
+import PricingPage from './pages/PricingPage'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="/release-notes"     element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
             <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="/about"          element={<AboutPage />} />
+            <Route path="/pricing"        element={<PricingPage />} />
             <Route path="/"               element={<LandingPage />} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>
