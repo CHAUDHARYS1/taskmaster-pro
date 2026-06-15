@@ -9994,6 +9994,36 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: var(--text-body);
 }
 
+/* ── Preferences: mobile-friendly overrides ──────────────────
+   Stack label/hint above the control; full-width, tall buttons */
+.spage-body .settings-pref-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.spage-body .settings-pref-label {
+  font-size: var(--text-body);
+}
+
+.spage-body .settings-pref-hint {
+  font-size: var(--text-sm);
+}
+
+.spage-body .settings-seg {
+  width: 100%;
+}
+
+.spage-body .settings-seg__btn {
+  flex: 1;
+  height: 44px;
+  font-size: var(--text-body);
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
 /* ══════════════════════════════════════════════════════════════
    BOARD COMPACT DENSITY
    ══════════════════════════════════════════════════════════════ */
