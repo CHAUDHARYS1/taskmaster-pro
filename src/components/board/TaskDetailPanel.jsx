@@ -11,6 +11,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useTaskDetail } from '../../hooks/useTaskDetail'
 import { useTaskChecklist } from '../../hooks/useTaskChecklist'
 import { supabase } from '../../lib/supabase'
+import { userColor } from '../../lib/userColor'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import ManageLabelsModal from '../workspace/ManageLabelsModal'
 import TiptapEditor from '../ui/TiptapEditor'
@@ -464,21 +465,36 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           <div className="atp-props" role="group" aria-label="Task properties">
 
             {/* Column */}
-            <div className="atp-prop">
+            <div className="atp-prop atp-prop--wrap">
               <label className="atp-prop__label" htmlFor="tdp-status">Column</label>
               <div className="atp-prop__val">
                 {canEdit ? (
-                  <select
-                    id="tdp-status"
-                    className="atp-select"
-                    value={task.status}
-                    onChange={e => handleUpdate(task.id, { status: e.target.value })}
-                    aria-label="Task status"
-                  >
-                    {columns.map(s => (
-                      <option key={s.id} value={s.id}>{s.label}</option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      id="tdp-status"
+                      className="atp-select"
+                      value={task.status}
+                      onChange={e => handleUpdate(task.id, { status: e.target.value })}
+                      aria-label="Task status"
+                    >
+                      {columns.map(s => (
+                        <option key={s.id} value={s.id}>{s.label}</option>
+                      ))}
+                    </select>
+                    <div className="atp-col-pills" role="group" aria-label="Select column">
+                      {columns.map(s => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className={`atp-pill${task.status === s.id ? ' atp-pill--active atp-pill--col-active' : ''}`}
+                          onClick={() => handleUpdate(task.id, { status: s.id })}
+                          aria-pressed={task.status === s.id}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <span className="atp-prop-ro">
                     {columns.find(s => s.id === task.status)?.label ?? task.status}
@@ -583,7 +599,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             </div>
 
             {/* Recurrence */}
-            <div className="atp-prop">
+            <div className="atp-prop tdp-prop--recurrence">
               <span className="atp-prop__label">
                 <ArrowsClockwise size={12} aria-hidden="true" style={{ marginRight: 4 }} />
                 Repeat
@@ -611,6 +627,18 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
               <div className="atp-prop">
                 <label className="atp-prop__label" htmlFor="tdp-assignee">Assignee</label>
                 <div className="atp-prop__val">
+                  <div className="tdp-assignee-display">
+                    {task.assignee ? (
+                      <>
+                        <span className="tdp-assignee-avatar" style={{ background: userColor(task.assignee_id) }} aria-hidden="true">
+                          {memberDisplayName(task.assignee).charAt(0).toUpperCase()}
+                        </span>
+                        <span>{memberDisplayName(task.assignee)}</span>
+                      </>
+                    ) : (
+                      <span className="task-panel-empty">Unassigned</span>
+                    )}
+                  </div>
                   {canEdit ? (
                     <select
                       id="tdp-assignee"
@@ -656,7 +684,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             )}
 
             {/* Labels */}
-            <div className="atp-prop atp-prop--wrap">
+            <div className="atp-prop atp-prop--wrap atp-prop--labels">
               <span className="atp-prop__label" id="tdp-labels-label">Labels</span>
               <div className="atp-prop__val" role="group" aria-labelledby="tdp-labels-label">
                 <div className="atp-pill-row">
@@ -713,7 +741,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           </div>{/* /atp-props */}
 
           {/* ── Document link ────────────────────────────── */}
-          <div className="atp-section">
+          <div className="atp-section tdp-section--docs">
             <TaskDocumentLink
               taskId={task.id}
               workspaceId={task.workspace_id}
@@ -722,7 +750,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           </div>
 
           {/* ── Activity ─────────────────────────────────── */}
-          <div className="atp-section">
+          <div className="atp-section tdp-section--activity">
             <div className="atp-section__hdr">
               <span className="atp-prop__label">
                 Activity

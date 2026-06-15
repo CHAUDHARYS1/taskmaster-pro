@@ -4316,7 +4316,8 @@ a:focus-visible,
 .mobile-fab        { display: none; }
 .mobile-lane-chips { display: none; }
 .column-mobile-wrap { display: contents; }
-.atp-col-val { display: none; }
+.atp-col-pills      { display: none; }
+.tdp-assignee-display { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    MOBILE  (max-width: 768px)
@@ -11128,7 +11129,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
   .atp-kbd { display: none; }
 
-  /* Title: big, borderless */
+  /* Title: big, borderless, grows to fit content */
   label.atp-field-label { display: none; }
   .atp-title {
     font-size: 21px;
@@ -11139,6 +11140,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     padding: 4px 0;
     box-shadow: none;
     margin-bottom: var(--space-4);
+    overflow: hidden;
+    field-sizing: content;
+    min-height: 60px;
   }
   .atp-title:focus { border: none; box-shadow: none; }
 
@@ -11203,14 +11207,10 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     color: #fff;
   }
 
-  /* Column: static value text, no select */
-  .atp-col-val {
-    display: block;
-    font-size: var(--text-md);
-    font-weight: 500;
-    color: var(--ink);
-  }
+  /* Column: show pill buttons, hide desktop select */
+  .atp-col-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .atp-prop:has(#atp-status) .atp-select { display: none; }
+  .atp-pill--col-active { background: var(--ink) !important; border-color: var(--ink) !important; color: var(--card) !important; }
 
   /* Hide desktop-only fields */
   .atp-prop--assignee { display: none; }
@@ -11218,12 +11218,12 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .atp-section        { display: none; }
   .atp-divider        { display: none; }
 
-  /* Labels: larger tap targets */
+  /* Labels: medium tap targets */
   .atp-prop--labels .label-chip {
-    font-size: var(--text-md);
+    font-size: var(--text-body);
     font-weight: 600;
-    padding: 8px 14px;
-    min-height: 40px;
+    padding: 6px 11px;
+    min-height: 34px;
     border-radius: 100px;
   }
 
@@ -11240,5 +11240,102 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     padding: 15px 18px;
     font-size: var(--text-md);
     font-weight: 600;
+  }
+}
+
+/* ── Mobile bottom-sheet keyframes ───────────────────────── */
+@keyframes tdpSlideUp   { from { transform: translateY(100%) } to { transform: translateY(0) } }
+@keyframes tdpSlideDown { from { transform: translateY(0) }    to { transform: translateY(100%) } }
+
+/* ── Task detail panel: mobile bottom sheet ─────────────── */
+@media (max-width: 768px) {
+  .task-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 92dvh !important;
+    border-left: none !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.18) !important;
+    animation: tdpSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .task-panel--closing {
+    animation: tdpSlideDown 0.22s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+  }
+
+  .task-panel-resize { display: none; }
+
+  /* Title: large bold, grows to fit content */
+  .task-panel .atp-title,
+  .task-panel .atp-title--ro {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    border: none;
+    background: none;
+    padding: 4px 0;
+    box-shadow: none;
+    overflow: hidden;
+    field-sizing: content;
+    min-height: 60px;
+  }
+  .task-panel .atp-title:focus { border: none; box-shadow: none; }
+
+  /* Column: show pill buttons, hide desktop select */
+  .atp-prop:has(#tdp-status) .atp-select { display: none; }
+
+  /* Assignee: show avatar + name, hide select */
+  .tdp-assignee-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .tdp-assignee-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .atp-prop:has(#tdp-assignee) .atp-select { display: none; }
+
+  /* Re-show atp-section inside task panel (add-task block hides all .atp-section) */
+  .task-panel .atp-section {
+    display: block;
+    padding-top: var(--space-4);
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* Hide desktop-only sections */
+  .tdp-prop--recurrence                { display: none; }
+  .task-panel .tdp-section--docs       { display: none; }
+
+  /* Labels: wrap to next line instead of scrolling */
+  .atp-prop--labels .atp-pill-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* Labels: medium tap targets */
+  .task-panel .label-chip {
+    font-size: var(--text-body);
+    font-weight: 600;
+    padding: 6px 11px;
+    min-height: 34px;
+    border-radius: 100px;
   }
 }

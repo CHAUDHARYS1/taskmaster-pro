@@ -183,12 +183,9 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         <div className="atp-props" role="group" aria-label="Task properties">
 
           {/* Column */}
-          <div className="atp-prop">
+          <div className="atp-prop atp-prop--wrap">
             <label className="atp-prop__label" htmlFor="atp-status">Column</label>
             <div className="atp-prop__val">
-              <span className="atp-col-val">
-                {columns.find(c => c.id === status)?.label ?? status}
-              </span>
               <select
                 id="atp-status"
                 className="atp-select"
@@ -197,6 +194,19 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
               >
                 {columns.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
+              <div className="atp-col-pills" role="group" aria-label="Select column">
+                {columns.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`atp-pill${status === c.id ? ' atp-pill--active atp-pill--col-active' : ''}`}
+                    onClick={() => setStatus(c.id)}
+                    aria-pressed={status === c.id}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
