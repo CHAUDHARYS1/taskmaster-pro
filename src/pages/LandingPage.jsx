@@ -245,13 +245,7 @@ function ProductShowcase() {
             </ul>
           </div>
           <div className="lp-show-media">
-            <div className="tm-win">
-              <div className="tm-win-bar">
-                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
-                <span className="tm-win-title">Blank Board — board view</span>
-              </div>
-              <MiniBoard board={TEMPLATE_BOARDS.blank} animate={false} />
-            </div>
+            <MiniBoard board={TEMPLATE_BOARDS.blank} animate={false} />
           </div>
         </div>
 

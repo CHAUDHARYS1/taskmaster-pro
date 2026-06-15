@@ -775,6 +775,7 @@
 .lp-show + .lp-show { margin-top: 100px; }
 .lp-show--flip .lp-show-copy { order: 2; }
 .lp-show--flip .lp-show-media { order: 1; }
+.lp-show-media { min-width: 0; overflow: hidden; }
 .lp-show-copy .lp-eyebrow { margin-bottom: 14px; }
 .lp-show-copy h3 {
   font-family: var(--font-display);
