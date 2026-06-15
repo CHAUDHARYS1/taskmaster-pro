@@ -146,9 +146,9 @@ function AccountView() {
 
 // ── Preferences view ──────────────────────────────────────────────────────
 
-function PrefRow({ label, hint, children }) {
+function PrefRow({ label, hint, children, inline = false }) {
   return (
-    <div className="settings-pref-row">
+    <div className={`settings-pref-row${inline ? ' settings-pref-row--inline' : ''}`}>
       <div className="settings-pref-info">
         <span className="settings-pref-label">{label}</span>
         {hint && <span className="settings-pref-hint">{hint}</span>}
@@ -241,26 +241,20 @@ function NotificationsView() {
 
   return (
     <div className="spage-body settings-prefs-body">
-      <div className="settings-notif-group">
-        <p className="settings-notif-group-label">In-app</p>
-        <div className="settings-notif-row">
-          <label htmlFor="sp-toggle-inapp" className="settings-notif-info">
-            <span className="settings-pref-label">Due-time reminders</span>
-            <span className="settings-pref-hint">Toast notification when a task with a set time is approaching.</span>
-          </label>
-          <Toggle id="sp-toggle-inapp" checked={prefs.inAppReminders} onChange={v => save({ inAppReminders: v })} />
-        </div>
-      </div>
-      <div className="settings-notif-group">
-        <p className="settings-notif-group-label">Email</p>
-        <div className="settings-notif-row">
-          <label htmlFor="sp-toggle-email" className="settings-notif-info">
-            <span className="settings-pref-label">Due-date digest</span>
-            <span className="settings-pref-hint">Email the day before tasks in your workspaces are due.</span>
-          </label>
-          <Toggle id="sp-toggle-email" checked={prefs.emailReminders} onChange={v => save({ emailReminders: v })} />
-        </div>
-      </div>
+      <PrefRow
+        label="Due-time reminders"
+        hint="Toast notification when a task with a set time is approaching."
+        inline
+      >
+        <Toggle id="sp-toggle-inapp" checked={prefs.inAppReminders} onChange={v => save({ inAppReminders: v })} />
+      </PrefRow>
+      <PrefRow
+        label="Due-date digest"
+        hint="Email the day before tasks in your workspaces are due."
+        inline
+      >
+        <Toggle id="sp-toggle-email" checked={prefs.emailReminders} onChange={v => save({ emailReminders: v })} />
+      </PrefRow>
       <p className="settings-prefs-autosave">Changes save automatically.</p>
     </div>
   )

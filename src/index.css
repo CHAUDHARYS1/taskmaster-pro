@@ -10011,6 +10011,12 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: var(--text-sm);
 }
 
+/* Toggle rows stay horizontal — label/hint on left, toggle on right */
+.spage-body .settings-pref-row--inline {
+  flex-direction: row;
+  align-items: center;
+}
+
 .spage-body .settings-seg {
   width: 100%;
 }
