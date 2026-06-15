@@ -3106,7 +3106,7 @@ a:focus-visible,
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  background: var(--paper-2);
+  background: var(--card);
   overflow: hidden;
 }
 
