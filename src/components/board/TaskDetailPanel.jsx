@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
-import { X, ArrowsClockwise } from '@phosphor-icons/react'
+import { X, ArrowsClockwise, CheckCircle } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
@@ -307,7 +307,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
           <span className="atp-hdr__label">Task</span>
           <div className="atp-hdr__actions">
             {autoSave && savedKey > 0 && (
-              <span key={savedKey} className="atp-saved" aria-live="polite">Saved</span>
+              <span key={savedKey} className="atp-saved" aria-live="polite">
+                <CheckCircle size={12} weight="fill" aria-hidden="true" />
+                Saved
+              </span>
             )}
             <button className="modal-close" onClick={handleClose} aria-label="Close panel">
               <X size={16} weight="bold" aria-hidden="true" />

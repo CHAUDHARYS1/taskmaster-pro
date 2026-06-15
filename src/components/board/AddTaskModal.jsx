@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { X } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { isDesktop } from '../../utils/device'
@@ -15,11 +15,6 @@ const DEFAULT_COLS = [
   { id: 'done',       label: 'Done' },
 ]
 
-function memberDisplayName(m) {
-  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
-  return full || m.email?.split('@')[0] || m.email
-}
-
 export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
@@ -35,23 +30,22 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   const timeRef = useRef(null)
   const [status,      setStatus]      = useState(columns[0]?.id ?? 'toDo')
   const [priority,    setPriority]    = useState(null)
-  const [assigneeId,  setAssigneeId]  = useState('')
   const [selectedLabels, setSelectedLabels] = useState([])
-  const [members,          setMembers]          = useState([])
-  const [membersLoaded,    setMembersLoaded]    = useState(false)
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
+  const [checklistOpen,    setChecklistOpen]    = useState(false)
 
-  useEffect(() => {
-    if (!currentWorkspace?.id) return
-    supabase
-      .from('workspace_members_view')
-      .select('user_id, email, first_name, last_name')
-      .eq('workspace_id', currentWorkspace.id)
-      .then(({ data }) => { if (data) setMembers(data); setMembersLoaded(true) })
-  }, [currentWorkspace?.id])
+  const titleRef = useRef(null)
+  useLayoutEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [title])
+
+  const checklistInputRef = useRef(null)
 
   const sheetRef = useRef(null)
   useEffect(() => {
@@ -104,7 +98,6 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
         due_time:     timeRef.current?.value || null,
         status,
         priority:     priority || null,
-        assignee_id:  assigneeId || null,
         labels:       selectedLabels,
       })
       if (taskId && checklistItems.length > 0) {
@@ -128,7 +121,10 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" ref={sheetRef} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
         <div className="modal-hdr">
-          <h2 className="modal-ttl">New task</h2>
+          <div className="modal-hdr-left">
+            <h2 className="modal-ttl">New task</h2>
+            <span className="atp-kbd" aria-hidden="true">⌘↵</span>
+          </div>
           <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
@@ -138,13 +134,16 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
               <label htmlFor="task-title">
                 Title <span className="field-optional">(optional)</span>
               </label>
-              <input
+              <textarea
                 id="task-title"
-                type="text"
+                ref={titleRef}
+                className="atp-title"
+                rows={1}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder={workspaceTemplate === 'job-tracker' ? 'e.g. Stripe — Product Designer' : 'Task title…'}
+                placeholder={workspaceTemplate === 'job-tracker' ? 'e.g. Stripe — Product Designer' : 'What needs to be done?'}
                 autoFocus={isDesktop()}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.blur() } }}
               />
             </div>
 
@@ -162,76 +161,73 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
             </div>
 
             <div className="field-block">
-              <label>Checklist <span className="field-optional">(optional)</span></label>
-              {checklistItems.length > 0 && (
-                <ul className="checklist-list checklist-list--create">
-                  {checklistItems.map(item => (
-                    <li key={item.localId} className="checklist-item">
-                      <span className="checklist-item__text">{item.text}</span>
-                      <button
-                        type="button"
-                        className="checklist-item__delete"
-                        onClick={() => removeChecklistItem(item.localId)}
-                        aria-label="Remove item"
-                      >
-                        <X size={13} weight="bold" aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="checklist-add-row">
-                <input
-                  type="text"
-                  className="checklist-add-input"
-                  value={newChecklistText}
-                  onChange={e => setNewChecklistText(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
-                  placeholder="Add a checklist item…"
-                  aria-label="New checklist item"
-                />
-                <button
-                  type="button"
-                  className="btn-ghost checklist-add-btn"
-                  onClick={addChecklistItem}
-                  disabled={!newChecklistText.trim()}
-                >
-                  Add
-                </button>
+              <div className="modal-checklist-toggle">
+                <label>Checklist</label>
+                {!checklistOpen && (
+                  <button
+                    type="button"
+                    className="atp-manage-link"
+                    onClick={() => { setChecklistOpen(true); setTimeout(() => checklistInputRef.current?.focus(), 0) }}
+                  >
+                    + Add
+                  </button>
+                )}
               </div>
+              {checklistOpen && (
+                <>
+                  {checklistItems.length > 0 && (
+                    <ul className="checklist-list checklist-list--create">
+                      {checklistItems.map(item => (
+                        <li key={item.localId} className="checklist-item">
+                          <span className="checklist-item__text">{item.text}</span>
+                          <button
+                            type="button"
+                            className="checklist-item__delete"
+                            onClick={() => removeChecklistItem(item.localId)}
+                            aria-label="Remove item"
+                          >
+                            <X size={13} weight="bold" aria-hidden="true" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="checklist-add-row">
+                    <input
+                      ref={checklistInputRef}
+                      type="text"
+                      className="checklist-add-input"
+                      value={newChecklistText}
+                      onChange={e => setNewChecklistText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
+                      placeholder="Add a checklist item…"
+                      aria-label="New checklist item"
+                    />
+                    <button
+                      type="button"
+                      className="btn-ghost checklist-add-btn"
+                      onClick={addChecklistItem}
+                      disabled={!newChecklistText.trim()}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="add-task-row">
-              <div className="field-block" style={{ flex: 1 }}>
-                <label htmlFor="task-status">Column</label>
-                <select
-                  id="task-status"
-                  className="field-select"
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                >
-                  {columns.map(c => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
-                <div className="field-block" style={{ flex: 1 }}>
-                  <label htmlFor="task-assignee">Assignee</label>
-                  <select
-                    id="task-assignee"
-                    className="field-select"
-                    value={assigneeId}
-                    onChange={e => setAssigneeId(e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map(m => (
-                      <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            <div className="field-block">
+              <label htmlFor="task-status">Column</label>
+              <select
+                id="task-status"
+                className="field-select"
+                value={status}
+                onChange={e => setStatus(e.target.value)}
+              >
+                {columns.map(c => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="add-task-row">
