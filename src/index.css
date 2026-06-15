@@ -11034,9 +11034,15 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 @media (max-width: 480px) {
   .notif-popover {
     width: calc(100vw - 16px);
-    left: auto !important;
+    left: 8px !important;
     right: 8px !important;
-    transform-origin: top right;
+    top: 56px !important;
+    animation: notif-slide-down 0.22s var(--ease-enter);
+    transform-origin: top center;
+  }
+  @keyframes notif-slide-down {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
   }
 }
 
