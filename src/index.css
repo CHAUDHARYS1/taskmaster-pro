@@ -3300,6 +3300,7 @@ a:focus-visible,
   color: var(--ink-4);
   gap: 4px;
   flex-shrink: 0;
+  background: var(--card);
 }
 .wr-meta-sep { color: var(--ink-faint); }
 
@@ -3456,6 +3457,7 @@ a:focus-visible,
   padding: var(--space-4) var(--space-6) var(--space-2);
   flex-shrink: 0;
   border-bottom: 1px solid var(--line);
+  background: var(--card);
 }
 
 .we-title {
@@ -3542,6 +3544,7 @@ a:focus-visible,
   padding: var(--space-2) var(--space-6);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
+  background: var(--card);
   flex-wrap: wrap;
 }
 
