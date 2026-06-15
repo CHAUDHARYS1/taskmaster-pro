@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight, Plus } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -117,6 +117,7 @@ export default function Board() {
   const [showWsSettings, setShowWsSettings]     = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
   const [selectedIds, setSelectedIds]           = useState(new Set())
+  const [mobileLane,  setMobileLane]            = useState(null)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -784,7 +785,27 @@ ${colData.map(c => `<div class="col">
             )}
 
             {viewMode === 'board' ? (
-              <div className="board-columns-wrap">
+              <>
+                {/* ── Mobile lane chip tabs ── */}
+                <div className="mobile-lane-chips" aria-label="Select column">
+                  {columns.map(col => {
+                    const active = (mobileLane ?? columns[0]?.id) === col.id
+                    return (
+                      <button
+                        key={col.id}
+                        className={`mobile-lane-chip${active ? ' mobile-lane-chip--active' : ''}`}
+                        onClick={() => setMobileLane(col.id)}
+                        aria-pressed={active}
+                      >
+                        <span className="mobile-lane-dot" style={{ background: col.color ?? 'var(--accent)' }} aria-hidden="true" />
+                        {col.label}
+                        <span className="mobile-lane-count">{filteredByStatus[col.id]?.length ?? 0}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="board-columns-wrap">
                 <DndContext
                   sensors={sensors}
                   onDragStart={handleDragStart}
@@ -793,28 +814,32 @@ ${colData.map(c => `<div class="col">
                 >
                   <div className="board-columns">
                     {columns.map((col, idx) => (
-                      <Column
+                      <div
                         key={col.id}
-                        column={col}
-                        tasks={filteredByStatus[col.id] ?? []}
-                        canEdit={canEdit}
-                        hasFilter={hasOtherFilter}
-                        canDelete={canDelete}
-                        editingMap={displayEditingMap}
-                        showProject={isGlobalBoard}
-                        onDelete={handleColumnDelete}
-                        onArchive={handleColumnArchive}
-                        onOpen={openTaskDetail}
-                        onComplete={handleComplete}
-                        onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
-                        bulkMode={bulkMode}
-                        selectedIds={selectedIds}
-                        onBulkToggle={handleBulkToggle}
-                        onMove={canEdit ? handleMoveTask : undefined}
-                        isFirstColumn={idx === 0}
-                        isLastColumn={idx === columns.length - 1}
-                        searchQuery={search}
-                      />
+                        className={`column-mobile-wrap${(mobileLane ?? columns[0]?.id) === col.id ? ' column-mobile-wrap--active' : ''}`}
+                      >
+                        <Column
+                          column={col}
+                          tasks={filteredByStatus[col.id] ?? []}
+                          canEdit={canEdit}
+                          hasFilter={hasOtherFilter}
+                          canDelete={canDelete}
+                          editingMap={displayEditingMap}
+                          showProject={isGlobalBoard}
+                          onDelete={handleColumnDelete}
+                          onArchive={handleColumnArchive}
+                          onOpen={openTaskDetail}
+                          onComplete={handleComplete}
+                          onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
+                          bulkMode={bulkMode}
+                          selectedIds={selectedIds}
+                          onBulkToggle={handleBulkToggle}
+                          onMove={canEdit ? handleMoveTask : undefined}
+                          isFirstColumn={idx === 0}
+                          isLastColumn={idx === columns.length - 1}
+                          searchQuery={search}
+                        />
+                      </div>
                     ))}
                   </div>
 
@@ -831,6 +856,7 @@ ${colData.map(c => `<div class="col">
                   </DragOverlay>
                 </DndContext>
               </div>
+              </>
             ) : viewMode === 'list' ? (
               <div className="list-view-wrap">
                 <ListView
@@ -902,6 +928,12 @@ ${colData.map(c => `<div class="col">
           </Suspense>
         </div>
       </main>
+
+      {viewMode === 'board' && canEdit && !isGlobalBoard && (
+        <button className="mobile-fab" aria-label="Add task" onClick={openAddPanel}>
+          <Plus size={24} weight="bold" aria-hidden="true" />
+        </button>
+      )}
 
       {bulkMode && (
         <BulkActionsBar

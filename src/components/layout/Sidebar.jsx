@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee, Kanban, ChartPieSlice } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
@@ -249,6 +249,41 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
       </aside>
 
       {showCreate && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
+
+      <nav className="mobile-bottom-nav" aria-label="Main navigation">
+        <button
+          className={`mobile-nav-btn${location.pathname === '/app' || location.pathname.startsWith('/workspace/') ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/app')}
+          aria-label="Board"
+        >
+          <Kanban size={22} aria-hidden="true" />
+          <span>Board</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${onCalendar ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/calendar')}
+          aria-label="Calendar"
+        >
+          <CalendarBlank size={22} aria-hidden="true" />
+          <span>Calendar</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${onDashboard ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/dashboard')}
+          aria-label="Dashboard"
+        >
+          <ChartPieSlice size={22} aria-hidden="true" />
+          <span>Dashboard</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${onWrites ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/writes')}
+          aria-label="Writes"
+        >
+          <NotePencil size={22} aria-hidden="true" />
+          <span>Writes</span>
+        </button>
+      </nav>
     </>
   )
 }
