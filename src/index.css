@@ -11630,7 +11630,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-agenda-events {
     flex-direction: column;
     gap: 0;
-    padding: 0 0 8px;
+    padding: 0 0 4px;
     overflow: visible;
   }
 
@@ -11640,15 +11640,19 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 0 20px;
+    margin: 0 16px 8px;
+    padding: 0 12px 0 0;
     min-height: 52px;
-    border-bottom: 1px solid var(--line-soft);
+    background: var(--card);
+    border-radius: 10px;
+    overflow: hidden;
   }
-  .cal-agenda-event-wrap:last-child { border-bottom: none; }
 
   /* Event chip: full-width row with left colored border */
   .cal-agenda-events .cal-event {
     flex: 1;
+    min-width: 0 !important;      /* allow shrink below content width */
+    width: auto !important;       /* override base width: 100% */
     background: transparent !important;
     border-radius: 0 !important;
     padding: 14px 0 14px 14px !important;
