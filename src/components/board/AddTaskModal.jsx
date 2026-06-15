@@ -57,6 +57,11 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') { onClose(); return }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        sheetRef.current?.querySelector('form')?.requestSubmit()
+        return
+      }
       if (e.key !== 'Tab' || !sheetRef.current) return
       const focusable = Array.from(sheetRef.current.querySelectorAll(
         'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -123,7 +128,7 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" ref={sheetRef} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add new task">
         <div className="modal-hdr">
-          <h2 className="modal-ttl">Add New Task</h2>
+          <h2 className="modal-ttl">New task</h2>
           <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} weight="bold" aria-hidden="true" /></button>
         </div>
 
@@ -313,9 +318,10 @@ export default function AddTaskModal({ columns = DEFAULT_COLS, onClose, onSave }
           </div>
 
           <div className="modal-ftr">
+            <span className="modal-kbd-hint">⌘↵ to save</span>
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Saving…' : 'Save Task'}
+              {loading ? 'Saving…' : 'Create task'}
             </button>
           </div>
         </form>

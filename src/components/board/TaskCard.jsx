@@ -67,6 +67,7 @@ function TaskCard({
   onMove,
   isFirstColumn = false,
   isLastColumn = false,
+  searchQuery = '',
 }) {
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
@@ -98,6 +99,12 @@ function TaskCard({
   const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
   const commentCount   = Number(task.comments?.[0]?.count ?? 0)
 
+  const isSearchMatch = searchQuery
+    ? (task.text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       task.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : false
+  const isSearchDimmed = !!searchQuery && !isSearchMatch
+
   const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
 
   return (
@@ -113,6 +120,9 @@ function TaskCard({
         isLockedByOther                   ? 'task-card--locked'       : '',
         isSelfEditing                     ? 'task-card--self-editing' : '',
         isSelected                        ? 'task-card--selected'     : '',
+        checklistTotal > 0                ? 'has-checklist-bar'       : '',
+        isSearchDimmed                    ? 'task-card--dimmed'       : '',
+        isSearchMatch                     ? 'task-card--search-match' : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
@@ -149,21 +159,22 @@ function TaskCard({
         </>
       )}
 
-      {/* Actions cluster — top-right, hover only */}
-      {((canEdit && onComplete && task.status !== 'done' && !isLockedByOther) ||
-        (canEdit && onArchive && !isLockedByOther) ||
+      {/* Quick-complete circular button — top-right, overlays priority chip on hover */}
+      {canEdit && onComplete && !isLockedByOther && (
+        <button
+          className={`task-card-quick-complete${task.status === 'done' ? ' task-card-quick-complete--on' : ''}`}
+          aria-label={task.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
+          title={task.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
+          onClick={e => { e.stopPropagation(); onComplete(task.id) }}
+        >
+          <Check size={11} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {/* Actions cluster — bottom-right, hover only */}
+      {((canEdit && onArchive && !isLockedByOther) ||
         (canDelete && !isLockedByOther)) && (
         <div className="task-card-actions" onClick={e => e.stopPropagation()}>
-          {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--complete"
-              aria-label="Mark as done"
-              title="Mark as done"
-              onClick={e => { e.stopPropagation(); onComplete(task.id) }}
-            >
-              <Check size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
           {canEdit && onArchive && !isLockedByOther && (
             <button
               className="task-card-action-btn task-card-action-btn--archive"
@@ -309,6 +320,16 @@ function TaskCard({
               </li>
             ))}
         </ul>
+      )}
+
+      {/* Checklist micro-progress bar — pinned to card's bottom edge */}
+      {checklistTotal > 0 && (
+        <div className="task-checklist-bar" aria-hidden="true">
+          <span
+            className="task-checklist-bar-fill"
+            style={{ width: `${(checklistDone / checklistTotal) * 100}%` }}
+          />
+        </div>
       )}
 
       {/* Column move arrows — mobile only, hidden on desktop via CSS */}

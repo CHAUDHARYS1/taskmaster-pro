@@ -167,6 +167,17 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const [newItemText,        setNewItemText]        = useState('')
   const [drawerDocId,        setDrawerDocId]        = useState(null)
   const [closing,            setClosing]            = useState(false)
+  const [savedKey,           setSavedKey]           = useState(0)
+  const savedTimer = useRef(null)
+
+  const handleUpdate = useCallback((...args) => {
+    onUpdate(...args)
+    clearTimeout(savedTimer.current)
+    setSavedKey(k => k + 1)
+    savedTimer.current = setTimeout(() => setSavedKey(0), 2200)
+  }, [onUpdate])
+
+  useEffect(() => () => clearTimeout(savedTimer.current), [])
 
   const handleClose = () => {
     setClosing(true)
@@ -202,13 +213,13 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const saveTitle = () => {
     const trimmed = title.trim()
     if (!trimmed) { setTitle(task.text); return }
-    if (autoSave && trimmed !== task.text) onUpdate(task.id, { text: trimmed })
+    if (autoSave && trimmed !== task.text) handleUpdate(task.id, { text: trimmed })
   }
 
   const saveDescription = () => {
     const newVal = description || null
     if (autoSave && newVal !== (toHtml(task.description) || null)) {
-      onUpdate(task.id, { description: newVal })
+      handleUpdate(task.id, { description: newVal })
     }
   }
 
@@ -218,7 +229,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
     if (t && t !== task.text) updates.text = t
     const d = description || null
     if (d !== (toHtml(task.description) || null)) updates.description = d
-    if (Object.keys(updates).length) onUpdate(task.id, updates)
+    if (Object.keys(updates).length) handleUpdate(task.id, updates)
     handleClose()
   }
 
@@ -295,6 +306,9 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
         <div className="atp-hdr">
           <span className="atp-hdr__label">Task</span>
           <div className="atp-hdr__actions">
+            {autoSave && savedKey > 0 && (
+              <span key={savedKey} className="atp-saved" aria-live="polite">Saved</span>
+            )}
             <button className="modal-close" onClick={handleClose} aria-label="Close panel">
               <X size={16} weight="bold" aria-hidden="true" />
             </button>
@@ -455,7 +469,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                     id="tdp-status"
                     className="atp-select"
                     value={task.status}
-                    onChange={e => onUpdate(task.id, { status: e.target.value })}
+                    onChange={e => handleUpdate(task.id, { status: e.target.value })}
                     aria-label="Task status"
                   >
                     {columns.map(s => (
@@ -483,7 +497,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         type="button"
                         className={`atp-pill${active ? ' atp-pill--active' : ''}`}
                         style={{ '--p-color': p.color }}
-                        onClick={() => onUpdate(task.id, { priority: active ? null : p.id })}
+                        onClick={() => handleUpdate(task.id, { priority: active ? null : p.id })}
                         aria-pressed={active}
                         title={active ? `Clear ${p.name}` : p.name}
                       >
@@ -515,10 +529,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                 {canEdit ? (
                   <>
                     <div className="atp-pill-row">
-                      <button type="button" className={`atp-pill${task.due_date === today    ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: today })}    aria-pressed={task.due_date === today}>Today</button>
-                      <button type="button" className={`atp-pill${task.due_date === tomorrow ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: tomorrow })} aria-pressed={task.due_date === tomorrow}>Tomorrow</button>
-                      <button type="button" className={`atp-pill${task.due_date === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: nextWeek })} aria-pressed={task.due_date === nextWeek}>Next week</button>
-                      <button type="button" className={`atp-pill${!task.due_date          ? ' atp-pill--active' : ''}`} onClick={() => onUpdate(task.id, { due_date: null, due_time: null })} aria-pressed={!task.due_date}>None</button>
+                      <button type="button" className={`atp-pill${task.due_date === today    ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: today })}    aria-pressed={task.due_date === today}>Today</button>
+                      <button type="button" className={`atp-pill${task.due_date === tomorrow ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: tomorrow })} aria-pressed={task.due_date === tomorrow}>Tomorrow</button>
+                      <button type="button" className={`atp-pill${task.due_date === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: nextWeek })} aria-pressed={task.due_date === nextWeek}>Next week</button>
+                      <button type="button" className={`atp-pill${!task.due_date          ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: null, due_time: null })} aria-pressed={!task.due_date}>None</button>
                       {isCustomDate && (
                         <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                           {dayjs(task.due_date).format('MMM D')}
@@ -530,7 +544,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         type="date"
                         className="due-date-input"
                         value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
-                        onChange={e => onUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
+                        onChange={e => handleUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
                         aria-label="Due date"
                       />
                       <input
@@ -538,7 +552,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         type="time"
                         className="due-time-input"
                         defaultValue={task.due_time ?? ''}
-                        onBlur={e => { if (e.target.value !== (task.due_time ?? '')) onUpdate(task.id, { due_time: e.target.value || null }) }}
+                        onBlur={e => { if (e.target.value !== (task.due_time ?? '')) handleUpdate(task.id, { due_time: e.target.value || null }) }}
                         disabled={!task.due_date}
                         aria-label="Due time"
                       />
@@ -546,7 +560,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         <button
                           type="button"
                           className="due-date-clear"
-                          onClick={() => onUpdate(task.id, { due_date: null, due_time: null })}
+                          onClick={() => handleUpdate(task.id, { due_date: null, due_time: null })}
                           aria-label="Clear due date"
                         >
                           <X size={14} weight="bold" aria-hidden="true" />
@@ -575,7 +589,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                 {canEdit ? (
                   <RecurrencePicker
                     value={task.recurrence ?? null}
-                    onChange={rec => onUpdate(task.id, { recurrence: rec })}
+                    onChange={rec => handleUpdate(task.id, { recurrence: rec })}
                     hasDueDate={!!task.due_date}
                   />
                 ) : (
@@ -602,7 +616,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       onChange={e => {
                         const newId = e.target.value || null
                         const member = newId ? members.find(m => m.user_id === newId) : null
-                        onUpdate(task.id, {
+                        handleUpdate(task.id, {
                           assignee_id: newId,
                           assignee: member
                             ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
@@ -662,7 +676,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         onClick={() => {
                           const current = task.labels ?? []
                           const next = active ? current.filter(l => l !== label.id) : [...current, label.id]
-                          onUpdate(task.id, { labels: next })
+                          handleUpdate(task.id, { labels: next })
                         }}
                       >
                         {label.name}

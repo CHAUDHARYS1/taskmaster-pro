@@ -239,18 +239,14 @@ export default function Board() {
   }, [])
 
   const { search, assigneeId, priority, label, due, project } = filters
-  const hasFilter = !!(search || assigneeId || priority || label || due || project)
+  const hasFilter      = !!(search || assigneeId || priority || label || due || project)
+  const hasOtherFilter = !!(assigneeId || priority || label || due || project)
 
-  const displayByStatus = useMemo(() => {
-    if (!hasFilter) return tasksByStatus
-
+  // Non-search filters only — used for board view so search can dim instead of hide
+  const filteredByStatus = useMemo(() => {
+    if (!hasOtherFilter) return tasksByStatus
     const today = dayjs().startOf('day')
     const applyFilter = tasks => tasks.filter(task => {
-      if (search) {
-        const q = search.toLowerCase()
-        if (!task.text?.toLowerCase().includes(q) &&
-            !task.description?.toLowerCase().includes(q)) return false
-      }
       if (assigneeId && task.assignee_id !== assigneeId) return false
       if (priority   && task.priority !== priority)       return false
       if (label      && !(task.labels ?? []).includes(label)) return false
@@ -264,11 +260,18 @@ export default function Board() {
       }
       return true
     })
+    return Object.fromEntries(Object.entries(tasksByStatus).map(([s, ts]) => [s, applyFilter(ts)]))
+  }, [tasksByStatus, hasOtherFilter, assigneeId, priority, label, due, project])
 
-    return Object.fromEntries(
-      Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
+  // All filters including search — used for list/calendar/gantt views
+  const displayByStatus = useMemo(() => {
+    if (!search) return filteredByStatus
+    const q = search.toLowerCase()
+    const applySearch = tasks => tasks.filter(t =>
+      t.text?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
     )
-  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due, project])
+    return Object.fromEntries(Object.entries(filteredByStatus).map(([s, ts]) => [s, applySearch(ts)]))
+  }, [filteredByStatus, search])
 
   const navigateTask = (dir) => {
     if (!selectedTaskId) return
@@ -793,9 +796,9 @@ ${colData.map(c => `<div class="col">
                       <Column
                         key={col.id}
                         column={col}
-                        tasks={displayByStatus[col.id] ?? []}
+                        tasks={filteredByStatus[col.id] ?? []}
                         canEdit={canEdit}
-                        hasFilter={hasFilter}
+                        hasFilter={hasOtherFilter}
                         canDelete={canDelete}
                         editingMap={displayEditingMap}
                         showProject={isGlobalBoard}
@@ -810,6 +813,7 @@ ${colData.map(c => `<div class="col">
                         onMove={canEdit ? handleMoveTask : undefined}
                         isFirstColumn={idx === 0}
                         isLastColumn={idx === columns.length - 1}
+                        searchQuery={search}
                       />
                     ))}
                   </div>
