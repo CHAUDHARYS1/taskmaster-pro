@@ -3249,7 +3249,7 @@ a:focus-visible,
 .wr-ws-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 }
 
 .wr-sec {
