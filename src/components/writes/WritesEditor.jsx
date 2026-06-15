@@ -291,13 +291,6 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
         </div>
       </div>
 
-      {/* Metadata bar */}
-      <div className="wr-meta-bar" aria-label="Document info">
-        <span>{fmtDate(doc.updated_at)}</span>
-        <span className="wr-meta-sep" aria-hidden="true">·</span>
-        <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
-      </div>
-
       {/* Toolbar */}
       <div className="we-toolbar" role="toolbar" aria-label="Formatting">
         <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
@@ -346,6 +339,13 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
       {/* Editor body */}
       <div className="we-body">
         <EditorContent editor={editor} className="we-content" />
+      </div>
+
+      {/* Metadata — bottom-right corner */}
+      <div className="wr-meta-bar" aria-label="Document info">
+        <span>{fmtDate(doc.updated_at)}</span>
+        <span className="wr-meta-sep" aria-hidden="true">·</span>
+        <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
     </div>
   )
