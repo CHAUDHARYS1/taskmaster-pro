@@ -66,6 +66,52 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
           </div>
         </div>
 
+        {/* ── Mobile workspace list ── */}
+        <div className="sidebar-mobile-ws">
+          <span className="sidebar-mobile-ws-label">Workspaces</span>
+          {workspaces.map(ws => {
+            const isPersonal = ws.id === user?.id
+            const isActive   = currentWorkspace?.id === ws.id
+            const name       = isPersonal ? 'My Workspace' : ws.name
+            return (
+              <div key={ws.id} className="sidebar-mobile-ws-group">
+                <button
+                  className={`sidebar-mobile-ws-row${isActive ? ' sidebar-mobile-ws-row--active' : ''}`}
+                  onClick={() => { switchWorkspace(ws); navigate('/app') }}
+                  aria-current={isActive ? 'true' : undefined}
+                >
+                  <span className="sidebar-mobile-ws-avatar" style={{ background: ws.color ?? '#2563EB' }}>
+                    {ws.emoji || ws.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="sidebar-mobile-ws-name">{name}</span>
+                </button>
+
+                {isActive && projects.length > 0 && (
+                  <div className="sidebar-mobile-projects">
+                    <button
+                      className={`sidebar-mobile-project-row${!currentProject ? ' sidebar-mobile-project-row--active' : ''}`}
+                      onClick={() => { switchProject(null); navigate('/app') }}
+                    >
+                      <span className="sidebar-mobile-project-dot sidebar-mobile-project-dot--all" />
+                      <span className="sidebar-mobile-project-name">All Projects</span>
+                    </button>
+                    {projects.map(p => (
+                      <button
+                        key={p.id}
+                        className={`sidebar-mobile-project-row${currentProject?.id === p.id ? ' sidebar-mobile-project-row--active' : ''}`}
+                        onClick={() => { switchProject(p); navigate('/app') }}
+                      >
+                        <span className="sidebar-mobile-project-dot" style={{ background: p.color }} />
+                        <span className="sidebar-mobile-project-name">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
         {/* ── Navigation ── */}
         <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map(({ icon: Icon, label, active, onClick }) => (
