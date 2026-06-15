@@ -105,13 +105,7 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
         <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
       <div className="dash-progress">
-        <div className="ring" style={{ '--p': completionRate }}>
-          <div className="ring-inner">
-            <div className="ring-n">{completionRate}%</div>
-            <div className="ring-l">Complete</div>
-          </div>
-        </div>
-        <div>
+        <div className="dash-progress-bar">
           <div className="status-bar">
             {STATUS_META.map(s => {
               const n = statusBreakdown[s.id] ?? 0
@@ -119,6 +113,14 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
                 <i key={s.id} style={{ background: s.color, width: `${(n / total) * 100}%` }} />
               ) : null
             })}
+          </div>
+        </div>
+        <div className="dash-progress-body">
+          <div className="ring" style={{ '--p': completionRate }}>
+            <div className="ring-inner">
+              <div className="ring-n">{completionRate}%</div>
+              <div className="ring-l">Complete</div>
+            </div>
           </div>
           <div className="status-rows">
             {STATUS_META.map(s => {

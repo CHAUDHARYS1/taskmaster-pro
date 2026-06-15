@@ -4,6 +4,7 @@ import PageHint from '../ui/PageHint'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
+import { BellButton } from '../notifications/NotificationCenter'
 
 const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 
@@ -33,6 +34,18 @@ export default function DashboardPage() {
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
       <main className="board-main">
+        <div className="mobile-appbar">
+          <button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)} aria-label="Toggle sidebar">
+            <List size={22} aria-hidden="true" />
+          </button>
+          <div className="mobile-appbar-title">
+            <div className="mobile-appbar-ws">
+              <span>Dashboard</span>
+            </div>
+            <div className="mobile-appbar-sub">All workspaces</div>
+          </div>
+          <BellButton />
+        </div>
         <div className="board-header">
           <div className="board-header-left">
             <button
