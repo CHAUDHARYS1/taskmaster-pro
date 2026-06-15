@@ -11549,13 +11549,24 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Hide desktop chrome */
   .cal-toolbar      { display: none !important; }
   .cal-mini-sidebar { display: none !important; }
-  .cal-page-body    { padding: 0 !important; }
-  .cal-wrap         { border-radius: 0 !important; border: none !important; background: var(--paper) !important; }
 
-  /* Body: single column */
+  /* Scroll container: cal-page-body becomes the scroller */
+  .cal-page-body {
+    padding: 0 !important;
+    overflow-y: auto !important;   /* scroll here, not in cal-agenda */
+  }
+
+  /* Let everything inside flow at natural height */
+  .cal-wrap {
+    height: auto !important;
+    overflow-x: hidden !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background: var(--paper) !important;
+  }
   .cal-body      { display: block; overflow: visible; }
   .cal-view-area { width: 100%; overflow: visible; }
-  .cal-wrap      { overflow-x: hidden !important; }
+  .cal-agenda    { overflow-y: visible !important; height: auto !important; flex: none !important; }
 
   /* Mobile header: "June 2026" + "Agenda · upcoming" */
   .cal-mobile-hdr {
