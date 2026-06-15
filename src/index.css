@@ -3110,15 +3110,15 @@ a:focus-visible,
 
 .wr-list-head {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-3) var(--space-2);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
 .wr-search {
-  flex: 1;
+  width: 100%;
   position: relative;
   display: flex;
   align-items: center;
@@ -3150,22 +3150,23 @@ a:focus-visible,
 .wr-search input::placeholder { color: var(--ink-4); }
 
 .wr-new {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--accent);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: none;
   border-radius: var(--radius);
-  background: var(--accent-tint);
-  color: var(--accent);
+  background: var(--accent);
+  color: #fff;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s;
+  transition: opacity 0.12s;
 }
-.wr-new:hover { background: var(--accent); color: #fff; }
+.wr-new:hover { opacity: 0.88; }
 
 /* Workspace picker — shared by "+ New" button and breadcrumb */
-.wr-new-wrap { position: relative; }
+.wr-new-wrap { position: relative; width: 100%; }
 
 .wr-ws-picker {
   position: absolute;
@@ -3252,6 +3253,44 @@ a:focus-visible,
   padding: var(--space-2) var(--space-2) var(--space-1);
   margin-top: var(--space-1);
 }
+
+/* Workspace group header in the doc list */
+.wr-ws-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  margin-top: var(--space-1);
+}
+.wr-ws-header:first-child { margin-top: 0; }
+.wr-ws-header-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wr-ws-header-name {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Metadata bar (date · word count) below document title in editor */
+.wr-meta-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-8) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  gap: 4px;
+  flex-shrink: 0;
+}
+.wr-meta-sep { color: var(--ink-faint); }
 
 .wr-note {
   display: block;
@@ -11838,7 +11877,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     margin: 0;
   }
 
-  /* Search + New row */
+  /* Search + New (stacked column, same on mobile) */
   .wr-list-head {
     padding: 4px 16px 12px;
     border-bottom: none;
@@ -11850,11 +11889,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     border-radius: var(--radius);
   }
   .wr-new {
-    height: 40px;
-    padding: 0 14px;
+    height: 44px;
     font-size: var(--text-body);
     border-radius: var(--radius);
-    white-space: nowrap;
   }
 
   /* Section labels */

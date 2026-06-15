@@ -2,13 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
 import {
-  TextB, TextItalic, TextStrikethrough,
+  TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
   Export, CheckCircle, CaretDown,
 } from '@phosphor-icons/react'
+import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
@@ -41,6 +43,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,       setTitle]       = useState(doc.title)
   const [saveStatus,  setSaveStatus]  = useState('saved')
+  const [wordCount,   setWordCount]   = useState(0)
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
   const [showExport,  setShowExport]  = useState(false)
@@ -137,22 +140,30 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
     }, 1200)
   }, [onSave])
 
+  const countWords = (editor) => {
+    const text = editor.getText().trim()
+    return text ? text.split(/\s+/).length : 0
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Underline,
       Link.configure({ openOnClick: false, autolink: true }),
     ],
     content: doc.content || '',
     onUpdate: ({ editor }) => {
+      setWordCount(countWords(editor))
       schedule({ content: editor.isEmpty ? '' : editor.getHTML() })
     },
   })
 
-  // Sync content when doc changes
+  // Sync content when doc changes and recount words
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
     const incoming = doc.content || ''
     if (editor.getHTML() !== incoming) editor.commands.setContent(incoming, false)
+    setWordCount(countWords(editor))
   }, [doc.id, editor])
 
   const handleTitleChange = (e) => {
@@ -275,15 +286,23 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
         </div>
       </div>
 
+      {/* Metadata bar */}
+      <div className="wr-meta-bar" aria-label="Document info">
+        <span>{fmtDate(doc.updated_at)}</span>
+        <span className="wr-meta-sep" aria-hidden="true">·</span>
+        <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
+      </div>
+
       {/* Toolbar */}
       <div className="we-toolbar" role="toolbar" aria-label="Formatting">
+        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleUnderline().run()}     active={editor.isActive('underline')}     label="Underline"><TextUnderline size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
+        <Divider />
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })} label="Title (H1)"><TextHOne size={15} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} label="Heading (H2)"><TextHTwo size={15} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} label="Subheading (H3)"><TextHThree size={15} /></Btn>
-        <Divider />
-        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
         <Divider />
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>

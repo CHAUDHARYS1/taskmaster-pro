@@ -130,8 +130,15 @@ export default function WritesPage() {
 
   const q = search.trim().toLowerCase()
   const filtered = q ? docs.filter(d => (d.title || '').toLowerCase().includes(q)) : docs
-  const pinned   = filtered.filter(d => d.pinned)
-  const recent   = filtered.filter(d => !d.pinned)
+  const grouped  = workspaces
+    .map(ws => ({
+      ws,
+      docs: filtered
+        .filter(d => d.workspace_id === ws.id)
+        .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)),
+    }))
+    .filter(g => g.docs.length > 0)
+  const orphaned = filtered.filter(d => !workspaces.find(w => w.id === d.workspace_id))
 
   return (
     <div className="app-shell">
@@ -189,7 +196,7 @@ export default function WritesPage() {
               </div>
               <div className="wr-new-wrap" ref={wsPickerRef}>
                 <button className="wr-new" onClick={handleNew} aria-label="New document">
-                  + New
+                  + New note
                 </button>
                 {showWsPicker && (
                   <div className="wr-ws-picker" role="listbox" aria-label="Select workspace">
@@ -218,14 +225,14 @@ export default function WritesPage() {
                 <p className="writes-list-empty">No matches for "{search}".</p>
               ) : (
                 <>
-                  {pinned.length > 0 && (
-                    <>
-                      <div className="wr-sec">
-                        <PushPin size={11} weight="fill" aria-hidden="true" />
-                        Pinned
+                  {grouped.map(({ ws, docs: wsDocs }) => (
+                    <div key={ws.id}>
+                      <div className="wr-ws-header">
+                        <span className="wr-ws-header-dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
+                        <span className="wr-ws-header-name">{ws.name}</span>
                       </div>
-                      {pinned.map((doc, i) => {
-                        const ws = workspaces.find(w => w.id === doc.workspace_id)
+                      {wsDocs.map(doc => {
+                        const idx = filtered.findIndex(d => d.id === doc.id)
                         return (
                           <button
                             key={doc.id}
@@ -234,40 +241,32 @@ export default function WritesPage() {
                           >
                             <div className="wr-note-top">
                               <span className="wr-note-ico">
-                                <NoteIcon index={i} />
+                                <NoteIcon index={idx} />
                               </span>
                               <span className="wr-note-title">{doc.title || 'Untitled'}</span>
                               <button
                                 className="wr-pin-ico"
+                                style={{ opacity: doc.pinned ? 1 : 0.25 }}
                                 onClick={e => handlePin(doc, e)}
-                                aria-label="Unpin document"
+                                aria-label={doc.pinned ? 'Unpin document' : 'Pin document'}
                               >
-                                <PushPin size={13} weight="fill" aria-hidden="true" />
+                                <PushPin size={13} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
                               </button>
                             </div>
                             {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
                             <div className="wr-note-meta">
-                              {ws && (
-                                <span className="wr-note-ws">
-                                  <span className="dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
-                                  {ws.name}
-                                </span>
-                              )}
-                              {ws && <span>·</span>}
                               <span>{fmtDate(doc.updated_at)}</span>
                             </div>
                           </button>
                         )
                       })}
-                    </>
-                  )}
-
-                  {recent.length > 0 && (
-                    <>
-                      <div className="wr-sec">Recent</div>
-                      {recent.map((doc, i) => {
-                        const ws = workspaces.find(w => w.id === doc.workspace_id)
-                        const globalIdx = pinned.length + i
+                    </div>
+                  ))}
+                  {orphaned.length > 0 && (
+                    <div>
+                      <div className="wr-sec">Other</div>
+                      {orphaned.map(doc => {
+                        const idx = filtered.findIndex(d => d.id === doc.id)
                         return (
                           <button
                             key={doc.id}
@@ -275,34 +274,17 @@ export default function WritesPage() {
                             onClick={() => navigate('/writes/' + doc.id)}
                           >
                             <div className="wr-note-top">
-                              <span className="wr-note-ico">
-                                <NoteIcon index={globalIdx} />
-                              </span>
+                              <span className="wr-note-ico"><NoteIcon index={idx} /></span>
                               <span className="wr-note-title">{doc.title || 'Untitled'}</span>
-                              <button
-                                className="wr-pin-ico"
-                                style={{ opacity: 0.3 }}
-                                onClick={e => handlePin(doc, e)}
-                                aria-label="Pin document"
-                              >
-                                <PushPin size={13} aria-hidden="true" />
-                              </button>
                             </div>
                             {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
                             <div className="wr-note-meta">
-                              {ws && (
-                                <span className="wr-note-ws">
-                                  <span className="dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
-                                  {ws.name}
-                                </span>
-                              )}
-                              {ws && <span>·</span>}
                               <span>{fmtDate(doc.updated_at)}</span>
                             </div>
                           </button>
                         )
                       })}
-                    </>
+                    </div>
                   )}
                 </>
               )}
