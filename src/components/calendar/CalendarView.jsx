@@ -661,6 +661,13 @@ function DayView({ cursor, tasksByDate, onTaskClick, addingDay, setAddingDay, pr
 }
 
 // ── AgendaView ────────────────────────────────────────────────────────────────
+function relDayLabel(dateKey, today) {
+  const diff = dayjs(dateKey).diff(dayjs(today).startOf('day'), 'day')
+  if (diff === 0) return { label: 'Today', variant: 'today' }
+  if (diff > 0)  return { label: `In ${diff}d`, variant: 'future' }
+  return null
+}
+
 function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const allDates = useMemo(() => Object.keys(tasksByDate).sort(), [tasksByDate])
@@ -676,6 +683,7 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
         const d       = dayjs(dateKey)
         const isPast  = dateKey < today
         const isToday = dateKey === today
+        const rel     = relDayLabel(dateKey, today)
 
         return (
           <div
@@ -684,20 +692,30 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
             onContextMenu={e => { e.preventDefault(); onOpenCtxMenu(e, dateKey, null) }}
           >
             <div className={`cal-agenda-date${isToday ? ' cal-agenda-date--today' : ''}`}>
+              {/* Desktop order: dow → day → mon */}
               <span className="cal-agenda-dow">{d.format('ddd').toUpperCase()}</span>
               <span className="cal-agenda-day">{d.format('D')}</span>
               <span className="cal-agenda-mon">{d.format('MMM YYYY')}</span>
+              {/* Mobile-only: full day name + TODAY badge */}
+              <span className="cal-agenda-dow-full">{d.format('dddd').toUpperCase()}</span>
+              {isToday && <span className="cal-agenda-today-tag">TODAY</span>}
             </div>
             <div className="cal-agenda-events">
               {events.map(t => (
-                <EventChip
-                  key={t.id}
-                  task={t}
-                  onClick={onTaskClick}
-                  colorBy={colorBy}
-                  onContextMenu={(e, task) => onOpenCtxMenu(e, dateKey, task)}
-                  onDelete={onDeleteTask}
-                />
+                <div key={t.id} className="cal-agenda-event-wrap">
+                  <EventChip
+                    task={t}
+                    onClick={onTaskClick}
+                    colorBy={colorBy}
+                    onContextMenu={(e, task) => onOpenCtxMenu(e, dateKey, task)}
+                    onDelete={onDeleteTask}
+                  />
+                  {rel && (
+                    <span className={`cal-agenda-rel cal-agenda-rel--${rel.variant}`}>
+                      {rel.label}
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -709,7 +727,7 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
 
 // ── CalendarView (main export) ────────────────────────────────────────────────
 export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [] }) {
-  const [calView,      setCalView]      = useState('month')
+  const [calView,      setCalView]      = useState(() => window.innerWidth <= 768 ? 'agenda' : 'month')
   const [cursor,       setCursor]       = useState(dayjs())
   const [addingDay,    setAddingDay]    = useState(null)
   const [colorBy,      setColorBy]      = useState('status')
@@ -817,6 +835,12 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
 
   return (
     <div className="cal-wrap">
+      {/* ── Mobile header ───────────────────────────────────── */}
+      <div className="cal-mobile-hdr">
+        <h2 className="cal-mobile-month">{cursor.format('MMMM YYYY')}</h2>
+        <p className="cal-mobile-sub">Agenda <span aria-hidden="true">·</span> upcoming</p>
+      </div>
+
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div className="cal-toolbar">
         <div className="cal-toolbar-left">
