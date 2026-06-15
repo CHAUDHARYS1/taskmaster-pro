@@ -3104,7 +3104,7 @@ a:focus-visible,
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  background: var(--card);
+  background: var(--paper-2);
   overflow: hidden;
 }
 
@@ -3239,6 +3239,15 @@ a:focus-visible,
   flex: 1;
   overflow-y: auto;
   padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.wr-ws-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .wr-sec {
@@ -3584,6 +3593,7 @@ a:focus-visible,
   flex: 1;
   overflow-y: auto;
   padding: var(--space-6);
+  background: var(--paper-2);
 }
 
 .we-content {

@@ -226,7 +226,7 @@ export default function WritesPage() {
               ) : (
                 <>
                   {grouped.map(({ ws, docs: wsDocs }) => (
-                    <div key={ws.id}>
+                    <div key={ws.id} className="wr-ws-group">
                       <div className="wr-ws-header">
                         <span className="wr-ws-header-dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
                         <span className="wr-ws-header-name">{ws.name}</span>
