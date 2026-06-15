@@ -7,7 +7,6 @@ import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
-import { usePanelResize } from '../../hooks/usePanelResize'
 import TiptapEditor from '../ui/TiptapEditor'
 
 const DEFAULT_COLS = [
@@ -30,7 +29,6 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { labels } = useLabelsCtx()
   const { user } = useAuth()
-  const { width, startResize } = usePanelResize()
 
   const [title,            setTitle]            = useState('')
   const [desc,             setDesc]             = useState('')
@@ -47,15 +45,15 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
   const [showChecklist,    setShowChecklist]    = useState(false)
-  const [closing,          setClosing]          = useState(false)
 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
 
-  const handleClose = () => {
-    setClosing(true)
-    setTimeout(onClose, 220)
-  }
+  useEffect(() => {
+    const onKeyDown = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -110,7 +108,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           }))
         )
       }
-      handleClose()
+      onClose()
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -120,20 +118,23 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const isCustomDate = dueDate && dueDate !== today && dueDate !== tomorrow && dueDate !== nextWeek
 
   return (
-    <aside
-      className={`task-panel${closing ? ' task-panel--closing' : ''}`}
-      style={{ width: `${Math.min(width, window.innerWidth)}px` }}
-      role="complementary"
-      aria-label="New task"
+    <div
+      className="modal-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="task-panel-resize" onMouseDown={startResize} aria-hidden="true" title="Drag to resize" />
+      <div
+        className="modal-sheet atp-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="atp-dialog-title"
+      >
 
       {/* ── Header ──────────────────────────────────────── */}
       <div className="atp-hdr">
-        <span className="atp-hdr__label">New Task</span>
+        <span className="atp-hdr__label" id="atp-dialog-title">New Task</span>
         <div className="atp-hdr__actions">
           <span className="atp-kbd" aria-hidden="true">⌘↵</span>
-          <button className="modal-close" onClick={handleClose} aria-label="Close panel">
+          <button className="modal-close" onClick={onClose} aria-label="Close">
             <X size={16} weight="bold" aria-hidden="true" />
           </button>
         </div>
@@ -395,7 +396,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       {/* ── Footer ──────────────────────────────────────── */}
       <div className="task-panel-ftr">
         <span className="atp-ftr-hint" aria-hidden="true">⌘↵ to save</span>
-        <button type="button" className="btn-ghost" onClick={handleClose}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
         <button
           type="submit"
           form="add-task-panel-form"
@@ -405,6 +406,8 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {loading ? 'Saving…' : 'Create Task'}
         </button>
       </div>
-    </aside>
+
+      </div>
+    </div>
   )
 }

@@ -682,12 +682,12 @@ ${colData.map(c => `<div class="col">
 
             {isOwner && doneCount > 0 && (
               <button
-                className="ws-settings-btn board-archive-done-btn"
+                className="board-archive-done-btn"
                 onClick={handleArchiveDone}
                 aria-label={`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''}`}
                 title={`Archive done (${doneCount})`}
               >
-                <Archive size={20} aria-hidden="true" />
+                <Archive size={15} aria-hidden="true" />
                 <span className="board-archive-done-badge">{doneCount}</span>
               </button>
             )}
@@ -896,20 +896,8 @@ ${colData.map(c => `<div class="col">
             ) : null}
           </div>
 
-          {/* Panels sit inside the canvas as flex siblings — not fixed overlays */}
+          {/* Detail panel stays as a flex sibling inside the canvas */}
           <Suspense fallback={null}>
-            {showModal && canEdit && (
-              <AddTaskPanel
-                columns={columns}
-                onClose={() => setShowModal(false)}
-                onSave={async (data) => {
-                  const taskId = await addTask(data)
-                  toast.success('Task added')
-                  return taskId
-                }}
-              />
-            )}
-
             {selectedTask && (
               <TaskDetailPanel
                 task={selectedTask}
@@ -928,6 +916,21 @@ ${colData.map(c => `<div class="col">
           </Suspense>
         </div>
       </main>
+
+      {/* Add task modal — fixed overlay, rendered outside the canvas */}
+      <Suspense fallback={null}>
+        {showModal && canEdit && (
+          <AddTaskPanel
+            columns={columns}
+            onClose={() => setShowModal(false)}
+            onSave={async (data) => {
+              const taskId = await addTask(data)
+              toast.success('Task added')
+              return taskId
+            }}
+          />
+        )}
+      </Suspense>
 
       {viewMode === 'board' && canEdit && !isGlobalBoard && (
         <button className="mobile-fab" aria-label="Add task" onClick={openAddPanel}>
