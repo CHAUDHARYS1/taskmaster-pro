@@ -376,6 +376,21 @@ function MiniSidebar({ mainCursor, onDayClick, tasksByDate }) {
           )
         })}
       </div>
+
+      <div className="cal-mini-legend" aria-label="Color legend">
+        <div className="cal-mini-legend-h">Legend</div>
+        {[
+          { label: 'Scheduled',   color: 'var(--accent)' },
+          { label: 'Completed',   color: 'var(--green)'  },
+          { label: 'In Review',   color: 'var(--amber)'  },
+          { label: 'To Do',       color: 'var(--ink-4)'  },
+        ].map(({ label, color }) => (
+          <div key={label} className="cal-mini-legend-item">
+            <span className="cal-mini-legend-sw" style={{ background: color }} aria-hidden="true" />
+            {label}
+          </div>
+        ))}
+      </div>
     </aside>
   )
 }
