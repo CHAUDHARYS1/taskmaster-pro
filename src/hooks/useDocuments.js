@@ -25,7 +25,7 @@ export function useDocuments(workspaceId) {
   const createDoc = async (wsId) => {
     const { data, error } = await supabase
       .from('documents')
-      .insert({ workspace_id: wsId ?? workspaceId, title: 'Untitled', pinned: false })
+      .insert({ workspace_id: wsId ?? workspaceId, title: 'Untitled' })
       .select()
       .single()
     if (error) throw error

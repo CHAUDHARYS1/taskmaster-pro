@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   List, NotePencil, BookOpen, Star, Target, Briefcase,
@@ -36,7 +36,18 @@ export default function WritesPage() {
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
   const [docLoading,  setDocLoading]  = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
+  const [showWsPicker,  setShowWsPicker]  = useState(false)
+  const wsPickerRef = useRef(null)
+
+  useEffect(() => {
+    if (!showWsPicker) return
+    const handler = (e) => {
+      if (wsPickerRef.current && !wsPickerRef.current.contains(e.target)) setShowWsPicker(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showWsPicker])
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -61,14 +72,32 @@ export default function WritesPage() {
     }
   }, [docs, docId])
 
-  const handleNew = async () => {
-    const wsId = currentWorkspace?.id ?? workspaces?.[0]?.id
-    if (!wsId) { toast.error('Select a workspace to create a document'); return }
+  const doCreateDoc = async (wsId) => {
     try {
       const doc = await createDoc(wsId)
       navigate('/writes/' + doc.id)
     } catch (err) {
       toast.error(err.message || 'Failed to create document')
+    }
+  }
+
+  const handleNew = () => {
+    if (!workspaces || workspaces.length === 0) {
+      toast.error('No workspace available'); return
+    }
+    if (workspaces.length === 1) {
+      doCreateDoc(workspaces[0].id); return
+    }
+    setShowWsPicker(v => !v)
+  }
+
+  const handleChangeWorkspace = async (newWsId) => {
+    if (!docId || !currentDoc || newWsId === currentDoc.workspace_id) return
+    try {
+      await updateDoc(docId, { workspace_id: newWsId })
+      setCurrentDoc(prev => ({ ...prev, workspace_id: newWsId }))
+    } catch (err) {
+      toast.error(err.message || 'Failed to move document')
     }
   }
 
@@ -158,9 +187,26 @@ export default function WritesPage() {
                   aria-label="Search documents"
                 />
               </div>
-              <button className="wr-new" onClick={handleNew} aria-label="New document">
-                + New
-              </button>
+              <div className="wr-new-wrap" ref={wsPickerRef}>
+                <button className="wr-new" onClick={handleNew} aria-label="New document">
+                  + New
+                </button>
+                {showWsPicker && (
+                  <div className="wr-ws-picker" role="listbox" aria-label="Select workspace">
+                    <div className="wr-ws-picker-label">Create in…</div>
+                    {workspaces.map(ws => (
+                      <button
+                        key={ws.id}
+                        className="wr-ws-picker-item"
+                        role="option"
+                        onClick={() => { setShowWsPicker(false); doCreateDoc(ws.id) }}
+                      >
+                        {ws.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="wr-notes">
@@ -203,7 +249,7 @@ export default function WritesPage() {
                             <div className="wr-note-meta">
                               {ws && (
                                 <span className="wr-note-ws">
-                                  <span className="dot" aria-hidden="true" />
+                                  <span className="dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
                                   {ws.name}
                                 </span>
                               )}
@@ -246,7 +292,7 @@ export default function WritesPage() {
                             <div className="wr-note-meta">
                               {ws && (
                                 <span className="wr-note-ws">
-                                  <span className="dot" aria-hidden="true" />
+                                  <span className="dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
                                   {ws.name}
                                 </span>
                               )}
@@ -277,6 +323,7 @@ export default function WritesPage() {
                 doc={currentDoc}
                 onSave={handleSave}
                 onDelete={handleDelete}
+                onChangeWorkspace={handleChangeWorkspace}
               />
             ) : (
               <div className="writes-empty-state">

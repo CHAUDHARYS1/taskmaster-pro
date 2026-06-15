@@ -7,7 +7,7 @@ import {
   ListBullets, ListNumbers,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export, CheckCircle,
+  Export, CheckCircle, CaretDown,
 } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
@@ -35,19 +35,21 @@ function Divider() {
   return <span className="we-divider" aria-hidden="true" />
 }
 
-export default function WritesEditor({ doc, onSave, onDelete }) {
+export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace }) {
   const { toast }      = useToast()
   const { workspaces } = useWorkspace()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
-  const [title,      setTitle]      = useState(doc.title)
-  const [saveStatus, setSaveStatus] = useState('saved')
-  const [linkInput,  setLinkInput]  = useState('')
-  const [showLink,   setShowLink]   = useState(false)
-  const [showExport, setShowExport] = useState(false)
+  const [title,       setTitle]       = useState(doc.title)
+  const [saveStatus,  setSaveStatus]  = useState('saved')
+  const [linkInput,   setLinkInput]   = useState('')
+  const [showLink,    setShowLink]    = useState(false)
+  const [showExport,  setShowExport]  = useState(false)
+  const [showWsPick,  setShowWsPick]  = useState(false)
 
   const saveTimer   = useRef(null)
   const titleRef    = useRef(null)
   const exportRef   = useRef(null)
+  const wsPickRef   = useRef(null)
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -56,6 +58,14 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showExport])
+
+  // Close workspace picker on outside click
+  useEffect(() => {
+    if (!showWsPick) return
+    const handler = (e) => { if (wsPickRef.current && !wsPickRef.current.contains(e.target)) setShowWsPick(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showWsPick])
 
   const handleExportPDF = () => {
     setShowExport(false)
@@ -174,8 +184,38 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
       {/* Editor breadcrumb bar */}
       <div className="wr-ed-bar">
         <div className="wr-crumb">
-          {workspace && <span className="dot" aria-hidden="true" />}
-          {workspace && <span>{workspace.name}</span>}
+          <div className="wr-crumb-ws-wrap" ref={wsPickRef}>
+            {workspace && <span className="dot" style={{ background: workspace.color ?? 'var(--accent)' }} aria-hidden="true" />}
+            {onChangeWorkspace ? (
+              <button
+                className="wr-crumb-ws-btn"
+                onClick={() => setShowWsPick(v => !v)}
+                aria-label="Change workspace"
+                aria-expanded={showWsPick}
+              >
+                {workspace?.name ?? 'No workspace'}
+                <CaretDown size={10} weight="bold" aria-hidden="true" />
+              </button>
+            ) : (
+              workspace && <span>{workspace.name}</span>
+            )}
+            {showWsPick && (
+              <div className="wr-ws-picker wr-ws-picker--crumb" role="listbox" aria-label="Move to workspace">
+                <div className="wr-ws-picker-label">Move to…</div>
+                {workspaces?.map(ws => (
+                  <button
+                    key={ws.id}
+                    className={`wr-ws-picker-item${ws.id === doc.workspace_id ? ' wr-ws-picker-item--active' : ''}`}
+                    role="option"
+                    aria-selected={ws.id === doc.workspace_id}
+                    onClick={() => { setShowWsPick(false); onChangeWorkspace(ws.id) }}
+                  >
+                    {ws.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {workspace && <span className="sep">›</span>}
           <strong>Writes</strong>
         </div>
