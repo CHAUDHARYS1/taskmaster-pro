@@ -3164,6 +3164,76 @@ a:focus-visible,
 }
 .wr-new:hover { background: var(--accent); color: #fff; }
 
+/* Workspace picker — shared by "+ New" button and breadcrumb */
+.wr-new-wrap { position: relative; }
+
+.wr-ws-picker {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.wr-ws-picker--crumb {
+  left: 0;
+  right: auto;
+  top: calc(100% + 6px);
+}
+
+.wr-ws-picker-label {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.wr-ws-picker-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-height: 44px;
+}
+
+.wr-ws-picker-item:hover { background: var(--paper-2); }
+.wr-ws-picker-item--active { color: var(--accent); font-weight: var(--weight-medium); }
+
+/* Workspace button in the breadcrumb */
+.wr-crumb-ws-wrap { position: relative; display: flex; align-items: center; gap: 4px; }
+
+.wr-crumb-ws-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.wr-crumb-ws-btn:hover { color: var(--accent); background: var(--paper-2); }
+.wr-crumb-ws-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .wr-notes {
   flex: 1;
   overflow-y: auto;
