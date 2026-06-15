@@ -669,15 +669,47 @@ function relDayLabel(dateKey, today) {
 }
 
 function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
-  const today    = dayjs().format('YYYY-MM-DD')
-  const allDates = useMemo(() => Object.keys(tasksByDate).sort(), [tasksByDate])
+  const today       = dayjs().format('YYYY-MM-DD')
+  const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
+  const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
 
-  if (allDates.length === 0) {
+  const allDates = useMemo(() => {
+    const dates = Object.keys(tasksByDate).sort()
+    return upcomingOnly ? dates.filter(d => d >= today) : dates
+  }, [tasksByDate, upcomingOnly, today])
+
+  const hasPast = useMemo(
+    () => Object.keys(tasksByDate).some(d => d < today),
+    [tasksByDate, today]
+  )
+
+  if (allDates.length === 0 && !hasPast) {
     return <p className="cal-day-empty">No tasks with due dates match the current filters.</p>
   }
 
   return (
     <div className="cal-agenda">
+      {hasPast && (
+        <div className="cal-agenda-filter-row">
+          <button
+            type="button"
+            className={`cal-agenda-filter-btn${upcomingOnly ? ' cal-agenda-filter-btn--active' : ''}`}
+            onClick={() => setUpcomingOnly(true)}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            className={`cal-agenda-filter-btn${!upcomingOnly ? ' cal-agenda-filter-btn--active' : ''}`}
+            onClick={() => setUpcomingOnly(false)}
+          >
+            All
+          </button>
+        </div>
+      )}
+      {allDates.length === 0 && (
+        <p className="cal-day-empty">No upcoming tasks with due dates.</p>
+      )}
       {allDates.map(dateKey => {
         const events  = tasksByDate[dateKey]
         const d       = dayjs(dateKey)

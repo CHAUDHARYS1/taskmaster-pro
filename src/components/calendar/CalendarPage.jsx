@@ -148,7 +148,7 @@ export default function CalendarPage() {
       )}
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
-      <main className="board-main">
+      <main className="board-main board-main--cal">
         <div className="mobile-appbar">
           <button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)} aria-label="Toggle sidebar">
             <List size={22} aria-hidden="true" />

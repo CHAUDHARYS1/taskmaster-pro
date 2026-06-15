@@ -11538,11 +11538,12 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 }
 
 /* ── Desktop: hide mobile-only calendar elements ─────────── */
-.cal-mobile-hdr       { display: none; }
-.cal-agenda-dow-full  { display: none; }
-.cal-agenda-today-tag { display: none; }
-.cal-agenda-event-wrap { display: contents; }
-.cal-agenda-rel       { display: none; }
+.cal-mobile-hdr         { display: none; }
+.cal-agenda-dow-full    { display: none; }
+.cal-agenda-today-tag   { display: none; }
+.cal-agenda-event-wrap  { display: contents; }
+.cal-agenda-rel         { display: none; }
+.cal-agenda-filter-row  { display: none; }
 
 /* ── Mobile calendar ─────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -11550,13 +11551,18 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-toolbar      { display: none !important; }
   .cal-mini-sidebar { display: none !important; }
 
-  /* Scroll container: cal-page-body becomes the scroller */
-  .cal-page-body {
-    padding: 0 !important;
-    overflow-y: auto !important;   /* scroll here, not in cal-agenda */
+  /* board-main--cal is the scroll container on mobile */
+  .board-main--cal {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
-  /* Let everything inside flow at natural height */
+  /* Everything inside flows at natural height — no fixed heights, no clipping */
+  .board-main--cal .cal-page-body {
+    flex: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
   .cal-wrap {
     height: auto !important;
     overflow-x: hidden !important;
@@ -11691,5 +11697,27 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-agenda-rel--future {
     color: var(--ink-3);
     font-weight: 500;
+  }
+
+  /* Upcoming / All toggle */
+  .cal-agenda-filter-row {
+    display: flex;
+    gap: 6px;
+    padding: 12px 20px 8px;
+  }
+  .cal-agenda-filter-btn {
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--line-soft);
+    background: transparent;
+    color: var(--ink-3);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .cal-agenda-filter-btn--active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--card);
   }
 }
