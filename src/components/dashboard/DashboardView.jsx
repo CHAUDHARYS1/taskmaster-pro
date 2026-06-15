@@ -294,8 +294,8 @@ function HeatmapCard({ cells, year, onYearChange }) {
             {col.map(cell => (
               <div
                 key={cell.date}
-                className={`heat-cell${cell.faded ? '' : (' ' + heatLevel(cell.count))}`}
-                title={cell.faded ? undefined : `${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''}`}
+                className={`heat-cell${(cell.faded || cell.future) ? '' : (' ' + heatLevel(cell.count))}${cell.future ? ' heat-future' : ''}`}
+                title={(!cell.faded && !cell.future) ? `${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''}` : undefined}
               />
             ))}
           </div>

@@ -15,12 +15,11 @@ function buildYearHeatmap(completedDates, year) {
   const jan1        = dayjs(`${year}-01-01`)
   const dec31       = dayjs(`${year}-12-31`)
   const today       = dayjs()
-  const endDate     = dec31.isAfter(today) ? today : dec31
   const startSunday = jan1.startOf('week')
 
   const cells = []
   let cursor = startSunday
-  while (!cursor.isAfter(endDate)) {
+  while (!cursor.isAfter(dec31)) {
     const key    = cursor.format('YYYY-MM-DD')
     const inYear = cursor.year() === year
     cells.push({
@@ -28,6 +27,7 @@ function buildYearHeatmap(completedDates, year) {
       count:     inYear ? (countMap[key] ?? 0) : 0,
       dayOfWeek: cursor.day(),
       faded:     !inYear,
+      future:    inYear && cursor.isAfter(today),
     })
     cursor = cursor.add(1, 'day')
   }
