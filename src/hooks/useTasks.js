@@ -143,6 +143,17 @@ export function useTasks(workspaceId, projectId) {
     ))
   }, [])
 
+  const removeOptimistic = useCallback((taskId) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+  }, [])
+
+  const restoreOptimistic = useCallback((task) => {
+    setTasks(prev => {
+      if (prev.some(t => t.id === task.id)) return prev
+      return [...prev, task].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    })
+  }, [])
+
   const tasksByStatus = useMemo(() => STATUSES.reduce((acc, status) => {
     acc[status] = tasks
       .filter(t => t.status === status)
@@ -150,5 +161,5 @@ export function useTasks(workspaceId, projectId) {
     return acc
   }, {}), [tasks])
 
-  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist }
+  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist, removeOptimistic, restoreOptimistic }
 }

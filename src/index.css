@@ -990,6 +990,9 @@ a:focus-visible,
   visibility: hidden;
 }
 
+/* Hidden on desktop; mobile-only swipe reveals it */
+.task-card-delete-zone { display: none; }
+
 .task-card--dragging.task-card--locked { opacity: 1; }
 .task-card--ghost {
   box-shadow: 0 16px 48px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.08);
@@ -4640,6 +4643,39 @@ a:focus-visible,
   .presence-avatars { display: none; }
   .quick-add--top      { display: none; }
   .column-collapse-btn { display: none; }
+
+  /* ── Swipe-to-delete on task cards ── */
+  .task-card {
+    position: relative;
+    overflow: hidden;
+    /* Move horizontal padding onto the inner wrapper so it covers the full card width */
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .task-card-swipe-inner {
+    background: var(--card);
+    position: relative;
+    /* Carry the card's horizontal padding (13px left, var(--space-4) right) */
+    padding-left: 13px;
+    padding-right: var(--space-4);
+  }
+
+  .task-card-delete-zone {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 76px;
+    background: transparent;
+    color: var(--red, #ef4444);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
 
 
   /* Filter tray: hidden on mobile until toggled */

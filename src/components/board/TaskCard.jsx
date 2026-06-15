@@ -1,8 +1,8 @@
-import { memo } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSix, Check, ChatCircle, CheckSquare, ArrowsClockwise } from '@phosphor-icons/react'
+import { DotsSix, Check, ChatCircle, CheckSquare, ArrowsClockwise, Trash } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -90,6 +90,7 @@ function TaskCard({
   }
 
   const handleOpen = () => {
+    if (swipeX !== 0) { setSwipeX(0); return }
     if (isLockedByOther) return
     if (bulkMode) { onBulkToggle?.(task.id); return }
     onOpen(task.id)
@@ -104,6 +105,49 @@ function TaskCard({
        task.description?.toLowerCase().includes(searchQuery.toLowerCase()))
     : false
   const isSearchDimmed = !!searchQuery && !isSearchMatch
+
+  // ── Swipe-to-delete (mobile only) ────────────────────────────────────────
+  const swipeEnabled = canDelete && !!onDelete && !isOverlay
+  const [swipeX, setSwipeX] = useState(0)
+  const touchRef = useRef(null)
+  const dirRef   = useRef(null)
+
+  const REVEAL_AT = -56
+  const MAX_X     = -76
+
+  const handleTouchStart = useCallback((e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    dirRef.current   = null
+  }, [])
+
+  const handleTouchMove = useCallback((e) => {
+    if (!touchRef.current) return
+    const dx = e.touches[0].clientX - touchRef.current.x
+    const dy = e.touches[0].clientY - touchRef.current.y
+    if (!dirRef.current) {
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+      dirRef.current = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'
+    }
+    if (dirRef.current === 'h' && dx < 0) {
+      e.stopPropagation()
+      setSwipeX(Math.max(dx, MAX_X))
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (dirRef.current === 'h') {
+      setSwipeX(prev => prev < REVEAL_AT ? MAX_X : 0)
+    }
+    touchRef.current = null
+    dirRef.current   = null
+  }, [])
+
+  const handleSwipeDelete = useCallback((e) => {
+    e.stopPropagation()
+    setSwipeX(0)
+    onDelete?.(task.id)
+  }, [onDelete, task.id])
+  // ─────────────────────────────────────────────────────────────────────────
 
   const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
 
@@ -127,6 +171,29 @@ function TaskCard({
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
+      {/* Delete zone — only rendered once the user starts swiping */}
+      {swipeEnabled && swipeX < 0 && (
+        <button
+          className="task-card-delete-zone"
+          onClick={handleSwipeDelete}
+          aria-label="Delete task"
+          tabIndex={-1}
+        >
+          <Trash size={18} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {/* Sliding content layer */}
+      <div
+        className="task-card-swipe-inner"
+        style={swipeEnabled ? {
+          transform: `translateX(${swipeX}px)`,
+          transition: (swipeX === 0 || swipeX === MAX_X) ? 'transform 0.22s ease' : 'none',
+        } : undefined}
+        onTouchStart={swipeEnabled ? handleTouchStart : undefined}
+        onTouchMove={swipeEnabled ? handleTouchMove : undefined}
+        onTouchEnd={swipeEnabled ? handleTouchEnd : undefined}
+      >
       {/* Bulk checkbox OR drag handle */}
       {bulkMode ? (
         <button
@@ -305,6 +372,7 @@ function TaskCard({
           />
         </div>
       )}
+      </div>{/* end .task-card-swipe-inner */}
 
     </li>
   )
