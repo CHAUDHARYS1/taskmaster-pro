@@ -186,6 +186,9 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           <div className="atp-prop">
             <label className="atp-prop__label" htmlFor="atp-status">Column</label>
             <div className="atp-prop__val">
+              <span className="atp-col-val">
+                {columns.find(c => c.id === status)?.label ?? status}
+              </span>
               <select
                 id="atp-status"
                 className="atp-select"
@@ -270,7 +273,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
 
           {/* Assignee */}
           {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
-            <div className="atp-prop">
+            <div className="atp-prop atp-prop--assignee">
               <label className="atp-prop__label" htmlFor="atp-assignee">Assignee</label>
               <div className="atp-prop__val">
                 <select
@@ -290,7 +293,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
 
           {/* Labels */}
           {labels.length > 0 && (
-            <div className="atp-prop atp-prop--wrap">
+            <div className="atp-prop atp-prop--wrap atp-prop--labels">
               <span className="atp-prop__label" id="atp-labels-label">Labels</span>
               <div className="atp-prop__val" role="group" aria-labelledby="atp-labels-label">
                 <div className="atp-pill-row">
