@@ -4311,6 +4311,7 @@ a:focus-visible,
 }
 
 /* ── Mobile-only elements: hidden on desktop ──────────────── */
+.mobile-appbar     { display: none; }
 .mobile-bottom-nav { display: none; }
 .mobile-fab        { display: none; }
 .mobile-lane-chips { display: none; }
@@ -4376,15 +4377,56 @@ a:focus-visible,
   }
   .sidebar-toggle:hover { background-color: var(--surface); }
 
-  /* ── Board header ─────────────────────────────────────────── */
-  .board-header {
-    padding: 0 var(--space-3);
-  }
-  .board-header-left {
+  /* ── Mobile app bar ──────────────────────────────────────── */
+  .mobile-appbar {
+    flex: none;
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
+    padding: 14px 14px 10px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
   }
+  .mobile-appbar-title { flex: 1; min-width: 0; }
+  .mobile-appbar-ws {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .mobile-appbar-ws > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-appbar-sq {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex: none;
+  }
+  .mobile-appbar-sub {
+    font-size: var(--text-body);
+    color: var(--ink-4);
+    margin-top: 1px;
+  }
+  .mobile-appbar .notif-bell-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius);
+  }
+
+  /* ── Desktop board shell: hidden on mobile ────────────────── */
+  .board-header { display: none; }
+  .filter-bar   { display: none; }
 
   /* ── Columns: scroll-snap carousel ───────────────────────── */
   .board-columns-wrap {
@@ -4401,21 +4443,6 @@ a:focus-visible,
     width: 82vw;
     scroll-snap-align: start;
     max-height: calc(100dvh - 180px);
-  }
-
-  /* ── Filter bar: horizontal scroll ───────────────────────── */
-  .filter-bar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: var(--space-2) var(--space-3);
-    gap: var(--space-2);
-  }
-  .filter-search-wrap {
-    min-width: 160px;
-  }
-  .filter-select {
-    flex-shrink: 0;
   }
 
   /* ── Board canvas: stack vertically on mobile ─────────────── */
@@ -4480,18 +4507,6 @@ a:focus-visible,
   }
   .presence-avatars { display: none; }
 
-
-  /* ── Filter bar: search + toggle + add task ─────────────── */
-  .filter-bar {
-    flex-wrap: wrap;
-    padding: var(--space-2) var(--space-3);
-    gap: var(--space-2);
-    align-items: center;
-  }
-  .filter-search-wrap {
-    flex: 1;
-    min-width: 0;
-  }
 
   /* Filter tray: hidden on mobile until toggled */
   .filter-tray {
@@ -4950,19 +4965,9 @@ a:focus-visible,
   border-bottom-color: var(--accent);
 }
 
-/* Mobile: icon only, equal-width tabs, taller touch target */
+/* Mobile: hide view-mode tabs (navigation is via bottom nav) */
 @media (max-width: 768px) {
-  .icon-bar {
-    padding: 0;
-    gap: 0;
-  }
-  .icon-bar-btn {
-    flex: 1;
-    justify-content: center;
-    padding: 0;
-    min-height: 44px;
-  }
-  .icon-bar-label { display: none; }
+  .icon-bar { display: none; }
 }
 /* ── Mobile view bar (legacy — hidden everywhere) ────────── */
 .mob-view-bar { display: none; }

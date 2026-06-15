@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise, ArrowLeft, ArrowRight } from '@phosphor-icons/react'
+import { DotsSix, Check, ChatCircle, CheckSquare, ArrowsClockwise } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -171,32 +171,6 @@ function TaskCard({
         </button>
       )}
 
-      {/* Actions cluster — bottom-right, hover only */}
-      {((canEdit && onArchive && !isLockedByOther) ||
-        (canDelete && !isLockedByOther)) && (
-        <div className="task-card-actions" onClick={e => e.stopPropagation()}>
-          {canEdit && onArchive && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--archive"
-              aria-label="Archive task"
-              title="Archive task"
-              onClick={e => { e.stopPropagation(); onArchive(task.id) }}
-            >
-              <Archive size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-          {canDelete && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--delete"
-              aria-label="Delete task"
-              title="Delete task"
-              onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-            >
-              <X size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Priority chip */}
       {priorityDef && (
@@ -332,27 +306,6 @@ function TaskCard({
         </div>
       )}
 
-      {/* Column move arrows — mobile only, hidden on desktop via CSS */}
-      {onMove && !isOverlay && !bulkMode && (
-        <div className="task-card-move-row">
-          <button
-            className="task-card-move-btn"
-            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'prev') }}
-            aria-label="Move to previous column"
-            disabled={isFirstColumn}
-          >
-            <ArrowLeft size={15} weight="bold" aria-hidden="true" />
-          </button>
-          <button
-            className="task-card-move-btn"
-            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'next') }}
-            aria-label="Move to next column"
-            disabled={isLastColumn}
-          >
-            <ArrowRight size={15} weight="bold" aria-hidden="true" />
-          </button>
-        </div>
-      )}
     </li>
   )
 }

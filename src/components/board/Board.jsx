@@ -24,6 +24,7 @@ import ListView from './ListView'
 import BulkActionsBar from './BulkActionsBar'
 import { useToast } from '../../contexts/ToastContext'
 import { useNotifications } from '../../contexts/NotificationContext'
+import { BellButton } from '../notifications/NotificationCenter'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { DEFAULT_COLUMNS } from '../../lib/columns'
@@ -649,6 +650,36 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
+
+        {/* Mobile app bar — hidden on desktop via CSS */}
+        <div className="mobile-appbar">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setShowSidebar(prev => !prev)}
+            aria-label="Toggle sidebar"
+          >
+            <List size={22} aria-hidden="true" />
+          </button>
+          <div className="mobile-appbar-title">
+            <div className="mobile-appbar-ws">
+              {currentWorkspace && (
+                <span
+                  className="mobile-appbar-sq"
+                  style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                  aria-hidden="true"
+                >
+                  {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span>{currentWorkspace?.name}</span>
+            </div>
+            <div className="mobile-appbar-sub">
+              {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+            </div>
+          </div>
+          <BellButton />
+        </div>
+
         <div className="board-header">
           <div className="board-header-left">
             <button
