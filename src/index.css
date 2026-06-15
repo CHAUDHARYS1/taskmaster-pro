@@ -8265,6 +8265,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 }
 .cal-event:hover { opacity: 0.78; }
 .cal-event--done { opacity: 0.5; }
+.cal-event--done .cal-event-text { text-decoration: line-through; }
 .cal-event-time {
   flex-shrink: 0;
   font-size: 10px;
