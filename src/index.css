@@ -4638,7 +4638,8 @@ a:focus-visible,
     gap: var(--space-2);
   }
   .presence-avatars { display: none; }
-  .quick-add--top   { display: none; }
+  .quick-add--top      { display: none; }
+  .column-collapse-btn { display: none; }
 
 
   /* Filter tray: hidden on mobile until toggled */

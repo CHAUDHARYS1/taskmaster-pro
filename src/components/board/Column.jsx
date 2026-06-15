@@ -75,7 +75,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
     else emptyText = (isJobTracker ? JOB_EMPTY[column.id] : null) ?? 'No tasks'
   }
 
-  if (collapsed) {
+  if (collapsed && window.innerWidth > 768) {
     return (
       <div
         className={`column column--${column.id} column--collapsed`}
