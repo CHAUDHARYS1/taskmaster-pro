@@ -158,12 +158,17 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
     },
   })
 
-  // Sync content when doc changes and recount words
+  // Sync content when doc changes, recount words, and backfill missing preview
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
     const incoming = doc.content || ''
     if (editor.getHTML() !== incoming) editor.commands.setContent(incoming, false)
     setWordCount(countWords(editor))
+    // Populate preview for docs that existed before the preview column was added
+    if (!doc.preview) {
+      const text = editor.getText().trim()
+      if (text) onSave({ preview: text.slice(0, 200) })
+    }
   }, [doc.id, editor])
 
   const handleTitleChange = (e) => {

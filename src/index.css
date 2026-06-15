@@ -3297,7 +3297,7 @@ a:focus-visible,
   width: 100%;
   text-align: left;
   border: none;
-  background: none;
+  background: var(--card);
   padding: 10px 11px;
   border-radius: var(--radius);
   cursor: pointer;
