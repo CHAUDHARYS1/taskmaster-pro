@@ -22,6 +22,39 @@ function NoteIcon({ index, size = 15 }) {
   return <Icon size={size} aria-hidden="true" />
 }
 
+function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
+  const ws = wsMap[doc.workspace_id]
+  return (
+    <button
+      className={`wr-note${docId === doc.id ? ' on' : ''}`}
+      onClick={() => onNavigate(doc.id)}
+    >
+      <div className="wr-note-top">
+        <span className="wr-note-ico"><NoteIcon index={idx} /></span>
+        <span className="wr-note-title">{doc.title || 'Untitled'}</span>
+        <button
+          className="wr-pin-ico"
+          style={{ opacity: doc.pinned ? 1 : 0.25 }}
+          onClick={e => onPin(doc, e)}
+          aria-label={doc.pinned ? 'Unpin document' : 'Pin document'}
+        >
+          <PushPin size={13} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
+        </button>
+      </div>
+      {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
+      <div className="wr-note-meta">
+        {ws?.name && (
+          <>
+            <span className="wr-note-meta-ws">{ws.name}</span>
+            <span className="wr-note-meta-dot" aria-hidden="true">·</span>
+          </>
+        )}
+        <span>{fmtDate(doc.updated_at)}</span>
+      </div>
+    </button>
+  )
+}
+
 export default function WritesPage() {
   const { docId }    = useParams()
   const navigate     = useNavigate()
@@ -31,6 +64,7 @@ export default function WritesPage() {
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [search,      setSearch]      = useState('')
+  const [isMobile,    setIsMobile]    = useState(() => window.innerWidth <= 768)
   const [showSidebar, setShowSidebar] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
@@ -48,6 +82,12 @@ export default function WritesPage() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showWsPicker])
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -140,6 +180,12 @@ export default function WritesPage() {
     .filter(g => g.docs.length > 0)
   const orphaned = filtered.filter(d => !workspaces.find(w => w.id === d.workspace_id))
 
+  const wsMap = Object.fromEntries((workspaces || []).map(w => [w.id, w]))
+  const mobileGroups = [
+    { key: 'pinned', label: 'Pinned', docs: filtered.filter(d => d.pinned) },
+    { key: 'recent', label: 'Recent', docs: filtered.filter(d => !d.pinned) },
+  ].filter(g => g.docs.length > 0)
+
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -223,6 +269,23 @@ export default function WritesPage() {
                 <p className="writes-list-empty">No documents yet.</p>
               ) : filtered.length === 0 ? (
                 <p className="writes-list-empty">No matches for "{search}".</p>
+              ) : isMobile ? (
+                mobileGroups.map(({ key, label, docs: grpDocs }) => (
+                  <div key={key} className="wr-ws-group">
+                    <div className="wr-sec">{label}</div>
+                    {grpDocs.map(doc => (
+                      <DocItem
+                        key={doc.id}
+                        doc={doc}
+                        docId={docId}
+                        wsMap={wsMap}
+                        idx={filtered.findIndex(d => d.id === doc.id)}
+                        onNavigate={id => navigate('/writes/' + id)}
+                        onPin={handlePin}
+                      />
+                    ))}
+                  </div>
+                ))
               ) : (
                 <>
                   {grouped.map(({ ws, docs: wsDocs }) => (
@@ -231,59 +294,33 @@ export default function WritesPage() {
                         <span className="wr-ws-header-dot" style={{ background: ws.color ?? 'var(--accent)' }} aria-hidden="true" />
                         <span className="wr-ws-header-name">{ws.name}</span>
                       </div>
-                      {wsDocs.map(doc => {
-                        const idx = filtered.findIndex(d => d.id === doc.id)
-                        return (
-                          <button
-                            key={doc.id}
-                            className={`wr-note${docId === doc.id ? ' on' : ''}`}
-                            onClick={() => navigate('/writes/' + doc.id)}
-                          >
-                            <div className="wr-note-top">
-                              <span className="wr-note-ico">
-                                <NoteIcon index={idx} />
-                              </span>
-                              <span className="wr-note-title">{doc.title || 'Untitled'}</span>
-                              <button
-                                className="wr-pin-ico"
-                                style={{ opacity: doc.pinned ? 1 : 0.25 }}
-                                onClick={e => handlePin(doc, e)}
-                                aria-label={doc.pinned ? 'Unpin document' : 'Pin document'}
-                              >
-                                <PushPin size={13} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
-                              </button>
-                            </div>
-                            {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
-                            <div className="wr-note-meta">
-                              <span>{fmtDate(doc.updated_at)}</span>
-                            </div>
-                          </button>
-                        )
-                      })}
+                      {wsDocs.map(doc => (
+                        <DocItem
+                          key={doc.id}
+                          doc={doc}
+                          docId={docId}
+                          wsMap={wsMap}
+                          idx={filtered.findIndex(d => d.id === doc.id)}
+                          onNavigate={id => navigate('/writes/' + id)}
+                          onPin={handlePin}
+                        />
+                      ))}
                     </div>
                   ))}
                   {orphaned.length > 0 && (
                     <div>
                       <div className="wr-sec">Other</div>
-                      {orphaned.map(doc => {
-                        const idx = filtered.findIndex(d => d.id === doc.id)
-                        return (
-                          <button
-                            key={doc.id}
-                            className={`wr-note${docId === doc.id ? ' on' : ''}`}
-                            onClick={() => navigate('/writes/' + doc.id)}
-                          >
-                            <div className="wr-note-top">
-                              <span className="wr-note-ico"><NoteIcon index={idx} /></span>
-                              <span className="wr-note-title">{doc.title || 'Untitled'}</span>
-                            </div>
-                            {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
-                            <div className="wr-note-meta">
-                              <span>{fmtDate(doc.updated_at)}</span>
-                            </div>
-                          </button>
-                        )
-                      })}
+                      {orphaned.map(doc => (
+                        <DocItem
+                          key={doc.id}
+                          doc={doc}
+                          docId={docId}
+                          wsMap={wsMap}
+                          idx={filtered.findIndex(d => d.id === doc.id)}
+                          onNavigate={id => navigate('/writes/' + id)}
+                          onPin={handlePin}
+                        />
+                      ))}
                     </div>
                   )}
                 </>

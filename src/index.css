@@ -3372,6 +3372,9 @@ a:focus-visible,
   font-size: var(--text-xs);
   color: var(--ink-4);
 }
+/* Workspace name in item meta — shown on mobile only (desktop uses group header) */
+.wr-note-meta-ws,
+.wr-note-meta-dot { display: none; }
 .wr-note-ws { display: flex; align-items: center; gap: 4px; }
 .wr-note-ws .dot {
   width: 5px;
@@ -11870,6 +11873,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
   /* List panel: full width, no border, natural height */
   .wr-list {
+    width: 100%;
     border-right: none;
     background: var(--bg);
     overflow: visible !important;
@@ -11948,6 +11952,10 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
   .wr-pin-ico { display: none; }
 
+  /* Show workspace name in item meta on mobile */
+  .wr-note-meta-ws,
+  .wr-note-meta-dot { display: inline; }
+
   /* Panel visibility: list vs editor */
   .writes-main:not(.writes-main--doc-open) .writes-editor-area { display: none; }
   .writes-main.writes-main--doc-open .wr-list { display: none; }
@@ -11971,5 +11979,48 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     cursor: pointer;
     border-bottom: 1px solid var(--line-soft);
     width: 100%;
+  }
+
+  /* ── Editor on mobile ────────────────────────────────────── */
+
+  /* Breadcrumb bar: tighter padding */
+  .wr-ed-bar {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  /* Title area: tighter, smaller title */
+  .we-doc-hdr {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+  }
+  .we-title { font-size: var(--text-lg); }
+
+  /* Hide save status text (shown in breadcrumb bar instead) */
+  .we-hdr-right .we-save-status { display: none; }
+
+  /* Toolbar: single scrollable row — no wrap */
+  .we-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: var(--space-2) var(--space-3);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .we-toolbar::-webkit-scrollbar { display: none; }
+
+  /* Editor body + content: full-bleed, no decorative border */
+  .we-body { padding: var(--space-3) var(--space-3) 56px; }
+  .we-content {
+    max-width: 100%;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-height: 50vh;
+  }
+
+  /* Metadata badge: left-align on mobile so it doesn't overlap text */
+  .wr-meta-bar {
+    left: var(--space-3);
+    right: auto;
   }
 }
