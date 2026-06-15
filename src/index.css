@@ -11552,8 +11552,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-wrap         { border-radius: 0 !important; border: none !important; background: var(--paper) !important; }
 
   /* Body: single column */
-  .cal-body     { display: block; overflow: visible; }
+  .cal-body      { display: block; overflow: visible; }
   .cal-view-area { width: 100%; overflow: visible; }
+  .cal-wrap      { overflow-x: hidden !important; }
 
   /* Mobile header: "June 2026" + "Agenda · upcoming" */
   .cal-mobile-hdr {
@@ -11580,6 +11581,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Row: date heading on top, events below */
   .cal-agenda-row {
     flex-direction: column;
+    align-items: stretch;   /* events div stretches to full row width */
     gap: 0;
     padding: 0;
     border-bottom: none;
