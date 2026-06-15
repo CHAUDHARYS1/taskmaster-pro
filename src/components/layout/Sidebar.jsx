@@ -218,7 +218,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
           {onProfileClick ? (
             <button
               className="sidebar-profile-btn"
-              onClick={onProfileClick}
+              onClick={() => window.innerWidth <= 768 ? navigate('/settings') : onProfileClick()}
               aria-label={`Settings for ${displayName || user?.email}`}
               title={collapsed ? (displayName || user?.email) : undefined}
             >

@@ -9822,6 +9822,179 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 }
 
 /* ══════════════════════════════════════════════════════════════
+   SETTINGS PAGE  (mobile full-screen route /settings)
+   ══════════════════════════════════════════════════════════════ */
+
+.spage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+/* Header bar */
+.spage-hdr {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px 16px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.spage-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.spage-back-btn:hover { background: var(--paper-2); }
+
+.spage-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* Scrollable body */
+.spage-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Profile hero card */
+.spage-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+}
+
+.spage-hero-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: var(--weight-bold);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.spage-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.spage-hero-name {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spage-hero-email {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Section list */
+.spage-section-list {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.spage-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px var(--space-4);
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line-soft);
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.spage-section-row:last-child { border-bottom: none; }
+.spage-section-row:hover,
+.spage-section-row:active { background: var(--paper-2); }
+
+.spage-section-label {
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.spage-section-caret {
+  color: var(--ink-4);
+  flex-shrink: 0;
+}
+
+/* Avatar upload (reused classes) in account view */
+.spage-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+/* Account form */
+.spage-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.spage-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.spage-actions {
+  padding-top: var(--space-2);
+}
+
+.spage-save-btn {
+  width: 100%;
+  height: 48px;
+  font-size: var(--text-body);
+}
+
+/* ══════════════════════════════════════════════════════════════
    BOARD COMPACT DENSITY
    ══════════════════════════════════════════════════════════════ */
 
