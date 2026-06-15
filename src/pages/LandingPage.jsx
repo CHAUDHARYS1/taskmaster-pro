@@ -32,6 +32,8 @@ function Nav() {
     <nav className={`lp-nav${scrolled ? ' lp-nav--scrolled' : ''}`} role="navigation">
       <Link to="/" className="lp-logo" aria-label="Taskmaster Pro home"><LogoSVG /></Link>
       <div className="lp-nav-links">
+        <a href="#product" className="lp-nav-link">Features</a>
+        <a href="#templates" className="lp-nav-link">Templates</a>
         <Link to="/about" className="lp-nav-link">About</Link>
       </div>
       <div className="lp-nav-actions">
@@ -200,6 +202,331 @@ function Stats() {
         </div>
       ))}
     </div>
+  )
+}
+
+/* ─── Trust strip ───────────────────────────────────────── */
+function TrustStrip() {
+  return (
+    <div className="lp-trust">
+      <span className="lp-trust-label">Trusted by focused people at</span>
+      <div className="lp-trust-row">
+        {['Northwind', 'Opal Foods', 'Crest Media', 'Dune Studio', 'Aria Health', 'Moss Co.'].map(name => (
+          <span key={name}>{name}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Product showcase ──────────────────────────────────── */
+function ProductShowcase() {
+  return (
+    <section className="lp-section" id="product">
+      <div className="lp-section-inner">
+        <p className="lp-eyebrow">See it in action</p>
+        <h2 className="lp-section-heading">One dataset,<br /><em>seen four ways.</em></h2>
+        <p className="lp-section-sub">
+          The same tasks, surfaced however you need them — drag them on a board,
+          open the full story on a card, or see the whole month at a glance.
+        </p>
+
+        {/* Board view */}
+        <div className="lp-show">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Board view</p>
+            <h3>A board that bends to <em>your workflow.</em></h3>
+            <p>Name your columns, color them, and reorder them by dragging. Cards carry priority and labels so status reads at a glance.</p>
+            <ul className="lp-feat-list">
+              <li>Unlimited, fully configurable columns</li>
+              <li>Drag-and-drop with live, instant sync</li>
+              <li>Colored left rule encodes task state</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">Blank Board — board view</span>
+              </div>
+              <MiniBoard board={TEMPLATE_BOARDS.blank} animate={false} />
+            </div>
+          </div>
+        </div>
+
+        {/* Task detail */}
+        <div className="lp-show lp-show--flip">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Task detail</p>
+            <h3>Every card holds <em>the whole story.</em></h3>
+            <p>Open a task to find a rich description, checklist with progress, priority, labels, assignee, due date, and a comment thread — all in one focused panel.</p>
+            <ul className="lp-feat-list">
+              <li>Checklists with a live completion bar</li>
+              <li>Priority from Low to Urgent</li>
+              <li>Due dates that flag when they're close</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">Task detail</span>
+              </div>
+              <div className="tm-task">
+                <div className="tm-task-crumb">Freelance Tracker › <b>In Progress</b></div>
+                <div className="tm-task-title">Crest Media — marketing site redesign</div>
+                <div className="tm-chiprow">
+                  <span className="tm-chip" style={{ background:'rgba(248,113,113,.16)', color:'#b91c1c' }}>!! Urgent</span>
+                  <span className="tm-chip" style={{ background:'rgba(45,212,191,.14)', color:'#0f766e' }}>Retainer</span>
+                  <span className="tm-chip" style={{ background:'rgba(124,58,237,.12)', color:'#7c3aed' }}>Design</span>
+                </div>
+                <div className="tm-task-desc">Full redesign of the marketing site — new hero, pricing, and case-study templates. Client wants a more editorial look before their Q3 launch.</div>
+                <div className="tm-block-label"><span>Checklist</span><span>3 / 4</span></div>
+                <div className="tm-track"><i style={{ width: '75%' }} /></div>
+                <div className="tm-check done"><i>✓</i><span>Wireframe hero + pricing</span></div>
+                <div className="tm-check done"><i>✓</i><span>Design-system tokens</span></div>
+                <div className="tm-check done"><i>✓</i><span>Build responsive layout</span></div>
+                <div className="tm-check"><i /><span>Final QA pass</span></div>
+                <div className="tm-task-foot">
+                  <div className="tm-assignee">
+                    <span className="tm-ava" style={{ background: '#7c3aed' }}>SC</span>
+                    Sara C.
+                  </div>
+                  <span className="tm-due">Due Aug 28</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar view */}
+        <div className="lp-show">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Calendar view</p>
+            <h3>See the week, <em>not just the list.</em></h3>
+            <p>Flip any board into a calendar to spot crunch days before they arrive. Due dates land on their day, color-coded by column.</p>
+            <ul className="lp-feat-list">
+              <li>Every dated task, on its day</li>
+              <li>Color inherited from its column</li>
+              <li>One dataset — never out of sync</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">Calendar — August</span>
+              </div>
+              <MiniCal />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Mini calendar mockup ───────────────────────────────── */
+const CAL_DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+const CAL_EVENTS = {
+  4: [['Kickoff','#6366f1']], 7: [['Audit','#0ea5e9']], 12: [['Wireframes','#d97706']],
+  14: [['Design review','#7c3aed']], 18: [['Build','#0ea5e9']], 21: [['Standup','#2563EB']],
+  25: [['QA pass','#d97706']], 28: [['Crest launch','#ef4444'],['Invoice','#22c55e']], 30: [['Retro','#6b7280']],
+}
+function MiniCal() {
+  const cells = []
+  for (let i = 0; i < 4; i++) cells.push(<div key={`e${i}`} className="tm-cal-cell off" />)
+  for (let d = 1; d <= 31; d++) {
+    const evs = CAL_EVENTS[d] || []
+    cells.push(
+      <div key={d} className={`tm-cal-cell${d === 21 ? ' today' : ''}`}>
+        <span className="tm-cal-n">{d}</span>
+        {evs.map(([label, c]) => (
+          <span key={label} className="tm-cal-ev" style={{ background: c }}>{label}</span>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="tm-cal">
+      <div className="tm-cal-head">
+        <span className="tm-cal-month">August 2025</span>
+        <div className="tm-cal-nav"><span>‹</span><span>›</span></div>
+      </div>
+      <div className="tm-cal-grid">
+        {CAL_DOW.map(d => <div key={d} className="tm-cal-dow">{d}</div>)}
+        {cells}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Teams showcase ─────────────────────────────────────── */
+function TeamsShowcase() {
+  return (
+    <section className="lp-section lp-section--alt-2" id="teams">
+      <div className="lp-section-inner">
+        <p className="lp-eyebrow">More than a board</p>
+        <h2 className="lp-section-heading">An entire workspace,<br /><em>working as one.</em></h2>
+        <p className="lp-section-sub">
+          Insight, alerts, and real-time teamwork are built in — so the whole picture
+          lives in one place, and nothing slips through.
+        </p>
+
+        {/* Dashboard */}
+        <div className="lp-show">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Dashboard</p>
+            <h3>Know exactly <em>where things stand.</em></h3>
+            <p>Every workspace rolls up into a live dashboard — throughput, completion rate, and what's due — so your status update writes itself.</p>
+            <ul className="lp-feat-list">
+              <li>Tasks completed, trended week over week</li>
+              <li>Completion rate across the whole board</li>
+              <li>Workload at a glance, by day</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">Dashboard — this week</span>
+              </div>
+              <div className="tm-dash">
+                <div className="tm-dash-tiles">
+                  <div className="tm-tile up">
+                    <div className="tm-tile-n">47</div>
+                    <div className="tm-tile-l">Tasks done</div>
+                    <div className="tm-tile-trend">↑ 12% wk/wk</div>
+                  </div>
+                  <div className="tm-tile"><div className="tm-tile-n">23</div><div className="tm-tile-l">In progress</div></div>
+                  <div className="tm-tile"><div className="tm-tile-n">6</div><div className="tm-tile-l">Due this week</div></div>
+                </div>
+                <div className="tm-dash-panel" style={{ marginBottom: 10 }}>
+                  <div className="tm-dash-panel-h">Completed per day</div>
+                  <div className="tm-bars">
+                    {[['5','42%','M'],['8','64%','T'],['6','50%','W'],['11','90%','T'],['9','74%','F'],['2','20%','S',true],['1','12%','S',true]].map(([v,h,d,m]) => (
+                      <div key={d+v} className={`tm-bar${m ? ' muted' : ''}`}>
+                        <span className="tm-bar-val">{v}</span>
+                        <i style={{ height: h }} />
+                        <span>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="tm-dash-panel">
+                  <div className="tm-ring-wrap">
+                    <div className="tm-ring" style={{ '--p': 86 }}><span>86%</span></div>
+                    <div className="tm-ring-meta"><b>Completion rate</b>129 of 150 tasks closed this cycle. On track for Friday.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="lp-show lp-show--flip">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Notification center</p>
+            <h3>Never miss <em>what matters.</em></h3>
+            <p>Mentions, assignments, and approaching due dates land in one tidy inbox — not scattered across email. Filter to just what's yours and clear it in seconds.</p>
+            <ul className="lp-feat-list">
+              <li>@-mentions and replies, in real time</li>
+              <li>Assignment and due-soon alerts</li>
+              <li>Filter by mentions or what's assigned to you</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">Notifications</span>
+              </div>
+              <div className="tm-notif-head">
+                <div className="tm-notif-title">Notifications <span className="tm-notif-badge">4 new</span></div>
+                <div className="tm-notif-clear">Mark all read</div>
+              </div>
+              <div className="tm-notif-tabs">
+                <span className="tm-notif-tab on">All</span>
+                <span className="tm-notif-tab">Mentions</span>
+                <span className="tm-notif-tab">Assigned</span>
+              </div>
+              <div className="tm-notif-row unread">
+                <span className="tm-notif-ava" style={{ background:'#7c3aed' }}>SP</span>
+                <div className="tm-notif-body"><b>Sara Park</b> mentioned you in <b>Dashboard redesign</b> — "can we tighten the heatmap spacing?"<span className="tm-notif-time">2m ago</span></div>
+                <span className="tm-notif-dot" />
+              </div>
+              <div className="tm-notif-row unread">
+                <span className="tm-notif-ava" style={{ background:'#0f766e' }}>JO</span>
+                <div className="tm-notif-body"><b>Jon Okafor</b> assigned you <b>Final QA pass</b><span className="tm-notif-time">1h ago</span></div>
+                <span className="tm-notif-dot" />
+              </div>
+              <div className="tm-notif-row unread">
+                <span className="tm-notif-ico" style={{ background:'rgba(217,119,6,.14)', color:'#b45309' }}>⧖</span>
+                <div className="tm-notif-body"><b>Crest Media — site redesign</b> is due tomorrow<span className="tm-notif-time">3h ago</span></div>
+                <span className="tm-notif-dot" />
+              </div>
+              <div className="tm-notif-row">
+                <span className="tm-notif-ico" style={{ background:'rgba(34,197,94,.14)', color:'#15803d' }}>✓</span>
+                <div className="tm-notif-body"><b>Maya Chen</b> completed <b>Build responsive layout</b><span className="tm-notif-time">5h ago</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Real-time collab */}
+        <div className="lp-show">
+          <div className="lp-show-copy">
+            <p className="lp-eyebrow">Real-time collaboration</p>
+            <h3>Built for teams, <em>live.</em></h3>
+            <p>See who's online, watch edits happen as they're made, and know exactly who's touching a card. No refreshes, no overwrites, no "who changed this?"</p>
+            <ul className="lp-feat-list">
+              <li>Live presence — see your team online</li>
+              <li>Real-time cursors and editing locks</li>
+              <li>A shared activity trail for every board</li>
+            </ul>
+          </div>
+          <div className="lp-show-media">
+            <div className="tm-win">
+              <div className="tm-win-bar">
+                <span className="tm-dot" /><span className="tm-dot" /><span className="tm-dot" />
+                <span className="tm-win-title">My Workspace — live</span>
+              </div>
+              <div className="tm-collab">
+                <div className="tm-presence">
+                  <div className="tm-presence-avas">
+                    <span className="tm-ava" style={{ background:'#7c3aed' }}>SP</span>
+                    <span className="tm-ava" style={{ background:'#0f766e' }}>JO</span>
+                    <span className="tm-ava" style={{ background:'#2563EB' }}>MC</span>
+                    <span className="tm-presence-more">+2</span>
+                  </div>
+                  <div className="tm-presence-live"><span className="tm-live-dot" />5 online now</div>
+                </div>
+                <div className="tm-collab-board">
+                  <div className="tm-cboard-card editing" style={{ '--c':'#0ea5e9' }}>
+                    <div className="tm-cboard-t">Dashboard redesign</div>
+                    <div className="tm-cboard-meta"><span className="tm-editing-tag">✎ Sara is editing…</span></div>
+                  </div>
+                  <div className="tm-cboard-card" style={{ '--c':'#d97706' }}>
+                    <div className="tm-cboard-t">Onboarding flow</div>
+                    <div className="tm-cboard-meta"><span className="tm-ava" style={{ width:18, height:18, fontSize:8, background:'#0f766e' }}>JO</span></div>
+                  </div>
+                  <div className="tm-cursor" style={{ left:118, top:34 }}>
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M1 1l5.5 13 2-5.5L14 6.5 1 1z" fill="#7c3aed" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round"/></svg>
+                    <span className="tm-cursor-label" style={{ background:'#7c3aed' }}>Sara Park</span>
+                  </div>
+                </div>
+                <div className="tm-collab-activity">
+                  <div className="tm-act-label">Activity</div>
+                  <div className="tm-act-row"><span className="tm-ava" style={{ background:'#2563EB' }}>MC</span><span><b>Maya</b> moved <b>Build responsive layout</b> to Done</span><time>5h</time></div>
+                  <div className="tm-act-row"><span className="tm-ava" style={{ background:'#0f766e' }}>JO</span><span><b>Jon</b> added label <b>Retainer</b></span><time>6h</time></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -400,7 +727,10 @@ export default function LandingPage() {
       <Nav />
       <Hero />
       <Stats />
+      <TrustStrip />
+      <ProductShowcase />
       <Templates />
+      <TeamsShowcase />
       <Features />
       <Testimonials />
       <CTA />
