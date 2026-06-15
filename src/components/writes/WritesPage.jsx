@@ -1,10 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { List, NotePencil } from '@phosphor-icons/react'
+import {
+  List, NotePencil, BookOpen, Star, Target, Briefcase,
+  FileText, MagnifyingGlass, PushPin,
+} from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 
 const SettingsModal = lazy(() => import('../ui/SettingsModal'))
-import dayjs from 'dayjs'
 import { fmtDate } from '../../utils/format'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -12,14 +14,22 @@ import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
 import WritesEditor from './WritesEditor'
 
+const NOTE_ICONS = [NotePencil, BookOpen, Star, Target, Briefcase, FileText]
+
+function NoteIcon({ index, size = 15 }) {
+  const Icon = NOTE_ICONS[index % NOTE_ICONS.length]
+  return <Icon size={size} aria-hidden="true" />
+}
+
 export default function WritesPage() {
   const { docId }    = useParams()
   const navigate     = useNavigate()
   const { currentWorkspace, workspaces } = useWorkspace()
   const { toast }    = useToast()
-  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent } = useDocuments(null)
+  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } = useDocuments(null)
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
+  const [search,      setSearch]      = useState('')
   const [showSidebar, setShowSidebar] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
@@ -35,7 +45,6 @@ export default function WritesPage() {
     })
   }
 
-  // Load full content when docId changes
   useEffect(() => {
     if (!docId) { setCurrentDoc(null); return }
     setDocLoading(true)
@@ -45,7 +54,6 @@ export default function WritesPage() {
       .finally(() => setDocLoading(false))
   }, [docId])
 
-  // Auto-navigate to first doc when no docId in URL
   useEffect(() => {
     if (!docId && docs.length > 0) navigate('/writes/' + docs[0].id, { replace: true })
   }, [docs, docId])
@@ -79,6 +87,20 @@ export default function WritesPage() {
     }
   }
 
+  const handlePin = async (doc, e) => {
+    e.stopPropagation()
+    try {
+      await pinDoc(doc.id, !doc.pinned)
+    } catch (err) {
+      toast.error(err.message || 'Failed to update pin')
+    }
+  }
+
+  const q = search.trim().toLowerCase()
+  const filtered = q ? docs.filter(d => (d.title || '').toLowerCase().includes(q)) : docs
+  const pinned   = filtered.filter(d => d.pinned)
+  const recent   = filtered.filter(d => !d.pinned)
+
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -102,59 +124,148 @@ export default function WritesPage() {
           </div>
           <div className="board-header-right">
             <PageHint text="A lightweight document editor for notes, specs, or anything you need to write. Documents are saved per workspace." />
-            <button className="btn-primary btn-sm" onClick={handleNew} aria-label="New document">
-              + New
-            </button>
           </div>
         </div>
 
-      <main className="writes-main">
-        {/* Document list panel */}
-        <aside className="writes-list-panel">
-          <div className="writes-list-hdr">
-            <h2 className="writes-list-heading">Documents</h2>
-          </div>
-
-          {loading ? (
-            <p className="writes-list-empty">Loading…</p>
-          ) : docs.length === 0 ? (
-            <p className="writes-list-empty">No documents yet.</p>
-          ) : (
-            <ul className="writes-list">
-              {docs.map(doc => (
-                <li key={doc.id}>
-                  <button
-                    className={`writes-list-item${docId === doc.id ? ' writes-list-item--active' : ''}`}
-                    onClick={() => navigate('/writes/' + doc.id)}
-                  >
-                    <span className="writes-list-item-title">{doc.title || 'Untitled'}</span>
-                    <span className="writes-list-item-date">{fmtDate(doc.updated_at)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
-
-        {/* Editor area */}
-        <div className="writes-editor-area">
-          {docLoading ? (
-            <div className="writes-editor-loading">Loading…</div>
-          ) : currentDoc ? (
-            <WritesEditor
-              key={currentDoc.id}
-              doc={currentDoc}
-              onSave={handleSave}
-              onDelete={handleDelete}
-            />
-          ) : (
-            <div className="writes-empty-state">
-              <p className="writes-empty-msg">Select a document or create a new one to get started.</p>
-              <button className="btn-primary" onClick={handleNew}>+ New document</button>
+        <main className="writes-main">
+          {/* ── Left panel ────────────────────────────────────── */}
+          <div className="wr-list">
+            <div className="wr-list-head">
+              <div className="wr-search">
+                <i>
+                  <MagnifyingGlass size={13} aria-hidden="true" />
+                </i>
+                <input
+                  placeholder="Search notes…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  aria-label="Search documents"
+                />
+              </div>
+              <button className="wr-new" onClick={handleNew} aria-label="New document">
+                + New
+              </button>
             </div>
-          )}
-        </div>
-      </main>
+
+            <div className="wr-notes">
+              {loading ? (
+                <p className="writes-list-empty">Loading…</p>
+              ) : docs.length === 0 ? (
+                <p className="writes-list-empty">No documents yet.</p>
+              ) : filtered.length === 0 ? (
+                <p className="writes-list-empty">No matches for "{search}".</p>
+              ) : (
+                <>
+                  {pinned.length > 0 && (
+                    <>
+                      <div className="wr-sec">
+                        <PushPin size={11} weight="fill" aria-hidden="true" />
+                        Pinned
+                      </div>
+                      {pinned.map((doc, i) => {
+                        const ws = workspaces.find(w => w.id === doc.workspace_id)
+                        return (
+                          <button
+                            key={doc.id}
+                            className={`wr-note${docId === doc.id ? ' on' : ''}`}
+                            onClick={() => navigate('/writes/' + doc.id)}
+                          >
+                            <div className="wr-note-top">
+                              <span className="wr-note-ico">
+                                <NoteIcon index={i} />
+                              </span>
+                              <span className="wr-note-title">{doc.title || 'Untitled'}</span>
+                              <button
+                                className="wr-pin-ico"
+                                onClick={e => handlePin(doc, e)}
+                                aria-label="Unpin document"
+                              >
+                                <PushPin size={13} weight="fill" aria-hidden="true" />
+                              </button>
+                            </div>
+                            {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
+                            <div className="wr-note-meta">
+                              {ws && (
+                                <span className="wr-note-ws">
+                                  <span className="dot" aria-hidden="true" />
+                                  {ws.name}
+                                </span>
+                              )}
+                              {ws && <span>·</span>}
+                              <span>{fmtDate(doc.updated_at)}</span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+
+                  {recent.length > 0 && (
+                    <>
+                      <div className="wr-sec">Recent</div>
+                      {recent.map((doc, i) => {
+                        const ws = workspaces.find(w => w.id === doc.workspace_id)
+                        const globalIdx = pinned.length + i
+                        return (
+                          <button
+                            key={doc.id}
+                            className={`wr-note${docId === doc.id ? ' on' : ''}`}
+                            onClick={() => navigate('/writes/' + doc.id)}
+                          >
+                            <div className="wr-note-top">
+                              <span className="wr-note-ico">
+                                <NoteIcon index={globalIdx} />
+                              </span>
+                              <span className="wr-note-title">{doc.title || 'Untitled'}</span>
+                              <button
+                                className="wr-pin-ico"
+                                style={{ opacity: 0.3 }}
+                                onClick={e => handlePin(doc, e)}
+                                aria-label="Pin document"
+                              >
+                                <PushPin size={13} aria-hidden="true" />
+                              </button>
+                            </div>
+                            {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
+                            <div className="wr-note-meta">
+                              {ws && (
+                                <span className="wr-note-ws">
+                                  <span className="dot" aria-hidden="true" />
+                                  {ws.name}
+                                </span>
+                              )}
+                              {ws && <span>·</span>}
+                              <span>{fmtDate(doc.updated_at)}</span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* ── Editor area ───────────────────────────────────── */}
+          <div className="writes-editor-area">
+            {docLoading ? (
+              <div className="writes-editor-loading">Loading…</div>
+            ) : currentDoc ? (
+              <WritesEditor
+                key={currentDoc.id}
+                doc={currentDoc}
+                onSave={handleSave}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <div className="writes-empty-state">
+                <p className="writes-empty-msg">Select a document or create a new one to get started.</p>
+                <button className="btn-primary" onClick={handleNew}>+ New document</button>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
       <Suspense fallback={null}>

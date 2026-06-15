@@ -1,70 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  rectSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useState } from 'react'
 import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
+import isoWeek from 'dayjs/plugin/isoWeek'
 import {
-  CheckCircle, TrendUp, Clock,
-  ListChecks, ChartBar, CalendarDots, DotsSixVertical,
-  X, SlidersHorizontal,
+  ListChecks, ChartDonut, WarningCircle, CheckCircle, CalendarCheck,
+  TrendUp, CalendarDots, CheckFat, Flag, Stack, ClockCountdown,
 } from '@phosphor-icons/react'
 import { useDashboard } from '../../hooks/useDashboard'
+import { useAuth } from '../../contexts/AuthContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-dayjs.extend(relativeTime)
+dayjs.extend(isoWeek)
 
 /* ─── constants ─────────────────────────────────────────────── */
 
 const CURRENT_YEAR    = dayjs().year()
-const AVAILABLE_YEARS = Array.from(
-  { length: CURRENT_YEAR - 2024 + 1 },
-  (_, i) => 2025 + i,
-)
-
-const DEFAULT_GRID_ORDER = [
-  'status-breakdown', 'priority-breakdown',
-  'due-soon',         'task-progress',
-  'velocity',         'heatmap',
-  'recent',
-]
-
-const WIDGET_LABELS = {
-  'status-breakdown':   'Status Breakdown',
-  'priority-breakdown': 'Priority Breakdown',
-  'due-soon':           'Due in 7 Days',
-  'task-progress':      'Task Progress',
-  'velocity':           'Weekly Velocity',
-  'heatmap':            'Activity Heatmap',
-  'recent':             'Recently Completed',
-}
-
-const HEATMAP_LEVELS = [
-  { min: 0,  cls: 'hm-0' },
-  { min: 1,  cls: 'hm-1' },
-  { min: 3,  cls: 'hm-2' },
-  { min: 6,  cls: 'hm-3' },
-  { min: 10, cls: 'hm-4' },
-]
+const AVAILABLE_YEARS = Array.from({ length: CURRENT_YEAR - 2024 + 1 }, (_, i) => 2025 + i)
 
 const STATUS_META = [
-  { id: 'toDo',       label: 'To Do',      cls: 'sb-todo' },
-  { id: 'inProgress', label: 'In Progress', cls: 'sb-progress' },
-  { id: 'inReview',   label: 'In Review',   cls: 'sb-review' },
-  { id: 'done',       label: 'Done',        cls: 'sb-done' },
+  { id: 'toDo',       label: 'To Do',      color: 'var(--ink-3)' },
+  { id: 'inProgress', label: 'In Progress', color: 'var(--hue-amber, #d97706)' },
+  { id: 'inReview',   label: 'In Review',   color: 'var(--hue-sky, #0ea5e9)' },
+  { id: 'done',       label: 'Done',        color: 'var(--green)' },
 ]
 
 const PRIORITY_META = [
@@ -75,343 +31,348 @@ const PRIORITY_META = [
   { id: 'none',   label: 'None',   color: '#d1d5db' },
 ]
 
+const WS_COLORS = [
+  '#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444',
+  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#84cc16',
+]
+
 /* ─── helpers ────────────────────────────────────────────────── */
 
-function heatLevel(count) {
-  let cls = 'hm-0'
-  for (const l of HEATMAP_LEVELS) { if (count >= l.min) cls = l.cls }
-  return cls
+function timeGreeting() {
+  const h = dayjs().hour()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
 }
 
-function dueDateLabel(dateStr) {
+function dueDateState(dateStr) {
   const d     = dayjs(dateStr)
   const today = dayjs().startOf('day')
   const diff  = d.diff(today, 'day')
-  if (diff === 0) return { text: 'Today',    urgent: true  }
-  if (diff === 1) return { text: 'Tomorrow', urgent: true  }
-  return { text: `In ${diff}d`, urgent: false }
+  if (diff < 0)  return { text: `Overdue ${Math.abs(diff)}d`, cls: 'over' }
+  if (diff === 0) return { text: 'Today',    cls: 'soon' }
+  if (diff === 1) return { text: 'Tomorrow', cls: 'soon' }
+  if (diff <= 7)  return { text: `In ${diff}d`, cls: 'later' }
+  return { text: `In ${diff}d`, cls: 'later' }
 }
 
-const PRIORITY_COLORS = {
-  urgent: '#ef4444',
-  high:   '#f59e0b',
-  medium: '#3b82f6',
-  low:    '#6b7280',
+function heatLevel(count) {
+  if (count === 0) return ''
+  if (count < 3)  return 'l1'
+  if (count < 6)  return 'l2'
+  if (count < 10) return 'l3'
+  return 'l4'
 }
 
-/* ─── SortableWidget ─────────────────────────────────────────── */
-
-function SortableWidget({ id, children, onHide }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-    opacity: isDragging ? 0 : 1,
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="dash-widget"
-    >
-      <button
-        className="dash-drag-handle"
-        {...attributes}
-        {...listeners}
-        aria-label="Drag to reorder widget"
-      >
-        <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
-      </button>
-      <button
-        className="dash-hide-btn"
-        onClick={() => onHide(id)}
-        aria-label={`Hide ${WIDGET_LABELS[id] ?? id} widget`}
-        title="Hide widget"
-      >
-        <X size={11} weight="bold" aria-hidden="true" />
-      </button>
-      {children}
-    </div>
-  )
+function wsInitial(name) {
+  return (name || '?').trim().charAt(0).toUpperCase()
 }
 
 /* ─── sub-components ─────────────────────────────────────────── */
 
-function DonutChart({ completed, active }) {
-  const total    = completed + active
-  const pct      = total === 0 ? 0 : Math.round((completed / total) * 100)
-  const R        = 38
-  const C        = 2 * Math.PI * R
-  const greenArc = total === 0 ? 0 : (completed / total) * C
-  const blueArc  = total === 0 ? 0 : (active    / total) * C
-
+function KpiTile({ icon: Icon, iconBg, iconColor, value, label, sub, delta, deltaDir }) {
   return (
-    <div className="dash-donut-inner">
-      <div className="dash-donut-wrap">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r={R} fill="none"
-            stroke="var(--surface-2)" strokeWidth="12" />
-          {total > 0 && greenArc > 0 && (
-            <circle cx="50" cy="50" r={R} fill="none"
-              stroke="var(--green)" strokeWidth="12"
-              strokeDasharray={`${greenArc} ${C}`}
-              strokeDashoffset={0}
-              transform="rotate(-90 50 50)" />
-          )}
-          {total > 0 && blueArc > 0 && (
-            <circle cx="50" cy="50" r={R} fill="none"
-              stroke="var(--accent)" strokeWidth="12"
-              strokeDasharray={`${blueArc} ${C}`}
-              strokeDashoffset={-greenArc}
-              transform="rotate(-90 50 50)" />
-          )}
-        </svg>
-        <div className="dash-donut-center">
-          {total === 0
-            ? <span className="dash-donut-empty">No tasks</span>
-            : <>
-                <span className="dash-donut-pct">{pct}%</span>
-                <span className="dash-donut-sub">done</span>
-              </>
-          }
-        </div>
-      </div>
-
-      <div className="dash-donut-legend-row">
-        <div className="dash-donut-leg-item">
-          <span className="dash-donut-dot dash-donut-dot--green" />
-          <div>
-            <div className="dash-donut-leg-count">{completed}</div>
-            <div className="dash-donut-leg-label">done</div>
-          </div>
-        </div>
-        <div className="dash-donut-leg-item">
-          <span className="dash-donut-dot dash-donut-dot--blue" />
-          <div>
-            <div className="dash-donut-leg-count">{active}</div>
-            <div className="dash-donut-leg-label">active</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatCard({ icon: Icon, value, label, color, delay, alert }) {
-  return (
-    <div
-      className={`dash-stat-card${alert ? ' dash-stat-card--alert' : ''}`}
-      style={{ animationDelay: delay }}
-    >
-      <div className="dash-stat-card-icon" style={{ color }}>
-        <Icon size={20} weight="duotone" aria-hidden="true" />
-      </div>
-      <div className="dash-stat-card-body">
-        <span className="dash-stat-card-value" style={alert ? { color: 'var(--red)' } : {}}>
-          {value}
+    <div className="dash-card kpi col-3">
+      <div className="kpi-top">
+        <span className="kpi-ico" style={{ background: iconBg, color: iconColor }}>
+          <Icon size={18} weight="duotone" aria-hidden="true" />
         </span>
-        <span className="dash-stat-card-label">{label}</span>
-      </div>
-    </div>
-  )
-}
-
-function Heatmap({ cells }) {
-  if (!cells?.length) return null
-
-  const monthLabels = []
-  let prevMonth = null
-  let colIndex  = 0
-  let dayInCol  = 0
-
-  for (let i = 0; i < cells.length; i++) {
-    const cell  = cells[i]
-    const month = dayjs(cell.date).month()
-    if (!cell.faded && month !== prevMonth) {
-      monthLabels.push({ col: colIndex + 1, label: dayjs(cell.date).format('MMM') })
-      prevMonth = month
-    }
-    dayInCol++
-    if (dayInCol === 7) { colIndex++; dayInCol = 0 }
-  }
-
-  return (
-    <div className="heatmap-wrap">
-      <div className="heatmap-month-row">
-        {monthLabels.map((m, i) => (
-          <span key={i} className="heatmap-month-label" style={{ gridColumnStart: m.col }}>
-            {m.label}
+        {delta != null && (
+          <span className={`kpi-delta ${deltaDir ?? 'flat'}`}>
+            {deltaDir === 'up' ? '↑' : deltaDir === 'down' ? '↓' : '·'} {delta}
           </span>
-        ))}
+        )}
       </div>
-      <div className="heatmap-grid">
-        {cells.map(cell => (
-          <div
-            key={cell.date}
-            className={`hm-cell ${cell.faded ? 'hm-faded' : heatLevel(cell.count)}`}
-            title={cell.faded ? undefined : `${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''} completed`}
-          />
-        ))}
+      <div className="kpi-n">{value}</div>
+      <div className="kpi-l">{label}{sub ? <> · <b>{sub}</b></> : null}</div>
+    </div>
+  )
+}
+
+function ProgressCard({ statusBreakdown, total, completionRate }) {
+  if (!total) return (
+    <div className="dash-card col-7">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
-      <div className="heatmap-legend">
-        <span className="heatmap-legend-label">Less</span>
-        {['hm-0','hm-1','hm-2','hm-3','hm-4'].map(c => (
-          <div key={c} className={`hm-cell ${c}`} />
-        ))}
-        <span className="heatmap-legend-label">More</span>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--text-sm)' }}>No tasks yet.</p>
+    </div>
+  )
+
+  return (
+    <div className="dash-card col-7">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
+      </div>
+      <div className="dash-progress">
+        <div className="ring" style={{ '--p': completionRate }}>
+          <div className="ring-inner">
+            <div className="ring-n">{completionRate}%</div>
+            <div className="ring-l">Complete</div>
+          </div>
+        </div>
+        <div>
+          <div className="status-bar">
+            {STATUS_META.map(s => {
+              const n = statusBreakdown[s.id] ?? 0
+              return n > 0 ? (
+                <i key={s.id} style={{ background: s.color, width: `${(n / total) * 100}%` }} />
+              ) : null
+            })}
+          </div>
+          <div className="status-rows">
+            {STATUS_META.map(s => {
+              const n = statusBreakdown[s.id] ?? 0
+              const pct = total > 0 ? Math.round((n / total) * 100) : 0
+              return (
+                <div key={s.id} className="status-row">
+                  <span className="status-dot" style={{ background: s.color }} />
+                  <span className="status-name">{s.label}</span>
+                  <span className="status-n">{n}</span>
+                  <span className="status-pct">{pct}%</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-function StatusBreakdown({ breakdown, total }) {
-  if (!total) return <p className="dash-empty">No tasks yet.</p>
+function DueSoonCard({ items }) {
   return (
-    <div className="status-breakdown">
-      <div className="sb-bar-track">
-        {[...STATUS_META].reverse().map(s => {
-          const pct = total > 0 ? (breakdown[s.id] / total) * 100 : 0
-          return pct > 0 ? (
-            <div
-              key={s.id}
-              className={`sb-bar-seg ${s.cls}`}
-              style={{ width: `${pct}%` }}
-              title={`${s.label}: ${breakdown[s.id]}`}
-            />
-          ) : null
-        })}
+    <div className="dash-card col-5">
+      <div className="dash-card-h">
+        <span className="dash-card-title">
+          <WarningCircle size={14} aria-hidden="true" />
+          Due soon
+          {items.length > 0 && <span className="dash-pillcount">{items.length}</span>}
+        </span>
       </div>
-      <div className="sb-legend">
-        {STATUS_META.map(s => {
-          const pct = total > 0 ? Math.round((breakdown[s.id] / total) * 100) : 0
-          return (
-            <div key={s.id} className="sb-legend-item">
-              <span className={`sb-dot ${s.cls}`} />
-              <span className="sb-legend-label">{s.label}</span>
-              <span className="sb-legend-count">{breakdown[s.id]}</span>
-              <span className="sb-legend-pct">{pct}%</span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function PriorityBreakdown({ breakdown }) {
-  const activeTotal = Object.values(breakdown).reduce((a, b) => a + b, 0)
-  if (!activeTotal) return <p className="dash-empty">No active tasks.</p>
-
-  return (
-    <div className="priority-breakdown">
-      <div className="sb-bar-track">
-        {PRIORITY_META.map(p => {
-          const count = breakdown[p.id] ?? 0
-          const pct   = activeTotal > 0 ? (count / activeTotal) * 100 : 0
-          return pct > 0 ? (
-            <div
-              key={p.id}
-              className="sb-bar-seg"
-              style={{ width: `${pct}%`, background: p.color }}
-              title={`${p.label}: ${count}`}
-            />
-          ) : null
-        })}
-      </div>
-      <div className="sb-legend">
-        {PRIORITY_META.filter(p => (breakdown[p.id] ?? 0) > 0).map(p => {
-          const count = breakdown[p.id]
-          const pct   = Math.round((count / activeTotal) * 100)
-          return (
-            <div key={p.id} className="sb-legend-item">
-              <span className="sb-dot" style={{ background: p.color }} />
-              <span className="sb-legend-label">{p.label}</span>
-              <span className="sb-legend-count">{count}</span>
-              <span className="sb-legend-pct">{pct}%</span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function DueSoon({ items }) {
-  if (!items?.length) return <p className="dash-empty">Nothing due in the next 7 days.</p>
-  return (
-    <ul className="due-soon-list">
-      {items.map((t, i) => {
-        const { text: dlabel, urgent } = dueDateLabel(t.due_date)
-        const priColor = PRIORITY_COLORS[t.priority] ?? null
-        return (
-          <li key={t.id} className="due-soon-item" style={{ animationDelay: `${0.1 + i * 0.04}s` }}>
-            {priColor && (
-              <span className="due-soon-pri-dot" style={{ background: priColor }} aria-hidden="true" />
-            )}
-            <span className="due-soon-text">{t.text}</span>
-            <span className={`due-soon-date${urgent ? ' due-soon-date--urgent' : ''}`}>
-              {dlabel}
-            </span>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-const VELOCITY_BAR_MAX_PX = 88
-
-function VelocityChart({ weeks }) {
-  if (!weeks?.length) return null
-  const max = Math.max(...weeks.map(w => w.count), 1)
-
-  return (
-    <div className="velocity-chart">
-      {weeks.map((w, i) => {
-        const barPx    = w.count > 0 ? Math.max(Math.round((w.count / max) * VELOCITY_BAR_MAX_PX), 4) : 0
-        const isRecent = i >= 6
-        return (
-          <div key={w.weekStart} className="velocity-col" title={`${w.label}: ${w.count} completed`}>
-            <span className="velocity-count">{w.count > 0 ? w.count : ''}</span>
-            <div
-              className={`velocity-bar${isRecent ? ' velocity-bar--recent' : ''}`}
-              style={{ height: barPx }}
-            />
-            <span className="velocity-label">{w.label}</span>
+      {!items.length
+        ? <p style={{ color: 'var(--ink-4)', fontSize: 'var(--text-sm)' }}>Nothing due in the next 7 days.</p>
+        : (
+          <div className="due-list">
+            {items.map(t => {
+              const { text: whenText, cls } = dueDateState(t.due_date)
+              const wsColor = t.workspace?.color ?? 'var(--accent)'
+              return (
+                <div key={t.id} className="due-row" style={{ '--c': cls === 'over' ? 'var(--red)' : cls === 'soon' ? 'var(--amber)' : 'var(--line)' }}>
+                  <div className="due-main">
+                    <div className="due-t">{t.text}</div>
+                    {t.workspace && (
+                      <div className="due-meta">
+                        <span className="due-ws">
+                          <span className="ws-dot" style={{ background: wsColor }} />
+                          {t.workspace.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`due-when ${cls}`}>{whenText}</span>
+                </div>
+              )
+            })}
           </div>
         )
-      })}
+      }
     </div>
   )
 }
 
-function RecentCompletions({ items }) {
-  if (!items?.length) return <p className="dash-empty">No completed tasks yet.</p>
+function VelocityCard({ weeks, thisWeekCount, lastWeekCount }) {
+  const max = Math.max(...(weeks ?? []).map(w => w.count), 1)
+  const delta = thisWeekCount - lastWeekCount
+
   return (
-    <ul className="recent-list">
-      {items.map((t, i) => {
-        const priColor = PRIORITY_COLORS[t.priority] ?? null
-        return (
-          <li key={t.id} className="recent-item" style={{ animationDelay: `${0.15 + i * 0.04}s` }}>
-            <span className="recent-check-dot" style={priColor ? { background: priColor } : {}} aria-hidden="true" />
-            <span className="recent-text">{t.text}</span>
-            <span className="recent-date">
-              {t.completed_at ? dayjs(t.completed_at).format('MMM D') : '—'}
-            </span>
-          </li>
+    <div className="dash-card col-7">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><TrendUp size={14} aria-hidden="true" />Weekly velocity</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', marginTop: 'calc(var(--space-5) * -1 + 2px)', marginBottom: 'var(--space-2)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.03em' }}>
+          {thisWeekCount}
+        </span>
+        <span style={{ fontSize: 'var(--text-body)', color: 'var(--ink-3)' }}>completed this week</span>
+        {delta !== 0 && (
+          <span className={`kpi-delta ${delta > 0 ? 'up' : 'down'}`} style={{ marginLeft: 'auto' }}>
+            {delta > 0 ? '↑' : '↓'} {delta > 0 ? '+' : ''}{delta} vs last wk
+          </span>
+        )}
+      </div>
+      <div className="vel">
+        {(weeks ?? []).map((w, i) => {
+          const isOn   = i === (weeks.length - 1)
+          const isPrev = i === (weeks.length - 2)
+          const pct    = max > 0 ? (w.count / max) * 100 : 0
+          return (
+            <div key={w.weekStart} className="vel-col" title={`${w.label}: ${w.count} completed`}>
+              <div
+                className={`vel-bar${isOn ? ' on' : isPrev ? ' prev' : ''}`}
+                style={{ height: `${Math.max(pct, w.count > 0 ? 4 : 0)}%` }}
+              >
+                {w.count > 0 && <span className="vel-val">{w.count}</span>}
+              </div>
+              <span className="vel-x">{w.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PriorityCard({ breakdown }) {
+  const activeTotal = Object.values(breakdown).reduce((a, b) => a + b, 0)
+  return (
+    <div className="dash-card col-5">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><Flag size={14} aria-hidden="true" />Priority — active tasks</span>
+      </div>
+      {!activeTotal
+        ? <p style={{ color: 'var(--ink-4)', fontSize: 'var(--text-sm)' }}>No active tasks.</p>
+        : (
+          <div className="pri-list">
+            {PRIORITY_META.filter(p => (breakdown[p.id] ?? 0) > 0).map(p => {
+              const n   = breakdown[p.id] ?? 0
+              const pct = activeTotal > 0 ? (n / activeTotal) * 100 : 0
+              return (
+                <div key={p.id} className="pri-row">
+                  <span className="pri-label">{p.label}</span>
+                  <div className="pri-track">
+                    <i style={{ background: p.color, width: `${pct}%` }} />
+                  </div>
+                  <span className="pri-n">{n}</span>
+                </div>
+              )
+            })}
+          </div>
         )
-      })}
-    </ul>
+      }
+    </div>
+  )
+}
+
+function HeatmapCard({ cells, year, onYearChange }) {
+  const months = []
+  let prevMonth = null
+  let colIdx = 0, dayInCol = 0
+  const cols = []
+  let col = []
+
+  for (const cell of (cells ?? [])) {
+    col.push(cell)
+    if (col.length === 7) { cols.push(col); col = []; colIdx++ }
+    const m = dayjs(cell.date).month()
+    if (!cell.faded && m !== prevMonth) {
+      months.push({ idx: cols.length, label: dayjs(cell.date).format('MMM') })
+      prevMonth = m
+    }
+  }
+  if (col.length) cols.push(col)
+
+  return (
+    <div className="dash-card col-8">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><CalendarDots size={14} aria-hidden="true" />Activity</span>
+        <select
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '2px 6px', background: 'var(--card)', color: 'var(--ink-3)', cursor: 'pointer', outline: 'none' }}
+          value={year}
+          onChange={e => onYearChange(Number(e.target.value))}
+          aria-label="Select year"
+        >
+          {AVAILABLE_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      <div className="heat-months">
+        {months.map((m, i) => <span key={i}>{m.label}</span>)}
+      </div>
+      <div className="heat">
+        {cols.map((col, ci) => (
+          <div key={ci} className="heat-col">
+            {col.map(cell => (
+              <div
+                key={cell.date}
+                className={`heat-cell${cell.faded ? '' : (' ' + heatLevel(cell.count))}`}
+                title={cell.faded ? undefined : `${cell.date}: ${cell.count} task${cell.count !== 1 ? 's' : ''}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="heat-legend">
+        <span>Less</span>
+        <div className="heat-cell" />
+        <div className="heat-cell l1" />
+        <div className="heat-cell l2" />
+        <div className="heat-cell l3" />
+        <div className="heat-cell l4" />
+        <span>More</span>
+      </div>
+    </div>
+  )
+}
+
+function RecentCard({ items }) {
+  return (
+    <div className="dash-card col-4">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><CheckFat size={14} aria-hidden="true" />Recently completed</span>
+      </div>
+      {!items?.length
+        ? <p style={{ color: 'var(--ink-4)', fontSize: 'var(--text-sm)' }}>No completed tasks yet.</p>
+        : (
+          <div className="done-list">
+            {items.map(t => (
+              <div key={t.id} className="done-row">
+                <div className="done-check" aria-hidden="true">✓</div>
+                <span className="done-t">{t.text}</span>
+                <span className="done-when">{t.completed_at ? dayjs(t.completed_at).format('MMM D') : '—'}</span>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  )
+}
+
+function WorkspaceSummary({ workspaces, breakdown }) {
+  if (!workspaces?.length) return null
+  return (
+    <div className="dash-card col-12">
+      <div className="dash-card-h">
+        <span className="dash-card-title"><Stack size={14} aria-hidden="true" />Workspaces</span>
+      </div>
+      <div className="ws-grid">
+        {workspaces.map((ws, i) => {
+          const { active = 0, done = 0 } = breakdown[ws.id] ?? {}
+          const total = active + done
+          const pct   = total > 0 ? Math.round((done / total) * 100) : 0
+          const color = WS_COLORS[i % WS_COLORS.length]
+          return (
+            <div key={ws.id} className="ws-card">
+              <div className="ws-card-top">
+                <span className="ws-sq" style={{ background: color }}>{wsInitial(ws.name)}</span>
+                <span className="ws-name">{ws.name}</span>
+              </div>
+              <div className="ws-stat">
+                <span className="ws-active">{active}</span>
+                <span className="ws-active-l">active</span>
+              </div>
+              <div className="ws-track">
+                <i style={{ background: color, width: `${pct}%` }} />
+              </div>
+              <div className="ws-foot">
+                <span>{done} done</span>
+                <span>{pct}%</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -419,79 +380,11 @@ function RecentCompletions({ items }) {
 
 export default function DashboardView() {
   const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
+  const [range, setRange] = useState('week')
   const { data, loading, error } = useDashboard(heatmapYear)
-
-  const [gridOrder, setGridOrder] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tm_dashboard_grid_order')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (DEFAULT_GRID_ORDER.every(id => parsed.includes(id))) return parsed
-      }
-    } catch {}
-    return [...DEFAULT_GRID_ORDER]
-  })
-
-  const [activeId, setActiveId] = useState(null)
-
-  const [hiddenWidgets, setHiddenWidgets] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tm_dashboard_hidden')
-      return saved ? new Set(JSON.parse(saved)) : new Set()
-    } catch { return new Set() }
-  })
-
-  const [showCustomize, setShowCustomize] = useState(false)
-  const customizeRef = useRef(null)
-
-  useEffect(() => {
-    if (!showCustomize) return
-    const handler = (e) => {
-      if (customizeRef.current && !customizeRef.current.contains(e.target)) {
-        setShowCustomize(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showCustomize])
-
-  const hideWidget = (id) => {
-    setHiddenWidgets(prev => {
-      const next = new Set(prev)
-      next.add(id)
-      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
-      return next
-    })
-  }
-
-  const toggleWidget = (id) => {
-    setHiddenWidgets(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      localStorage.setItem('tm_dashboard_hidden', JSON.stringify([...next]))
-      return next
-    })
-  }
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
-
-  const handleDragStart = ({ active }) => setActiveId(active.id)
-
-  const handleDragEnd = ({ active, over }) => {
-    setActiveId(null)
-    if (!over || active.id === over.id) return
-    setGridOrder(prev => {
-      const next = arrayMove(prev, prev.indexOf(active.id), prev.indexOf(over.id))
-      localStorage.setItem('tm_dashboard_grid_order', JSON.stringify(next))
-      return next
-    })
-  }
+  const { profile } = useAuth()
+  const { workspaces } = useWorkspace()
+  const firstName = profile?.first_name || profile?.email?.split('@')[0] || null
 
   if (loading) return (
     <div className="dash-loading">
@@ -505,204 +398,116 @@ export default function DashboardView() {
   if (error) return <p className="dash-error">Failed to load dashboard: {error}</p>
   if (!data)  return null
 
-  const { stats, heatmap, statusBreakdown, priorityBreakdown,
-          recentCompletions, dueSoon, weeklyVelocity } = data
+  const {
+    stats, heatmap, statusBreakdown, priorityBreakdown,
+    recentCompletions, dueSoon, weeklyVelocity, workspaceBreakdown = {},
+  } = data
 
-  const completionRate = stats.totalTasks > 0
+  const completionRate  = stats.totalTasks > 0
     ? Math.round((stats.totalCompleted / stats.totalTasks) * 100)
     : 0
 
-  const gridWidgets = {
-    'status-breakdown': (
-      <section className="dash-section">
-        <h2 className="dash-section-title">
-          <ListChecks size={14} aria-hidden="true" />
-          Status breakdown
-        </h2>
-        <StatusBreakdown breakdown={statusBreakdown} total={stats.totalTasks} />
-      </section>
-    ),
-    'priority-breakdown': (
-      <section className="dash-section">
-        <h2 className="dash-section-title">
-          <ChartBar size={14} aria-hidden="true" />
-          Priority (active tasks)
-        </h2>
-        <PriorityBreakdown breakdown={priorityBreakdown} />
-      </section>
-    ),
-    'due-soon': (
-      <section className="dash-section">
-        <h2 className="dash-section-title">
-          <CalendarDots size={14} aria-hidden="true" />
-          Due in 7 days
-          {dueSoon.length > 0 && (
-            <span className="dash-due-badge">{dueSoon.length}</span>
-          )}
-        </h2>
-        <DueSoon items={dueSoon} />
-      </section>
-    ),
-    'task-progress': (
-      <section className="dash-section dash-donut-card">
-        <h2 className="dash-section-title">
-          <ChartBar size={14} aria-hidden="true" />
-          Task progress
-        </h2>
-        <DonutChart completed={stats.totalCompleted} active={stats.activeTasks} />
-      </section>
-    ),
-    'velocity': (
-      <section className="dash-section dash-section--velocity">
-        <div className="dash-section-hdr">
-          <h2 className="dash-section-title">
-            <TrendUp size={14} aria-hidden="true" />
-            Weekly velocity
-            <span className="dash-section-title-sub">tasks completed per week</span>
-          </h2>
-          <div className="velocity-summary">
-            <span className="velocity-summary-num">{weeklyVelocity[7]?.count ?? 0}</span>
-            <span className="velocity-summary-label">this week</span>
-            {(() => {
-              const thisWk = weeklyVelocity[7]?.count ?? 0
-              const lastWk = weeklyVelocity[6]?.count ?? 0
-              const delta  = thisWk - lastWk
-              if (delta === 0) return null
-              return (
-                <span className={`velocity-delta${delta > 0 ? ' velocity-delta--up' : ' velocity-delta--down'}`}>
-                  {delta > 0 ? '+' : ''}{delta} vs last wk
-                </span>
-              )
-            })()}
-          </div>
-        </div>
-        <VelocityChart weeks={weeklyVelocity} />
-      </section>
-    ),
-    'heatmap': (
-      <section className="dash-section dash-section--heatmap">
-        <div className="dash-section-hdr">
-          <h2 className="dash-section-title">
-            Activity
-            <span className="dash-section-title-year">{heatmapYear}</span>
-          </h2>
-          <select
-            className="heatmap-year-select"
-            value={heatmapYear}
-            onChange={e => setHeatmapYear(Number(e.target.value))}
-            aria-label="Select year"
-          >
-            {AVAILABLE_YEARS.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-        <Heatmap cells={heatmap} />
-      </section>
-    ),
-    'recent': (
-      <section className="dash-section">
-        <h2 className="dash-section-title">
-          <CheckCircle size={14} aria-hidden="true" />
-          Recently completed
-        </h2>
-        <RecentCompletions items={recentCompletions} />
-      </section>
-    ),
-  }
+  const thisWeekCount = weeklyVelocity?.[weeklyVelocity.length - 1]?.count ?? 0
+  const lastWeekCount = weeklyVelocity?.[weeklyVelocity.length - 2]?.count ?? 0
+  const velDelta      = thisWeekCount - lastWeekCount
 
   return (
     <div className="dashboard">
 
       {/* ── Header ───────────────────────────────────── */}
-      <header className="dash-header">
-        <div className="dash-header-date">
-          <span className="dash-header-day">{dayjs().format('dddd')}</span>
-          <span className="dash-header-full">{dayjs().format('MMMM D, YYYY')}</span>
-        </div>
-
-        <div className="dash-customize-wrap" ref={customizeRef}>
-          <button
-            className={`dash-customize-btn${showCustomize ? ' dash-customize-btn--active' : ''}`}
-            onClick={() => setShowCustomize(p => !p)}
-            aria-label="Customize dashboard widgets"
-            aria-expanded={showCustomize}
-          >
-            <SlidersHorizontal size={13} weight="bold" aria-hidden="true" />
-            Customize
-            {hiddenWidgets.size > 0 && (
-              <span className="dash-customize-badge">{hiddenWidgets.size}</span>
-            )}
-          </button>
-
-          {showCustomize && (
-            <div className="dash-customize-panel" role="dialog" aria-label="Widget visibility">
-              <p className="dash-customize-hint">Show or hide dashboard widgets</p>
-              {DEFAULT_GRID_ORDER.map(id => {
-                const visible = !hiddenWidgets.has(id)
-                return (
-                  <label key={id} className="dash-widget-toggle">
-                    <span className="dash-widget-toggle-name">{WIDGET_LABELS[id]}</span>
-                    <input
-                      type="checkbox"
-                      className="dash-widget-toggle-input"
-                      checked={visible}
-                      onChange={() => toggleWidget(id)}
-                    />
-                    <span className="dash-widget-toggle-pill" aria-hidden="true" />
-                  </label>
-                )
-              })}
-            </div>
+      <div className="dash-head">
+        <div>
+          {firstName && (
+            <div className="dash-greeting">{timeGreeting()}, {firstName}</div>
           )}
+          <h1 className="dash-title">{dayjs().format('dddd')}</h1>
+          <div className="dash-date">
+            {dayjs().format('MMMM D, YYYY')}
+            {workspaces.length > 0 && ` · ${stats.activeTasks} active across ${workspaces.length} workspace${workspaces.length !== 1 ? 's' : ''}`}
+          </div>
         </div>
-      </header>
-
-      {/* ── Stat cards (static, full-width) ──────────── */}
-      <div className="dash-stat-cards">
-        <StatCard icon={ListChecks}  value={stats.activeTasks}       label="Active tasks"    color="var(--accent)"                                           delay="0.05s" />
-        <StatCard icon={CheckCircle} value={stats.completedThisWeek} label="Done this week"  color="var(--green)"                                            delay="0.10s" />
-        <StatCard icon={Clock}       value={stats.completedToday}    label="Done today"      color="#8b5cf6"                                                 delay="0.15s" />
-<StatCard icon={TrendUp}     value={`${completionRate}%`}    label="Completion rate" color={completionRate >= 80 ? 'var(--green)' : 'var(--accent)'} delay="0.25s" />
-        <StatCard icon={ChartBar}    value={stats.totalTasks}        label="Total tasks"     color="var(--ink-3)"                                            delay="0.30s" />
+        <div className="dash-head-actions">
+          <div className="dash-range">
+            <button className={range === 'week'  ? 'on' : ''} onClick={() => setRange('week')}>This week</button>
+            <button className={range === 'month' ? 'on' : ''} onClick={() => setRange('month')}>Month</button>
+            <button className={range === 'all'   ? 'on' : ''} onClick={() => setRange('all')}>All time</button>
+          </div>
+        </div>
       </div>
 
-      {/* ── 2-column free-drag grid ───────────────────── */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={gridOrder} strategy={rectSortingStrategy}>
-          {gridOrder.every(id => hiddenWidgets.has(id)) ? (
-            <div className="dash-all-hidden">
-              <p>All widgets are hidden.</p>
-              <button className="dash-all-hidden-restore" onClick={() => setShowCustomize(true)}>
-                Open Customize to restore them
-              </button>
-            </div>
-          ) : (
-            <div className="dash-grid">
-              {gridOrder.filter(id => !hiddenWidgets.has(id)).map(id => (
-                <SortableWidget key={id} id={id} onHide={hideWidget}>
-                  {gridWidgets[id]}
-                </SortableWidget>
-              ))}
-            </div>
-          )}
-        </SortableContext>
+      {/* ── KPI tiles ────────────────────────────────── */}
+      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+        <KpiTile
+          icon={ListChecks}
+          iconBg="var(--accent-tint)"
+          iconColor="var(--accent)"
+          value={stats.activeTasks}
+          label="Active tasks"
+          sub={`of ${stats.totalTasks} total`}
+        />
+        <KpiTile
+          icon={CheckCircle}
+          iconBg="var(--green-tint)"
+          iconColor="var(--green)"
+          value={stats.completedThisWeek}
+          label="Done this week"
+          delta={velDelta !== 0 ? `${velDelta > 0 ? '+' : ''}${velDelta}` : undefined}
+          deltaDir={velDelta > 0 ? 'up' : velDelta < 0 ? 'down' : undefined}
+        />
+        <KpiTile
+          icon={CalendarCheck}
+          iconBg="var(--accent-tint)"
+          iconColor="var(--accent)"
+          value={stats.completedToday}
+          label="Done today"
+          sub={`${stats.completedThisWeek - stats.completedToday} yesterday`}
+        />
+        <KpiTile
+          icon={ClockCountdown}
+          iconBg="var(--amber-tint)"
+          iconColor="var(--amber)"
+          value={dueSoon.length}
+          label="Due this week"
+          sub={stats.overdue > 0 ? `${stats.overdue} overdue` : undefined}
+          delta={stats.overdue > 0 ? `${stats.overdue} overdue` : undefined}
+          deltaDir={stats.overdue > 0 ? 'down' : undefined}
+        />
+      </div>
 
-        <DragOverlay>
-          {activeId
-            ? (
-              <div className="dash-widget dash-widget--overlay">
-                {gridWidgets[activeId]}
-              </div>
-            )
-            : null}
-        </DragOverlay>
-      </DndContext>
+      {/* ── Progress + Due soon ───────────────────────── */}
+      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+        <ProgressCard
+          statusBreakdown={statusBreakdown}
+          total={stats.totalTasks}
+          completionRate={completionRate}
+        />
+        <DueSoonCard items={dueSoon} />
+      </div>
+
+      {/* ── Velocity + Priority ───────────────────────── */}
+      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+        <VelocityCard
+          weeks={weeklyVelocity}
+          thisWeekCount={thisWeekCount}
+          lastWeekCount={lastWeekCount}
+        />
+        <PriorityCard breakdown={priorityBreakdown} />
+      </div>
+
+      {/* ── Heatmap + Recent ─────────────────────────── */}
+      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+        <HeatmapCard
+          cells={heatmap}
+          year={heatmapYear}
+          onYearChange={setHeatmapYear}
+        />
+        <RecentCard items={recentCompletions} />
+      </div>
+
+      {/* ── Workspace summary ─────────────────────────── */}
+      <div className="dash-grid">
+        <WorkspaceSummary workspaces={workspaces} breakdown={workspaceBreakdown} />
+      </div>
 
     </div>
   )

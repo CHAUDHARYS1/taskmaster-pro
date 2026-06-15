@@ -7,9 +7,14 @@ import {
   ListBullets, ListNumbers,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export,
+  Export, CheckCircle,
 } from '@phosphor-icons/react'
 import { useToast } from '../../contexts/ToastContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+
+function stripHtml(html) {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
 function Btn({ onClick, active, label, children, disabled }) {
   return (
@@ -31,7 +36,9 @@ function Divider() {
 }
 
 export default function WritesEditor({ doc, onSave, onDelete }) {
-  const { toast } = useToast()
+  const { toast }      = useToast()
+  const { workspaces } = useWorkspace()
+  const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,      setTitle]      = useState(doc.title)
   const [saveStatus, setSaveStatus] = useState('saved')
   const [linkInput,  setLinkInput]  = useState('')
@@ -107,7 +114,12 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
     saveTimer.current = setTimeout(async () => {
       setSaveStatus('saving')
       try {
-        await onSave(updates)
+        const payload = { ...updates }
+        if (updates.content !== undefined) {
+          const plain = stripHtml(updates.content)
+          payload.preview = plain.slice(0, 200)
+        }
+        await onSave(payload)
         setSaveStatus('saved')
       } catch {
         setSaveStatus('unsaved')
@@ -159,6 +171,42 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
 
   return (
     <div className="we-wrap">
+      {/* Editor breadcrumb bar */}
+      <div className="wr-ed-bar">
+        <div className="wr-crumb">
+          {workspace && <span className="dot" aria-hidden="true" />}
+          {workspace && <span>{workspace.name}</span>}
+          {workspace && <span className="sep">›</span>}
+          <strong>Writes</strong>
+        </div>
+        <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
+          <CheckCircle size={13} weight="fill" aria-hidden="true" />
+          Saved
+        </div>
+        <div className="wr-ed-actions">
+          <div className="we-export-wrap" ref={exportRef}>
+            <button
+              className="wr-ed-btn"
+              onClick={() => setShowExport(v => !v)}
+              aria-label="Export document"
+              title="Export"
+            >
+              <Export size={15} aria-hidden="true" />
+            </button>
+            {showExport && (
+              <div className="we-export-menu" role="menu">
+                <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
+                  PDF
+                </button>
+                <button className="we-export-item we-export-item--disabled" role="menuitem" disabled title="Coming soon">
+                  Google Docs <span className="we-export-soon">soon</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Document header */}
       <div className="we-doc-hdr">
         <input
@@ -176,29 +224,6 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
             {saveStatus === 'saving'  && 'Saving…'}
             {saveStatus === 'unsaved' && 'Unsaved'}
           </span>
-
-          <div className="we-export-wrap" ref={exportRef}>
-            <button
-              className="btn-ghost we-export-btn"
-              onClick={() => setShowExport(v => !v)}
-              aria-label="Export document"
-              title="Export"
-            >
-              <Export size={15} aria-hidden="true" />
-              Export
-            </button>
-            {showExport && (
-              <div className="we-export-menu" role="menu">
-                <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
-                  PDF
-                </button>
-                <button className="we-export-item we-export-item--disabled" role="menuitem" disabled title="Coming soon">
-                  Google Docs <span className="we-export-soon">soon</span>
-                </button>
-              </div>
-            )}
-          </div>
-
           <button
             className="btn-ghost we-delete-btn"
             onClick={onDelete}
