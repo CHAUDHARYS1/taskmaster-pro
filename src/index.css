@@ -1732,11 +1732,11 @@ a:focus-visible,
 
 /* ── Left panel ─────────────────────────────────────────────── */
 .auth-left {
-  flex: 0 0 60%;
-  background: linear-gradient(160deg, #0a1628 0%, #1a3480 55%, #2563eb 100%);
+  flex: 0 0 50%;
+  background: linear-gradient(158deg, #0a1628 0%, #16306f 52%, #2563eb 100%);
   display: flex;
   flex-direction: column;
-  padding: 48px 56px;
+  padding: 44px 52px;
   position: relative;
   overflow: hidden;
 }
@@ -1783,12 +1783,14 @@ a:focus-visible,
 }
 
 .auth-left-headline {
-  font-size: clamp(24px, 2.6vw, 36px);
-  font-weight: var(--weight-bold);
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(32px, 3.4vw, 50px);
+  font-weight: 400;
   color: #ffffff;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
+  line-height: 1.06;
+  letter-spacing: -1.2px;
 }
+.auth-left-headline em { font-style: italic; color: #aac4ff; }
 
 .auth-features {
   list-style: none;
@@ -1812,11 +1814,45 @@ a:focus-visible,
   font-size: var(--text-body);
   color: rgba(255, 255, 255, 0.38);
   letter-spacing: 0.02em;
+  font-style: italic;
 }
+
+/* ── Auth quote card ─────────────────────────────────────────── */
+.auth-quote {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 20px 22px;
+  backdrop-filter: blur(6px);
+}
+.auth-quote p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.92);
+  font-style: italic;
+  margin-bottom: 13px;
+}
+.auth-quote footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.auth-quote-ava {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex: none;
+}
+.auth-quote-name { font-size: 12.5px; font-weight: 700; color: #fff; }
+.auth-quote-role { font-size: 11.5px; color: rgba(255,255,255,0.55); display: block; }
 
 /* ── Right panel ────────────────────────────────────────────── */
 .auth-right {
-  flex: 0 0 40%;
+  flex: 1;
   min-height: 100dvh;
   background: var(--card);
   display: flex;
@@ -1857,12 +1893,14 @@ a:focus-visible,
 }
 
 .auth-card-title {
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-bold);
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(30px, 3.4vw, 42px);
+  font-weight: 400;
   color: var(--ink);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.6px;
+  line-height: 1.08;
 }
+.auth-card-title em { font-style: italic; color: var(--accent); }
 
 .auth-lockup { display: block; color: var(--ink); }
 

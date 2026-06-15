@@ -6,10 +6,10 @@ import { useAuth } from '../../contexts/AuthContext'
 import LogoLockup from '../ui/LogoLockup'
 
 const FEATURES = [
-  'Kanban, List, Calendar & Gantt views',
-  'Real-time collaboration with your team',
-  'Projects, labels, priorities & reminders',
-  'Recurring tasks & smart automation',
+  'Real-time collaborative boards',
+  'Job, freelance & blank templates',
+  'Assignees, labels, priorities & due dates',
+  'Board, List, Calendar & Dashboard views',
 ]
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -131,7 +131,9 @@ export default function AuthPage() {
 
           <div className="auth-left-body">
             <h1 className="auth-left-headline">
-              Organize your work,<br />your way.
+              {mode === 'login'
+                ? <>Pick up right where<br /><em>you left off.</em></>
+                : <>Start building your<br /><em>workspace today.</em></>}
             </h1>
             <ul className="auth-features" aria-label="Features">
               {FEATURES.map(f => (
@@ -141,9 +143,19 @@ export default function AuthPage() {
                 </li>
               ))}
             </ul>
+            <blockquote className="auth-quote">
+              <p>"Finally a board that doesn't assume I work like everyone else. My job search is perfectly tracked."</p>
+              <footer>
+                <span className="auth-quote-ava" style={{ background: '#7c3aed' }}>MC</span>
+                <span>
+                  <span className="auth-quote-name">M. Chen</span>
+                  <span className="auth-quote-role">Product Designer</span>
+                </span>
+              </footer>
+            </blockquote>
           </div>
 
-          <p className="auth-left-tagline">Built for focus. Designed for teams.</p>
+          <p className="auth-left-tagline">Designed and built by SC Design and Consultation</p>
         </div>
       </aside>
 
@@ -157,10 +169,12 @@ export default function AuthPage() {
         <div className="auth-card">
           <div className="auth-card-header">
             <h2 className="auth-card-title">
-              {mode === 'login' ? 'Welcome back' : 'Create account'}
+              {mode === 'login'
+                ? <>Welcome <em>back.</em></>
+                : <>Create your <em>account.</em></>}
             </h2>
             <p className="auth-subtitle">
-              {mode === 'login' ? 'Sign in to your account' : 'Get started for free'}
+              {mode === 'login' ? 'Sign in to your workspace to continue.' : 'Get started free — no credit card required.'}
             </p>
           </div>
 
