@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X, PencilSimple, Check, Sliders, Users, FolderSimple, WarningCircle } from '@phosphor-icons/react'
+import { X, PencilSimple, Check, Sliders, Users, FolderSimple, WarningCircle, Palette } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
 import { useMembers } from '../../hooks/useMembers'
@@ -263,9 +263,19 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
     }
   }
 
-  const [renamingProject, setRenamingProject] = useState(null) // { id, name }
+  const [renamingProject,  setRenamingProject]  = useState(null) // { id, name }
+  const [coloringProject, setColoringProject] = useState(null) // project id
 
   const handleStartRenameProject = (p) => setRenamingProject({ id: p.id, name: p.name })
+
+  const handleSetProjectColor = async (p, color) => {
+    setColoringProject(null)
+    try {
+      await renameProject(p.id, p.name, { color })
+    } catch (err) {
+      toast.error(err.message || 'Failed to update color')
+    }
+  }
 
   const handleConfirmRenameProject = async () => {
     if (!renamingProject) return
@@ -579,41 +589,64 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
                 </div>
                 <ul className="ws-project-list" style={{ margin: 0, padding: 0 }}>
                   {projects.map(p => {
-                    const isRenaming = renamingProject?.id === p.id
+                    const isRenaming   = renamingProject?.id === p.id
+                    const isColoring   = coloringProject === p.id
                     return (
                       <li key={p.id} className="ws-project-row">
-                        <span className="ws-project-dot" style={{ background: p.color }} />
-                        {isRenaming ? (
-                          <input className="ws-project-rename-input"
-                            value={renamingProject.name}
-                            onChange={e => setRenamingProject(prev => ({ ...prev, name: e.target.value }))}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') handleConfirmRenameProject()
-                              if (e.key === 'Escape') setRenamingProject(null)
-                            }}
-                            onBlur={handleConfirmRenameProject}
-                            autoFocus maxLength={60} aria-label="Project name" />
-                        ) : (
-                          <span className="ws-project-name">{p.name}</span>
-                        )}
-                        <div className="ws-project-actions">
-                          {isOwner && !isRenaming && (
-                            <button className="ws-project-icon-btn" onClick={() => handleStartRenameProject(p)}
-                              aria-label={`Rename ${p.name}`} title="Rename">
-                              <PencilSimple size={14} weight="bold" aria-hidden="true" />
-                            </button>
+                        <div className="ws-project-row-main">
+                          <span className="ws-project-dot" style={{ background: p.color }} />
+                          {isRenaming ? (
+                            <input className="ws-project-rename-input"
+                              value={renamingProject.name}
+                              onChange={e => setRenamingProject(prev => ({ ...prev, name: e.target.value }))}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') handleConfirmRenameProject()
+                                if (e.key === 'Escape') setRenamingProject(null)
+                              }}
+                              onBlur={handleConfirmRenameProject}
+                              autoFocus maxLength={60} aria-label="Project name" />
+                          ) : (
+                            <span className="ws-project-name">{p.name}</span>
                           )}
-                          {isRenaming && (
-                            <button className="ws-project-icon-btn ws-project-icon-btn--confirm"
-                              onClick={handleConfirmRenameProject} aria-label="Confirm rename">
-                              <Check size={14} weight="bold" aria-hidden="true" />
-                            </button>
-                          )}
-                          {isOwner && projects.length > 1 && !isRenaming && (
-                            <button className="ws-project-delete" onClick={() => handleDeleteProject(p)}
-                              aria-label={`Delete ${p.name}`}>Delete</button>
-                          )}
+                          <div className="ws-project-actions">
+                            {isOwner && !isRenaming && (
+                              <button
+                                className={`ws-project-icon-btn${isColoring ? ' ws-project-icon-btn--active' : ''}`}
+                                onClick={() => setColoringProject(isColoring ? null : p.id)}
+                                aria-label={`Change color for ${p.name}`} title="Change color">
+                                <Palette size={14} weight={isColoring ? 'fill' : 'bold'} aria-hidden="true" />
+                              </button>
+                            )}
+                            {isOwner && !isRenaming && (
+                              <button className="ws-project-icon-btn" onClick={() => handleStartRenameProject(p)}
+                                aria-label={`Rename ${p.name}`} title="Rename">
+                                <PencilSimple size={14} weight="bold" aria-hidden="true" />
+                              </button>
+                            )}
+                            {isRenaming && (
+                              <button className="ws-project-icon-btn ws-project-icon-btn--confirm"
+                                onClick={handleConfirmRenameProject} aria-label="Confirm rename">
+                                <Check size={14} weight="bold" aria-hidden="true" />
+                              </button>
+                            )}
+                            {isOwner && projects.length > 1 && !isRenaming && (
+                              <button className="ws-project-delete" onClick={() => handleDeleteProject(p)}
+                                aria-label={`Delete ${p.name}`}>Delete</button>
+                            )}
+                          </div>
                         </div>
+                        {isColoring && (
+                          <div className="ws-project-color-picker">
+                            {COLUMN_PRESET_COLORS.map(preset => (
+                              <button key={preset} type="button"
+                                className={`col-color-swatch${p.color === preset ? ' col-color-swatch--active' : ''}`}
+                                style={{ background: preset }}
+                                onClick={() => handleSetProjectColor(p, preset)}
+                                aria-label={`Project color ${preset}`}
+                                aria-pressed={p.color === preset} />
+                            ))}
+                          </div>
+                        )}
                       </li>
                     )
                   })}

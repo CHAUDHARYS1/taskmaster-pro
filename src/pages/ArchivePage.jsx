@@ -155,7 +155,7 @@ export default function ArchivePage() {
       )}
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
-      <main id="main-content" className="board-main">
+      <main id="main-content" className="board-main board-main--archive">
 
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="board-header">
