@@ -106,14 +106,19 @@ function TaskCard({
     : false
   const isSearchDimmed = !!searchQuery && !isSearchMatch
 
-  // ── Swipe-to-delete (mobile only) ────────────────────────────────────────
-  const swipeEnabled = canDelete && !!onDelete && !isOverlay
+  // ── Swipe actions (mobile only) ──────────────────────────────────────────
+  const canSwipeDelete = canDelete && !!onDelete && !isOverlay
+  const canSwipeDone   = canEdit && !!onComplete && !isOverlay
+  const swipeEnabled   = canSwipeDelete || canSwipeDone
+
   const [swipeX, setSwipeX] = useState(0)
   const touchRef = useRef(null)
   const dirRef   = useRef(null)
 
-  const REVEAL_AT = -56
-  const MAX_X     = -76
+  const L_REVEAL = -56   // left-swipe threshold → snap to delete
+  const L_MAX    = -76   // fully-revealed delete position
+  const R_REVEAL =  56   // right-swipe threshold → snap to done
+  const R_MAX    =  76   // fully-revealed done position
 
   const handleTouchStart = useCallback((e) => {
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -128,15 +133,24 @@ function TaskCard({
       if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
       dirRef.current = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'
     }
-    if (dirRef.current === 'h' && dx < 0) {
-      e.stopPropagation()
-      setSwipeX(Math.max(dx, MAX_X))
+    if (dirRef.current === 'h') {
+      if (dx < 0 && canSwipeDelete) {
+        e.stopPropagation()
+        setSwipeX(Math.max(dx, L_MAX))
+      } else if (dx > 0 && canSwipeDone) {
+        e.stopPropagation()
+        setSwipeX(Math.min(dx, R_MAX))
+      }
     }
-  }, [])
+  }, [canSwipeDelete, canSwipeDone])
 
   const handleTouchEnd = useCallback(() => {
     if (dirRef.current === 'h') {
-      setSwipeX(prev => prev < REVEAL_AT ? MAX_X : 0)
+      setSwipeX(prev => {
+        if (prev < L_REVEAL) return L_MAX
+        if (prev > R_REVEAL) return R_MAX
+        return 0
+      })
     }
     touchRef.current = null
     dirRef.current   = null
@@ -147,6 +161,12 @@ function TaskCard({
     setSwipeX(0)
     onDelete?.(task.id)
   }, [onDelete, task.id])
+
+  const handleSwipeDone = useCallback((e) => {
+    e.stopPropagation()
+    setSwipeX(0)
+    onComplete?.(task.id)
+  }, [onComplete, task.id])
   // ─────────────────────────────────────────────────────────────────────────
 
   const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
@@ -171,8 +191,20 @@ function TaskCard({
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
-      {/* Delete zone — only rendered once the user starts swiping */}
-      {swipeEnabled && swipeX < 0 && (
+      {/* Done zone — revealed by right-swipe, left side of card */}
+      {canSwipeDone && swipeX > 0 && (
+        <button
+          className="task-card-done-zone"
+          onClick={handleSwipeDone}
+          aria-label={task.status === 'done' ? 'Mark as incomplete' : 'Mark as done'}
+          tabIndex={-1}
+        >
+          <Check size={18} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {/* Delete zone — revealed by left-swipe, right side of card */}
+      {canSwipeDelete && swipeX < 0 && (
         <button
           className="task-card-delete-zone"
           onClick={handleSwipeDelete}
@@ -188,7 +220,7 @@ function TaskCard({
         className="task-card-swipe-inner"
         style={swipeEnabled ? {
           transform: `translateX(${swipeX}px)`,
-          transition: (swipeX === 0 || swipeX === MAX_X) ? 'transform 0.22s ease' : 'none',
+          transition: (swipeX === 0 || swipeX === L_MAX || swipeX === R_MAX) ? 'transform 0.22s ease' : 'none',
         } : undefined}
         onTouchStart={swipeEnabled ? handleTouchStart : undefined}
         onTouchMove={swipeEnabled ? handleTouchMove : undefined}
@@ -226,18 +258,6 @@ function TaskCard({
         </>
       )}
 
-      {/* Quick-complete circular button — top-right, overlays priority chip on hover */}
-      {canEdit && onComplete && !isLockedByOther && (
-        <button
-          className={`task-card-quick-complete${task.status === 'done' ? ' task-card-quick-complete--on' : ''}`}
-          aria-label={task.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
-          title={task.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
-          onClick={e => { e.stopPropagation(); onComplete(task.id) }}
-        >
-          <Check size={11} weight="bold" aria-hidden="true" />
-        </button>
-      )}
-
 
       {/* Priority chip */}
       {priorityDef && (
@@ -261,31 +281,6 @@ function TaskCard({
         />
       )}
 
-      {/* Labels */}
-      {task.labels?.length > 0 && (
-        <div className="task-labels">
-          {task.labels.slice(0, isExpanded ? undefined : 3).map(id => {
-            const label = labelMap[id]
-            if (!label) return null
-            const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
-            return (
-              <span
-                key={id}
-                className="label-chip label-chip--sm"
-                style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
-              >
-                {label.name}
-              </span>
-            )
-          })}
-          {!isExpanded && task.labels.length > 3 && (
-            <span className="label-chip label-chip--sm label-chip--overflow">
-              +{task.labels.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Footer metadata row */}
       {hasFooter && (
         <div className="task-card-footer">
@@ -306,6 +301,29 @@ function TaskCard({
                 <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
                 {task.project.name}
               </span>
+            )}
+            {task.labels?.length > 0 && (
+              <>
+                {task.labels.slice(0, isExpanded ? undefined : 3).map(id => {
+                  const label = labelMap[id]
+                  if (!label) return null
+                  const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+                  return (
+                    <span
+                      key={id}
+                      className="label-chip label-chip--sm"
+                      style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
+                    >
+                      {label.name}
+                    </span>
+                  )
+                })}
+                {!isExpanded && task.labels.length > 3 && (
+                  <span className="label-chip label-chip--sm label-chip--overflow">
+                    +{task.labels.length - 3}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -385,6 +403,7 @@ function due_or_meta(task, isJobTracker, checklistTotal, commentCount) {
   if (checklistTotal > 0) return true
   if (!isJobTracker && task.assignee) return true
   if (task.project) return true
+  if (task.labels?.length > 0) return true
   return false
 }
 

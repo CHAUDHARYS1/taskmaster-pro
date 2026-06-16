@@ -298,6 +298,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
 
       <nav className="mobile-bottom-nav" aria-label="Main navigation">
         <button
+          className={`mobile-nav-btn${onDashboard ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/dashboard')}
+          aria-label="Dashboard"
+        >
+          <ChartPieSlice size={22} aria-hidden="true" />
+          <span>Dashboard</span>
+        </button>
+        <button
           className={`mobile-nav-btn${location.pathname === '/app' || location.pathname.startsWith('/workspace/') ? ' mobile-nav-btn--active' : ''}`}
           onClick={() => navigate('/app')}
           aria-label="Board"
@@ -312,14 +320,6 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         >
           <CalendarBlank size={22} aria-hidden="true" />
           <span>Calendar</span>
-        </button>
-        <button
-          className={`mobile-nav-btn${onDashboard ? ' mobile-nav-btn--active' : ''}`}
-          onClick={() => navigate('/dashboard')}
-          aria-label="Dashboard"
-        >
-          <ChartPieSlice size={22} aria-hidden="true" />
-          <span>Dashboard</span>
         </button>
         <button
           className={`mobile-nav-btn${onWrites ? ' mobile-nav-btn--active' : ''}`}

@@ -990,8 +990,16 @@ a:focus-visible,
   visibility: hidden;
 }
 
-/* Hidden on desktop; mobile-only swipe reveals it */
-.task-card-delete-zone { display: none; }
+/* Hidden on desktop; mobile-only swipe reveals them */
+.task-card-delete-zone,
+.task-card-done-zone   { display: none; }
+
+/* Restore the card's flex-column layout inside the swipe wrapper */
+.task-card-swipe-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .task-card--dragging.task-card--locked { opacity: 1; }
 .task-card--ghost {
@@ -4563,21 +4571,25 @@ a:focus-visible,
   .board-header { display: none; }
   .filter-bar   { display: none; }
 
-  /* ── Columns: scroll-snap carousel ───────────────────────── */
+  /* ── Columns: single-column view with page scroll ─────────── */
   .board-columns-wrap {
     padding: var(--space-3);
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
   }
   .board-columns {
     gap: var(--space-3);
     min-width: unset;
+    height: auto;
   }
   .column {
     flex: none;
     width: 82vw;
-    scroll-snap-align: start;
-    max-height: calc(100dvh - 180px);
+    max-height: none;
+    overflow: visible;
+  }
+  .column-list {
+    overflow-y: visible;
+    flex: none;
   }
 
   /* ── Board canvas: stack vertically on mobile ─────────────── */
@@ -4641,9 +4653,8 @@ a:focus-visible,
     gap: var(--space-2);
   }
   .presence-avatars { display: none; }
-  .quick-add--top      { display: none; }
-  .column-collapse-btn { display: none; }
-
+  .quick-add--top           { display: none; }
+  .column-collapse-btn      { display: none; }
   /* ── Swipe-to-delete on task cards ── */
   .task-card {
     position: relative;
@@ -4659,6 +4670,22 @@ a:focus-visible,
     /* Carry the card's horizontal padding (13px left, var(--space-4) right) */
     padding-left: 13px;
     padding-right: var(--space-4);
+  }
+
+  .task-card-done-zone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 76px;
+    background: transparent;
+    color: var(--green, #22c55e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .task-card-delete-zone {
@@ -4922,9 +4949,10 @@ a:focus-visible,
   .mobile-nav-btn--active { color: var(--accent); }
   .mobile-nav-btn:active { opacity: 0.7; }
 
-  /* ── Board main: pad for bottom nav ───────────────────────── */
+  /* ── Board main: scroll container + pad for bottom nav ──────── */
   .board-main {
     padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    overflow-y: auto;
   }
 
   /* ── Toast: clear the bottom nav ──────────────────────────── */
@@ -5627,35 +5655,7 @@ a:focus-visible,
 .task-card--ghost .task-drag-handle { opacity: 1; }
 .task-drag-handle:hover { opacity: 1 !important; }
 
-/* ── Quick-complete circular button ───────────────────────── */
-.task-card-quick-complete {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: var(--card);
-  color: transparent;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  padding: 0;
-  opacity: 0;
-  transition: opacity 0.12s ease, background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-  z-index: 3;
-}
-.task-card:hover .task-card-quick-complete { opacity: 1; }
-.task-card-quick-complete:hover { border-color: var(--green); color: var(--green); }
-.task-card-quick-complete--on {
-  opacity: 1;
-  background: var(--green);
-  border-color: var(--green);
-  color: #fff;
-}
-.task-card--locked .task-card-quick-complete,
-.task-card--self-editing .task-card-quick-complete { display: none; }
+
 
 /* ── Checklist micro-progress bar ─────────────────────────── */
 .task-checklist-bar {

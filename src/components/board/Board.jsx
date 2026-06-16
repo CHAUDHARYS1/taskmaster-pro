@@ -317,10 +317,15 @@ export default function Board() {
 
   const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
+    if (!task) return
+    const prevStatus = task.status
     try {
       await updateTask(id, { status: 'done' })
-      toast.success(`"${task?.text ?? 'Task'}" marked as done`)
       playDoneSound()
+      toast.undo(`"${task.text ?? 'Task'}" marked as done`, async () => {
+        try { await updateTask(id, { status: prevStatus }) }
+        catch (err) { toast.error(err.message || 'Failed to undo') }
+      })
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
