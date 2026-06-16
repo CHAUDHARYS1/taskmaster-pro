@@ -541,9 +541,9 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
               </div>
             </div>
 
-            {/* Due date */}
+            {/* Date range */}
             <div className="atp-prop atp-prop--wrap">
-              <span className="atp-prop__label" id="tdp-due-label">Due date</span>
+              <span className="atp-prop__label" id="tdp-due-label">Date range</span>
               <div className="atp-prop__val" role="group" aria-labelledby="tdp-due-label">
                 {canEdit ? (
                   <>
@@ -551,21 +551,37 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                       <button type="button" className={`atp-pill${task.due_date === today    ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: today })}    aria-pressed={task.due_date === today}>Today</button>
                       <button type="button" className={`atp-pill${task.due_date === tomorrow ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: tomorrow })} aria-pressed={task.due_date === tomorrow}>Tomorrow</button>
                       <button type="button" className={`atp-pill${task.due_date === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: nextWeek })} aria-pressed={task.due_date === nextWeek}>Next week</button>
-                      <button type="button" className={`atp-pill${!task.due_date          ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: null, due_time: null })} aria-pressed={!task.due_date}>None</button>
+                      <button type="button" className={`atp-pill${!task.due_date && !task.start_date ? ' atp-pill--active' : ''}`} onClick={() => handleUpdate(task.id, { due_date: null, due_time: null, start_date: null })} aria-pressed={!task.due_date && !task.start_date}>None</button>
                       {isCustomDate && (
                         <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                           {dayjs(task.due_date).format('MMM D')}
                         </span>
                       )}
                     </div>
-                    <div className="atp-date-row">
-                      <input
-                        type="date"
-                        className="due-date-input"
-                        value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
-                        onChange={e => handleUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
-                        aria-label="Due date"
-                      />
+                    <div className="atp-date-row atp-date-range-row">
+                      <div className="atp-date-range-field">
+                        <label className="atp-date-range-label" htmlFor="tdp-start-date">Start</label>
+                        <input
+                          id="tdp-start-date"
+                          type="date"
+                          className="due-date-input"
+                          value={task.start_date ? dayjs(task.start_date).format('YYYY-MM-DD') : ''}
+                          onChange={e => handleUpdate(task.id, { start_date: e.target.value || null })}
+                          aria-label="Start date"
+                        />
+                      </div>
+                      <span className="atp-date-range-sep" aria-hidden="true">→</span>
+                      <div className="atp-date-range-field">
+                        <label className="atp-date-range-label" htmlFor="tdp-end-date">End</label>
+                        <input
+                          id="tdp-end-date"
+                          type="date"
+                          className="due-date-input"
+                          value={task.due_date ? dayjs(task.due_date).format('YYYY-MM-DD') : ''}
+                          onChange={e => handleUpdate(task.id, { due_date: e.target.value || null, ...(!e.target.value && { due_time: null }) })}
+                          aria-label="End date"
+                        />
+                      </div>
                       <input
                         key={task.due_time ?? 'no-time'}
                         type="time"
@@ -575,12 +591,12 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                         disabled={!task.due_date}
                         aria-label="Due time"
                       />
-                      {task.due_date && (
+                      {(task.due_date || task.start_date) && (
                         <button
                           type="button"
                           className="due-date-clear"
-                          onClick={() => handleUpdate(task.id, { due_date: null, due_time: null })}
-                          aria-label="Clear due date"
+                          onClick={() => handleUpdate(task.id, { due_date: null, due_time: null, start_date: null })}
+                          aria-label="Clear dates"
                         >
                           <X size={14} weight="bold" aria-hidden="true" />
                         </button>
@@ -589,10 +605,15 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                   </>
                 ) : (
                   <span className="atp-prop-ro">
-                    {task.due_date
-                      ? `${fmtDateFull(task.due_date)}${task.due_time ? ` at ${fmtTimeStr(task.due_time)}` : ''}`
-                      : <span className="task-panel-empty">No due date.</span>
-                    }
+                    {task.due_date || task.start_date ? (
+                      <>
+                        {task.start_date && <>{fmtDateFull(task.start_date)} → </>}
+                        {task.due_date && fmtDateFull(task.due_date)}
+                        {task.due_time && ` at ${fmtTimeStr(task.due_time)}`}
+                      </>
+                    ) : (
+                      <span className="task-panel-empty">No dates set.</span>
+                    )}
                   </span>
                 )}
               </div>

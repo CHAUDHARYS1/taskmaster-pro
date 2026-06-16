@@ -82,7 +82,7 @@ export function useTasks(workspaceId, projectId) {
     return () => supabase.removeChannel(channel)
   }, [workspaceId, projectId, fetchTasks])
 
-  const addTask = async ({ text, description, due_date, due_time, status = 'toDo', priority = null, assignee_id = null, labels = [] }) => {
+  const addTask = async ({ text, description, due_date, due_time, start_date, status = 'toDo', priority = null, assignee_id = null, labels = [] }) => {
     const colTasks = tasks.filter(t => t.status === status)
     const minPos = colTasks.length ? Math.min(...colTasks.map(t => t.position)) : 0
     const { data, error } = await supabase.from('tasks').insert({
@@ -92,6 +92,7 @@ export function useTasks(workspaceId, projectId) {
       description:  description || null,
       due_date:     due_date || null,
       due_time:     due_time || null,
+      start_date:   start_date || null,
       status,
       position:     minPos - 1000,
       priority:     priority || null,
@@ -143,6 +144,17 @@ export function useTasks(workspaceId, projectId) {
     ))
   }, [])
 
+  const removeOptimistic = useCallback((taskId) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+  }, [])
+
+  const restoreOptimistic = useCallback((task) => {
+    setTasks(prev => {
+      if (prev.some(t => t.id === task.id)) return prev
+      return [...prev, task].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    })
+  }, [])
+
   const tasksByStatus = useMemo(() => STATUSES.reduce((acc, status) => {
     acc[status] = tasks
       .filter(t => t.status === status)
@@ -150,5 +162,5 @@ export function useTasks(workspaceId, projectId) {
     return acc
   }, {}), [tasks])
 
-  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist }
+  return { tasks, tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist, removeOptimistic, restoreOptimistic }
 }

@@ -94,7 +94,7 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist, removeOptimistic, restoreOptimistic } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
   const { archiveNow } = useArchive(currentWorkspace?.id)
@@ -317,27 +317,39 @@ export default function Board() {
 
   const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
+    if (!task) return
+    const prevStatus = task.status
     try {
       await updateTask(id, { status: 'done' })
-      toast.success(`"${task?.text ?? 'Task'}" marked as done`)
       playDoneSound()
+      toast.undo(`"${task.text ?? 'Task'}" marked as done`, async () => {
+        try { await updateTask(id, { status: prevStatus }) }
+        catch (err) { toast.error(err.message || 'Failed to undo') }
+      })
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
   }, [allTasks, updateTask, toast, playDoneSound])
 
   const scheduleDelete = useCallback((id, label) => {
+    const task = allTasks.find(t => t.id === id)
+    if (!task) return
+
+    removeOptimistic(id)
+
     const timerId = setTimeout(async () => {
       delete pendingDeletes.current[id]
       try { await deleteTask(id) }
-      catch (err) { toast.error(err.message || 'Failed to delete task') }
+      catch (err) { restoreOptimistic(task); toast.error(err.message || 'Failed to delete task') }
     }, 4000)
+
     pendingDeletes.current[id] = timerId
     toast.undo(`"${label}" deleted`, () => {
       clearTimeout(pendingDeletes.current[id])
       delete pendingDeletes.current[id]
+      restoreOptimistic(task)
     })
-  }, [deleteTask, toast])
+  }, [allTasks, deleteTask, removeOptimistic, restoreOptimistic, toast])
 
   const handleColumnDelete = useCallback((id) => {
     const task = allTasks.find(t => t.id === id)

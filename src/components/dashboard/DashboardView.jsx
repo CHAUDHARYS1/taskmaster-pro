@@ -382,7 +382,6 @@ function WorkspaceSummary({ workspaces, breakdown }) {
 
 export default function DashboardView() {
   const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
-  const [range, setRange] = useState('week')
   const { data, loading, error } = useDashboard(heatmapYear)
   const { profile } = useAuth()
   const { workspaces } = useWorkspace()
@@ -426,13 +425,6 @@ export default function DashboardView() {
           <div className="dash-date">
             {dayjs().format('MMMM D, YYYY')}
             {workspaces.length > 0 && ` · ${stats.activeTasks} active across ${workspaces.length} workspace${workspaces.length !== 1 ? 's' : ''}`}
-          </div>
-        </div>
-        <div className="dash-head-actions">
-          <div className="dash-range">
-            <button className={range === 'week'  ? 'on' : ''} onClick={() => setRange('week')}>This week</button>
-            <button className={range === 'month' ? 'on' : ''} onClick={() => setRange('month')}>Month</button>
-            <button className={range === 'all'   ? 'on' : ''} onClick={() => setRange('all')}>All time</button>
           </div>
         </div>
       </div>
