@@ -351,29 +351,34 @@ a:focus-visible,
   gap: 0;
 }
 
-/* Collapse toggle button */
-.sidebar-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--card);
-  color: var(--ink-4);
+/* Clickable right-edge handle — replaces the collapse arrow button */
+.sidebar-edge-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  flex-shrink: 0;
-  align-self: center;
-  margin-top: auto;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  z-index: 10;
 }
-
-.sidebar-collapse-btn:hover {
-  background-color: var(--paper-2);
-  color: var(--accent);
-  border-color: var(--accent);
+.sidebar-edge-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  width: 2px;
+  background: transparent;
+  border-radius: 2px;
+  transition: width 0.15s ease, background-color 0.15s ease, right 0.15s ease;
+}
+.sidebar-edge-handle:hover::after {
+  width: 3px;
+  right: 2px;
+  background: var(--accent);
 }
 
 /* Native title attribute provides tooltip on hover when collapsed */
@@ -4489,7 +4494,7 @@ a:focus-visible,
   .sidebar--collapsed .sidebar-footer--collapsible { max-height: 200px; opacity: 1; }
   .sidebar--collapsed .sidebar-new-ws-btn { justify-content: flex-start; padding: var(--space-1) var(--space-2); }
   .sidebar--collapsed .sidebar-dash-btn { justify-content: flex-start; padding: var(--space-2); gap: var(--space-2); }
-  .sidebar-collapse-btn { display: none; }
+  .sidebar-edge-handle { display: none; }
 
   .sidebar-backdrop {
     position: fixed;
@@ -10987,7 +10992,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
 /* Logo row — make it flex so bell sits to the right of the wordmark */
 .sidebar-logo-full {
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);

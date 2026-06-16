@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee, Kanban, ChartPieSlice } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, Plus, SignOut, Kanban, ChartPieSlice } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
@@ -245,19 +245,8 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
             </div>
           )}
 
-          {/* Coffee + Sign out */}
+          {/* Sign out */}
           <div className="sidebar-footer-row">
-            <a
-              href="https://buymeacoffee.com/schaudhary"
-              target="_blank"
-              rel="noreferrer"
-              className="sidebar-coffee-btn"
-              aria-label="Buy me a coffee"
-              title="Buy me a coffee"
-            >
-              <Coffee size={14} weight="bold" aria-hidden="true" />
-              <span className="sidebar-nav-label">Buy me a coffee</span>
-            </a>
             <button
               className="sidebar-signout-btn"
               onClick={signOut}
@@ -278,19 +267,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
           </p>
         </div>
 
-        {/* ── Collapse toggle (desktop only) ── */}
+        {/* ── Collapse edge handle (desktop only) ── */}
         {onToggleCollapse && (
           <button
-            className="sidebar-collapse-btn"
+            className="sidebar-edge-handle"
             onClick={onToggleCollapse}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed
-              ? <CaretRight size={12} weight="bold" aria-hidden="true" />
-              : <CaretLeft  size={12} weight="bold" aria-hidden="true" />
-            }
-          </button>
+          />
         )}
       </aside>
 
