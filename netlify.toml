@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  ROLLUP_SKIP_NATIVE = "true"
 
 # SPA fallback — React Router handles all client-side routes
 [[redirects]]
