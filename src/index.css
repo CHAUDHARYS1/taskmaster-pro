@@ -4655,21 +4655,27 @@ a:focus-visible,
   .presence-avatars { display: none; }
   .quick-add--top           { display: none; }
   .column-collapse-btn      { display: none; }
+  /* ── Task card typography ─────────────────────────────────── */
+  .task-text         { font-size: var(--text-xl); }
+  .task-desc-preview { font-size: var(--text-md); line-height: 1.3; }
+
   /* ── Swipe-to-delete on task cards ── */
   .task-card {
     position: relative;
     overflow: hidden;
-    /* Move horizontal padding onto the inner wrapper so it covers the full card width */
     padding-left: 0;
     padding-right: 0;
+    padding-top: 14px;
+    padding-bottom: 13px;
+    gap: 6px;
   }
 
   .task-card-swipe-inner {
     background: var(--card);
     position: relative;
-    /* Carry the card's horizontal padding (13px left, var(--space-4) right) */
-    padding-left: 13px;
-    padding-right: var(--space-4);
+    padding-left: 14px;
+    padding-right: var(--space-5);
+    gap: 6px;
   }
 
   .task-card-done-zone {
