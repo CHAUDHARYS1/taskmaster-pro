@@ -32,6 +32,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
 
   const [title,            setTitle]            = useState('')
   const [desc,             setDesc]             = useState('')
+  const [startDate,        setStartDate]        = useState('')
   const [dueDate,          setDueDate]          = useState(initialDate)
   const timeRef                                 = useRef(null)
   const [status,           setStatus]           = useState(columns[0]?.id ?? 'toDo')
@@ -90,6 +91,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       const taskId = await onSave({
         text,
         description:  desc || null,
+        start_date:   startDate || null,
         due_date:     dueDate || null,
         due_time:     timeRef.current?.value || null,
         status,
@@ -236,29 +238,47 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
             </div>
           </div>
 
-          {/* Due date */}
+          {/* Date range */}
           <div className="atp-prop atp-prop--wrap">
-            <span className="atp-prop__label" id="atp-due-label">Due date</span>
+            <span className="atp-prop__label" id="atp-due-label">Date range</span>
             <div className="atp-prop__val" role="group" aria-labelledby="atp-due-label">
+              {/* Quick-picks set the end (due) date */}
               <div className="atp-pill-row">
                 <button type="button" className={`atp-pill${dueDate === today    ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(today)}    aria-pressed={dueDate === today}>Today</button>
                 <button type="button" className={`atp-pill${dueDate === tomorrow ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(tomorrow)} aria-pressed={dueDate === tomorrow}>Tomorrow</button>
                 <button type="button" className={`atp-pill${dueDate === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(nextWeek)} aria-pressed={dueDate === nextWeek}>Next week</button>
-                <button type="button" className={`atp-pill${!dueDate ? ' atp-pill--active' : ''}`} onClick={() => setDueDate('')} aria-pressed={!dueDate}>None</button>
+                <button type="button" className={`atp-pill${!dueDate && !startDate ? ' atp-pill--active' : ''}`} onClick={() => { setDueDate(''); setStartDate('') }} aria-pressed={!dueDate && !startDate}>None</button>
                 {isCustomDate && (
                   <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                     {dayjs(dueDate).format('MMM D')}
                   </span>
                 )}
               </div>
-              <div className="atp-date-row">
-                <input
-                  type="date"
-                  className="due-date-input"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  aria-label="Custom due date"
-                />
+              {/* Start → End date range row */}
+              <div className="atp-date-row atp-date-range-row">
+                <div className="atp-date-range-field">
+                  <label className="atp-date-range-label" htmlFor="atp-start-date">Start</label>
+                  <input
+                    id="atp-start-date"
+                    type="date"
+                    className="due-date-input"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    aria-label="Start date"
+                  />
+                </div>
+                <span className="atp-date-range-sep" aria-hidden="true">→</span>
+                <div className="atp-date-range-field">
+                  <label className="atp-date-range-label" htmlFor="atp-end-date">End</label>
+                  <input
+                    id="atp-end-date"
+                    type="date"
+                    className="due-date-input"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    aria-label="End date"
+                  />
+                </div>
                 <input
                   ref={timeRef}
                   type="time"
@@ -267,12 +287,12 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                   disabled={!dueDate}
                   aria-label="Due time"
                 />
-                {dueDate && (
+                {(startDate || dueDate) && (
                   <button
                     type="button"
                     className="due-date-clear"
-                    onClick={() => setDueDate('')}
-                    aria-label="Clear due date"
+                    onClick={() => { setStartDate(''); setDueDate('') }}
+                    aria-label="Clear dates"
                   >
                     <X size={14} weight="bold" aria-hidden="true" />
                   </button>

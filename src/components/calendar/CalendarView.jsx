@@ -3,6 +3,8 @@ import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import dayjs from 'dayjs'
 import { CaretLeft, CaretRight, Check, X, Funnel, Plus, CalendarBlank, Trash } from '@phosphor-icons/react'
 import { fmtTimeStr } from '../../utils/format'
+import { stripHtml } from '../../utils/text'
+import { priorityMap } from '../../lib/priority'
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -25,7 +27,9 @@ function getChipStyle(task, colorBy) {
 }
 
 // ── EventChip ─────────────────────────────────────────────────────────────────
-function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart, onDragEnd, onContextMenu, onDelete }) {
+function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart, onDragEnd, onContextMenu, onDelete, showDesc }) {
+  const priority    = task.priority ? priorityMap[task.priority] : null
+  const statusLabel = STATUS_LABELS[task.status]
   const s              = getChipStyle(task, colorBy)
   const [arming, setArming] = useState(false)
 
@@ -79,6 +83,21 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
     >
       {task.due_time && <span className="cal-event-time">{fmtTimeStr(task.due_time)}</span>}
       <span className="cal-event-text">{task.text}</span>
+      {showDesc && task.description && (
+        <span className="cal-event-desc">{stripHtml(task.description)}</span>
+      )}
+      {showDesc && (priority || statusLabel) && (
+        <span className="cal-event-meta">
+          {priority && (
+            <span className="cal-event-priority" style={{ '--p-color': priority.color }}>
+              {priority.icon} {priority.name}
+            </span>
+          )}
+          {statusLabel && (
+            <span className="cal-event-status">{statusLabel}</span>
+          )}
+        </span>
+      )}
       {onDelete && (
         <span
           role="button"
@@ -741,6 +760,7 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
                     colorBy={colorBy}
                     onContextMenu={(e, task) => onOpenCtxMenu(e, dateKey, task)}
                     onDelete={onDeleteTask}
+                    showDesc
                   />
                   {rel && (
                     <span className={`cal-agenda-rel cal-agenda-rel--${rel.variant}`}>

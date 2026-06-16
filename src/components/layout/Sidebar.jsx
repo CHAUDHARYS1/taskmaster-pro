@@ -31,7 +31,6 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
     { icon: SquaresFour,   label: 'Dashboard', active: onDashboard, onClick: () => navigate(onDashboard ? '/app' : '/dashboard') },
     { icon: CalendarBlank, label: 'Calendar',  active: onCalendar,  onClick: () => navigate('/calendar') },
     { icon: NotePencil,    label: 'Writes',    active: onWrites,    onClick: () => navigate('/writes') },
-    { icon: Archive,       label: 'Archive',   active: onArchive,   onClick: () => navigate('/archive') },
   ]
 
   return (
@@ -214,39 +213,45 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         {/* ── Footer ── */}
         <div className="sidebar-footer sidebar-footer--collapsible">
 
-          {/* Profile */}
-          {onProfileClick ? (
-            <button
-              className="sidebar-profile-btn"
-              onClick={() => window.innerWidth <= 768 ? navigate('/settings') : onProfileClick()}
-              aria-label={`Settings for ${displayName || user?.email}`}
-              title={collapsed ? (displayName || user?.email) : undefined}
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
-                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                    {(displayName || user?.email || '?')[0].toUpperCase()}
-                  </span>
-              }
-              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
-            </button>
-          ) : (
-            <div
-              className="sidebar-profile-btn sidebar-profile-btn--static"
-              aria-label={`Signed in as ${displayName || user?.email}`}
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
-                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                    {(displayName || user?.email || '?')[0].toUpperCase()}
-                  </span>
-              }
-              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
-            </div>
-          )}
-
-          {/* Sign out */}
+          {/* Profile · Archive · Sign out */}
           <div className="sidebar-footer-row">
+            {onProfileClick ? (
+              <button
+                className="sidebar-profile-btn"
+                onClick={() => window.innerWidth <= 768 ? navigate('/settings') : onProfileClick()}
+                aria-label={`Settings for ${displayName || user?.email}`}
+                title={collapsed ? (displayName || user?.email) : undefined}
+              >
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                      {(displayName || user?.email || '?')[0].toUpperCase()}
+                    </span>
+                }
+                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+              </button>
+            ) : (
+              <div
+                className="sidebar-profile-btn sidebar-profile-btn--static"
+                aria-label={`Signed in as ${displayName || user?.email}`}
+              >
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                      {(displayName || user?.email || '?')[0].toUpperCase()}
+                    </span>
+                }
+                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+              </div>
+            )}
+            <button
+              className={`sidebar-archive-btn${onArchive ? ' sidebar-archive-btn--active' : ''}`}
+              onClick={() => navigate('/archive')}
+              aria-label="Archive"
+              title="Archive"
+            >
+              <Archive size={14} aria-hidden="true" />
+            </button>
             <button
               className="sidebar-signout-btn"
               onClick={signOut}

@@ -73,11 +73,14 @@ export default function WritesPage() {
   const [showSettings,  setShowSettings]  = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
+  const fabRef      = useRef(null)
 
   useEffect(() => {
     if (!showWsPicker) return
     const handler = (e) => {
-      if (wsPickerRef.current && !wsPickerRef.current.contains(e.target)) setShowWsPicker(false)
+      const inList = wsPickerRef.current && wsPickerRef.current.contains(e.target)
+      const inFab  = fabRef.current      && fabRef.current.contains(e.target)
+      if (!inList && !inFab) setShowWsPicker(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -324,6 +327,28 @@ export default function WritesPage() {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+
+            {/* Mobile FAB */}
+            <div className="wr-fab-wrap" ref={fabRef}>
+              <button className="wr-fab" onClick={handleNew} aria-label="New note">
+                <NotePencil size={22} weight="bold" aria-hidden="true" />
+              </button>
+              {showWsPicker && (
+                <div className="wr-ws-picker wr-ws-picker--fab" role="listbox" aria-label="Select workspace">
+                  <div className="wr-ws-picker-label">Create in…</div>
+                  {workspaces.map(ws => (
+                    <button
+                      key={ws.id}
+                      className="wr-ws-picker-item"
+                      role="option"
+                      onClick={() => { setShowWsPicker(false); doCreateDoc(ws.id) }}
+                    >
+                      {ws.name}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
