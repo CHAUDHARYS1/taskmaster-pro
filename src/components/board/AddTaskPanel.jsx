@@ -50,11 +50,26 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
 
+  const isDirty =
+    title.trim() !== '' ||
+    desc.replace(/<[^>]*>/g, '').trim() !== '' ||
+    startDate !== '' ||
+    dueDate !== initialDate ||
+    priority !== null ||
+    assigneeId !== '' ||
+    selectedLabels.length > 0 ||
+    checklistItems.length > 0
+
+  const handleClose = () => {
+    if (isDirty && !window.confirm('Discard this task? Your changes will be lost.')) return
+    onClose()
+  }
+
   useEffect(() => {
-    const onKeyDown = e => { if (e.key === 'Escape') onClose() }
+    const onKeyDown = e => { if (e.key === 'Escape') handleClose() }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [isDirty, onClose])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -122,7 +137,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   return (
     <div
       className="modal-overlay"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div
         className="modal-sheet atp-modal"
@@ -136,7 +151,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         <span className="atp-hdr__label" id="atp-dialog-title">New Task</span>
         <div className="atp-hdr__actions">
           <span className="atp-kbd" aria-hidden="true">⌘↵</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <button className="modal-close" onClick={handleClose} aria-label="Close">
             <X size={16} weight="bold" aria-hidden="true" />
           </button>
         </div>
@@ -429,7 +444,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       {/* ── Footer ──────────────────────────────────────── */}
       <div className="task-panel-ftr">
         <span className="atp-ftr-hint" aria-hidden="true">⌘↵ to save</span>
-        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={handleClose}>Cancel</button>
         <button
           type="submit"
           form="add-task-panel-form"
