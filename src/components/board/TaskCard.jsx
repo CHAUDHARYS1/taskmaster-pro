@@ -1,8 +1,8 @@
-import { memo } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
-import { DotsSix, Check, X, Archive, ChatCircle, CheckSquare, ArrowsClockwise, ArrowLeft, ArrowRight } from '@phosphor-icons/react'
+import { DotsSix, Check, ChatCircle, CheckSquare, ArrowsClockwise, Trash } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -67,6 +67,7 @@ function TaskCard({
   onMove,
   isFirstColumn = false,
   isLastColumn = false,
+  searchQuery = '',
 }) {
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
@@ -89,6 +90,7 @@ function TaskCard({
   }
 
   const handleOpen = () => {
+    if (swipeX !== 0) { setSwipeX(0); return }
     if (isLockedByOther) return
     if (bulkMode) { onBulkToggle?.(task.id); return }
     onOpen(task.id)
@@ -97,6 +99,75 @@ function TaskCard({
   const checklistTotal = task.task_checklist_items?.length ?? 0
   const checklistDone  = task.task_checklist_items?.filter(i => i.checked).length ?? 0
   const commentCount   = Number(task.comments?.[0]?.count ?? 0)
+
+  const isSearchMatch = searchQuery
+    ? (task.text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       task.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : false
+  const isSearchDimmed = !!searchQuery && !isSearchMatch
+
+  // ── Swipe actions (mobile only) ──────────────────────────────────────────
+  const canSwipeDelete = canDelete && !!onDelete && !isOverlay
+  const canSwipeDone   = canEdit && !!onComplete && !isOverlay
+  const swipeEnabled   = canSwipeDelete || canSwipeDone
+
+  const [swipeX, setSwipeX] = useState(0)
+  const touchRef = useRef(null)
+  const dirRef   = useRef(null)
+
+  const L_REVEAL = -56   // left-swipe threshold → snap to delete
+  const L_MAX    = -76   // fully-revealed delete position
+  const R_REVEAL =  56   // right-swipe threshold → snap to done
+  const R_MAX    =  76   // fully-revealed done position
+
+  const handleTouchStart = useCallback((e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    dirRef.current   = null
+  }, [])
+
+  const handleTouchMove = useCallback((e) => {
+    if (!touchRef.current) return
+    const dx = e.touches[0].clientX - touchRef.current.x
+    const dy = e.touches[0].clientY - touchRef.current.y
+    if (!dirRef.current) {
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+      dirRef.current = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'
+    }
+    if (dirRef.current === 'h') {
+      if (dx < 0 && canSwipeDelete) {
+        e.stopPropagation()
+        setSwipeX(Math.max(dx, L_MAX))
+      } else if (dx > 0 && canSwipeDone) {
+        e.stopPropagation()
+        setSwipeX(Math.min(dx, R_MAX))
+      }
+    }
+  }, [canSwipeDelete, canSwipeDone])
+
+  const handleTouchEnd = useCallback(() => {
+    if (dirRef.current === 'h') {
+      setSwipeX(prev => {
+        if (prev < L_REVEAL) return L_MAX
+        if (prev > R_REVEAL) return R_MAX
+        return 0
+      })
+    }
+    touchRef.current = null
+    dirRef.current   = null
+  }, [])
+
+  const handleSwipeDelete = useCallback((e) => {
+    e.stopPropagation()
+    setSwipeX(0)
+    onDelete?.(task.id)
+  }, [onDelete, task.id])
+
+  const handleSwipeDone = useCallback((e) => {
+    e.stopPropagation()
+    setSwipeX(0)
+    onComplete?.(task.id)
+  }, [onComplete, task.id])
+  // ─────────────────────────────────────────────────────────────────────────
 
   const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
 
@@ -113,10 +184,48 @@ function TaskCard({
         isLockedByOther                   ? 'task-card--locked'       : '',
         isSelfEditing                     ? 'task-card--self-editing' : '',
         isSelected                        ? 'task-card--selected'     : '',
+        checklistTotal > 0                ? 'has-checklist-bar'       : '',
+        isSearchDimmed                    ? 'task-card--dimmed'       : '',
+        isSearchMatch                     ? 'task-card--search-match' : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
+      {/* Done zone — revealed by right-swipe, left side of card */}
+      {canSwipeDone && swipeX > 0 && (
+        <button
+          className="task-card-done-zone"
+          onClick={handleSwipeDone}
+          aria-label={task.status === 'done' ? 'Mark as incomplete' : 'Mark as done'}
+          tabIndex={-1}
+        >
+          <Check size={18} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {/* Delete zone — revealed by left-swipe, right side of card */}
+      {canSwipeDelete && swipeX < 0 && (
+        <button
+          className="task-card-delete-zone"
+          onClick={handleSwipeDelete}
+          aria-label="Delete task"
+          tabIndex={-1}
+        >
+          <Trash size={18} weight="bold" aria-hidden="true" />
+        </button>
+      )}
+
+      {/* Sliding content layer */}
+      <div
+        className="task-card-swipe-inner"
+        style={swipeEnabled ? {
+          transform: `translateX(${swipeX}px)`,
+          transition: (swipeX === 0 || swipeX === L_MAX || swipeX === R_MAX) ? 'transform 0.22s ease' : 'none',
+        } : undefined}
+        onTouchStart={swipeEnabled ? handleTouchStart : undefined}
+        onTouchMove={swipeEnabled ? handleTouchMove : undefined}
+        onTouchEnd={swipeEnabled ? handleTouchEnd : undefined}
+      >
       {/* Bulk checkbox OR drag handle */}
       {bulkMode ? (
         <button
@@ -149,43 +258,6 @@ function TaskCard({
         </>
       )}
 
-      {/* Actions cluster — top-right, hover only */}
-      {((canEdit && onComplete && task.status !== 'done' && !isLockedByOther) ||
-        (canEdit && onArchive && !isLockedByOther) ||
-        (canDelete && !isLockedByOther)) && (
-        <div className="task-card-actions" onClick={e => e.stopPropagation()}>
-          {canEdit && onComplete && task.status !== 'done' && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--complete"
-              aria-label="Mark as done"
-              title="Mark as done"
-              onClick={e => { e.stopPropagation(); onComplete(task.id) }}
-            >
-              <Check size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-          {canEdit && onArchive && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--archive"
-              aria-label="Archive task"
-              title="Archive task"
-              onClick={e => { e.stopPropagation(); onArchive(task.id) }}
-            >
-              <Archive size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-          {canDelete && !isLockedByOther && (
-            <button
-              className="task-card-action-btn task-card-action-btn--delete"
-              aria-label="Delete task"
-              title="Delete task"
-              onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-            >
-              <X size={10} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Priority chip */}
       {priorityDef && (
@@ -209,31 +281,6 @@ function TaskCard({
         />
       )}
 
-      {/* Labels */}
-      {task.labels?.length > 0 && (
-        <div className="task-labels">
-          {task.labels.slice(0, isExpanded ? undefined : 3).map(id => {
-            const label = labelMap[id]
-            if (!label) return null
-            const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
-            return (
-              <span
-                key={id}
-                className="label-chip label-chip--sm"
-                style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
-              >
-                {label.name}
-              </span>
-            )
-          })}
-          {!isExpanded && task.labels.length > 3 && (
-            <span className="label-chip label-chip--sm label-chip--overflow">
-              +{task.labels.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Footer metadata row */}
       {hasFooter && (
         <div className="task-card-footer">
@@ -254,6 +301,29 @@ function TaskCard({
                 <span className="task-project-dot" style={{ background: task.project.color }} aria-hidden="true" />
                 {task.project.name}
               </span>
+            )}
+            {task.labels?.length > 0 && (
+              <>
+                {task.labels.slice(0, isExpanded ? undefined : 3).map(id => {
+                  const label = labelMap[id]
+                  if (!label) return null
+                  const rgb = `${parseInt(label.color.slice(1,3),16)},${parseInt(label.color.slice(3,5),16)},${parseInt(label.color.slice(5,7),16)}`
+                  return (
+                    <span
+                      key={id}
+                      className="label-chip label-chip--sm"
+                      style={{ '--label-color': label.color, '--label-bg': `rgba(${rgb},0.12)` }}
+                    >
+                      {label.name}
+                    </span>
+                  )
+                })}
+                {!isExpanded && task.labels.length > 3 && (
+                  <span className="label-chip label-chip--sm label-chip--overflow">
+                    +{task.labels.length - 3}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -311,27 +381,17 @@ function TaskCard({
         </ul>
       )}
 
-      {/* Column move arrows — mobile only, hidden on desktop via CSS */}
-      {onMove && !isOverlay && !bulkMode && (
-        <div className="task-card-move-row">
-          <button
-            className="task-card-move-btn"
-            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'prev') }}
-            aria-label="Move to previous column"
-            disabled={isFirstColumn}
-          >
-            <ArrowLeft size={15} weight="bold" aria-hidden="true" />
-          </button>
-          <button
-            className="task-card-move-btn"
-            onClick={e => { e.stopPropagation(); onMove(task.id, task.status, 'next') }}
-            aria-label="Move to next column"
-            disabled={isLastColumn}
-          >
-            <ArrowRight size={15} weight="bold" aria-hidden="true" />
-          </button>
+      {/* Checklist micro-progress bar — pinned to card's bottom edge */}
+      {checklistTotal > 0 && (
+        <div className="task-checklist-bar" aria-hidden="true">
+          <span
+            className="task-checklist-bar-fill"
+            style={{ width: `${(checklistDone / checklistTotal) * 100}%` }}
+          />
         </div>
       )}
+      </div>{/* end .task-card-swipe-inner */}
+
     </li>
   )
 }
@@ -343,6 +403,7 @@ function due_or_meta(task, isJobTracker, checklistTotal, commentCount) {
   if (checklistTotal > 0) return true
   if (!isJobTracker && task.assignee) return true
   if (task.project) return true
+  if (task.labels?.length > 0) return true
   return false
 }
 

@@ -69,7 +69,7 @@ export default function DevOverlay() {
 
   useEffect(() => {
     function handleKey(e) {
-      if (e.shiftKey && e.key === 'D') {
+      if (e.shiftKey && e.code === 'KeyD') {
         activeRef.current = !activeRef.current
         setActive(activeRef.current)
         if (activeRef.current) {
@@ -79,9 +79,10 @@ export default function DevOverlay() {
         }
       }
     }
-    window.addEventListener('keydown', handleKey)
+    // Capture phase: fires before child elements (e.g. Tiptap/ProseMirror) can stop propagation
+    window.addEventListener('keydown', handleKey, true)
     return () => {
-      window.removeEventListener('keydown', handleKey)
+      window.removeEventListener('keydown', handleKey, true)
       removeLabels()
     }
   }, [])

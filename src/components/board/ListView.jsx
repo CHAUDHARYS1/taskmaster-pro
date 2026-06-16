@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import dayjs from 'dayjs'
-import { Check, X, ArrowSquareOut, CaretDown, CaretUp } from '@phosphor-icons/react'
+import { Check, X, ArrowSquareOut, CaretDown, CaretUp, Archive } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES, priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -56,6 +56,7 @@ export default function ListView({
   canEdit,
   canDelete,
   onDelete,
+  onArchive,
   onOpen,
   onComplete,
   onUpdate,
@@ -472,6 +473,11 @@ export default function ListView({
                     {onOpen && (
                       <button className="lv-act" title="Open details" aria-label="Open details" onClick={() => onOpen(task.id)}>
                         <ArrowSquareOut size={13} />
+                      </button>
+                    )}
+                    {canEdit && !lockedOther && onArchive && (
+                      <button className="lv-act lv-act-archive" title="Archive" aria-label="Archive task" onClick={() => onArchive(task.id)}>
+                        <Archive size={13} />
                       </button>
                     )}
                     {canDelete && !lockedOther && onDelete && (

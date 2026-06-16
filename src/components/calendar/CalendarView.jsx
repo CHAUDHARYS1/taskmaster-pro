@@ -3,6 +3,8 @@ import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import dayjs from 'dayjs'
 import { CaretLeft, CaretRight, Check, X, Funnel, Plus, CalendarBlank, Trash } from '@phosphor-icons/react'
 import { fmtTimeStr } from '../../utils/format'
+import { stripHtml } from '../../utils/text'
+import { priorityMap } from '../../lib/priority'
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -25,7 +27,9 @@ function getChipStyle(task, colorBy) {
 }
 
 // ── EventChip ─────────────────────────────────────────────────────────────────
-function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart, onDragEnd, onContextMenu, onDelete }) {
+function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart, onDragEnd, onContextMenu, onDelete, showDesc }) {
+  const priority    = task.priority ? priorityMap[task.priority] : null
+  const statusLabel = STATUS_LABELS[task.status]
   const s              = getChipStyle(task, colorBy)
   const [arming, setArming] = useState(false)
 
@@ -79,6 +83,21 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
     >
       {task.due_time && <span className="cal-event-time">{fmtTimeStr(task.due_time)}</span>}
       <span className="cal-event-text">{task.text}</span>
+      {showDesc && task.description && (
+        <span className="cal-event-desc">{stripHtml(task.description)}</span>
+      )}
+      {showDesc && (priority || statusLabel) && (
+        <span className="cal-event-meta">
+          {priority && (
+            <span className="cal-event-priority" style={{ '--p-color': priority.color }}>
+              {priority.icon} {priority.name}
+            </span>
+          )}
+          {statusLabel && (
+            <span className="cal-event-status">{statusLabel}</span>
+          )}
+        </span>
+      )}
       {onDelete && (
         <span
           role="button"
@@ -376,6 +395,21 @@ function MiniSidebar({ mainCursor, onDayClick, tasksByDate }) {
           )
         })}
       </div>
+
+      <div className="cal-mini-legend" aria-label="Color legend">
+        <div className="cal-mini-legend-h">Legend</div>
+        {[
+          { label: 'Scheduled',   color: 'var(--accent)' },
+          { label: 'Completed',   color: 'var(--green)'  },
+          { label: 'In Review',   color: 'var(--amber)'  },
+          { label: 'To Do',       color: 'var(--ink-4)'  },
+        ].map(({ label, color }) => (
+          <div key={label} className="cal-mini-legend-item">
+            <span className="cal-mini-legend-sw" style={{ background: color }} aria-hidden="true" />
+            {label}
+          </div>
+        ))}
+      </div>
     </aside>
   )
 }
@@ -646,21 +680,61 @@ function DayView({ cursor, tasksByDate, onTaskClick, addingDay, setAddingDay, pr
 }
 
 // ── AgendaView ────────────────────────────────────────────────────────────────
-function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
-  const today    = dayjs().format('YYYY-MM-DD')
-  const allDates = useMemo(() => Object.keys(tasksByDate).sort(), [tasksByDate])
+function relDayLabel(dateKey, today) {
+  const diff = dayjs(dateKey).diff(dayjs(today).startOf('day'), 'day')
+  if (diff === 0) return { label: 'Today', variant: 'today' }
+  if (diff > 0)  return { label: `In ${diff}d`, variant: 'future' }
+  return null
+}
 
-  if (allDates.length === 0) {
+function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
+  const today       = dayjs().format('YYYY-MM-DD')
+  const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
+  const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
+
+  const allDates = useMemo(() => {
+    const dates = Object.keys(tasksByDate).sort()
+    return upcomingOnly ? dates.filter(d => d >= today) : dates
+  }, [tasksByDate, upcomingOnly, today])
+
+  const hasPast = useMemo(
+    () => Object.keys(tasksByDate).some(d => d < today),
+    [tasksByDate, today]
+  )
+
+  if (allDates.length === 0 && !hasPast) {
     return <p className="cal-day-empty">No tasks with due dates match the current filters.</p>
   }
 
   return (
     <div className="cal-agenda">
+      {hasPast && (
+        <div className="cal-agenda-filter-row">
+          <button
+            type="button"
+            className={`cal-agenda-filter-btn${upcomingOnly ? ' cal-agenda-filter-btn--active' : ''}`}
+            onClick={() => setUpcomingOnly(true)}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            className={`cal-agenda-filter-btn${!upcomingOnly ? ' cal-agenda-filter-btn--active' : ''}`}
+            onClick={() => setUpcomingOnly(false)}
+          >
+            All
+          </button>
+        </div>
+      )}
+      {allDates.length === 0 && (
+        <p className="cal-day-empty">No upcoming tasks with due dates.</p>
+      )}
       {allDates.map(dateKey => {
         const events  = tasksByDate[dateKey]
         const d       = dayjs(dateKey)
         const isPast  = dateKey < today
         const isToday = dateKey === today
+        const rel     = relDayLabel(dateKey, today)
 
         return (
           <div
@@ -669,20 +743,31 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
             onContextMenu={e => { e.preventDefault(); onOpenCtxMenu(e, dateKey, null) }}
           >
             <div className={`cal-agenda-date${isToday ? ' cal-agenda-date--today' : ''}`}>
+              {/* Desktop order: dow → day → mon */}
               <span className="cal-agenda-dow">{d.format('ddd').toUpperCase()}</span>
               <span className="cal-agenda-day">{d.format('D')}</span>
               <span className="cal-agenda-mon">{d.format('MMM YYYY')}</span>
+              {/* Mobile-only: full day name + TODAY badge */}
+              <span className="cal-agenda-dow-full">{d.format('dddd').toUpperCase()}</span>
+              {isToday && <span className="cal-agenda-today-tag">TODAY</span>}
             </div>
             <div className="cal-agenda-events">
               {events.map(t => (
-                <EventChip
-                  key={t.id}
-                  task={t}
-                  onClick={onTaskClick}
-                  colorBy={colorBy}
-                  onContextMenu={(e, task) => onOpenCtxMenu(e, dateKey, task)}
-                  onDelete={onDeleteTask}
-                />
+                <div key={t.id} className="cal-agenda-event-wrap">
+                  <EventChip
+                    task={t}
+                    onClick={onTaskClick}
+                    colorBy={colorBy}
+                    onContextMenu={(e, task) => onOpenCtxMenu(e, dateKey, task)}
+                    onDelete={onDeleteTask}
+                    showDesc
+                  />
+                  {rel && (
+                    <span className={`cal-agenda-rel cal-agenda-rel--${rel.variant}`}>
+                      {rel.label}
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -694,7 +779,7 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
 
 // ── CalendarView (main export) ────────────────────────────────────────────────
 export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [] }) {
-  const [calView,      setCalView]      = useState('month')
+  const [calView,      setCalView]      = useState(() => window.innerWidth <= 768 ? 'agenda' : 'month')
   const [cursor,       setCursor]       = useState(dayjs())
   const [addingDay,    setAddingDay]    = useState(null)
   const [colorBy,      setColorBy]      = useState('status')
@@ -802,6 +887,12 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
 
   return (
     <div className="cal-wrap">
+      {/* ── Mobile header ───────────────────────────────────── */}
+      <div className="cal-mobile-hdr">
+        <h2 className="cal-mobile-month">{cursor.format('MMMM YYYY')}</h2>
+        <p className="cal-mobile-sub">Agenda <span aria-hidden="true">·</span> upcoming</p>
+      </div>
+
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div className="cal-toolbar">
         <div className="cal-toolbar-left">

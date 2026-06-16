@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight, Plus } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -24,6 +24,7 @@ import ListView from './ListView'
 import BulkActionsBar from './BulkActionsBar'
 import { useToast } from '../../contexts/ToastContext'
 import { useNotifications } from '../../contexts/NotificationContext'
+import { BellButton } from '../notifications/NotificationCenter'
 import { useTaskReminders } from '../../hooks/useTaskReminders'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { DEFAULT_COLUMNS } from '../../lib/columns'
@@ -93,7 +94,7 @@ export default function Board() {
   const canDelete = userRole !== 'viewer'   // members can delete individual tasks
   const isOwner   = userRole === 'owner'    // owner-only bulk/workspace ops
 
-  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist } =
+  const { tasksByStatus, loading, error, addTask, reorderTask, deleteTask, archiveTask, updateTask, patchTaskChecklist, removeOptimistic, restoreOptimistic } =
     useTasks(currentWorkspace?.id, currentProject?.id)
 
   const { archiveNow } = useArchive(currentWorkspace?.id)
@@ -117,6 +118,7 @@ export default function Board() {
   const [showWsSettings, setShowWsSettings]     = useState(false)
   const [showMondayModal, setShowMondayModal]   = useState(false)
   const [selectedIds, setSelectedIds]           = useState(new Set())
+  const [mobileLane,  setMobileLane]            = useState(null)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -239,18 +241,14 @@ export default function Board() {
   }, [])
 
   const { search, assigneeId, priority, label, due, project } = filters
-  const hasFilter = !!(search || assigneeId || priority || label || due || project)
+  const hasFilter      = !!(search || assigneeId || priority || label || due || project)
+  const hasOtherFilter = !!(assigneeId || priority || label || due || project)
 
-  const displayByStatus = useMemo(() => {
-    if (!hasFilter) return tasksByStatus
-
+  // Non-search filters only — used for board view so search can dim instead of hide
+  const filteredByStatus = useMemo(() => {
+    if (!hasOtherFilter) return tasksByStatus
     const today = dayjs().startOf('day')
     const applyFilter = tasks => tasks.filter(task => {
-      if (search) {
-        const q = search.toLowerCase()
-        if (!task.text?.toLowerCase().includes(q) &&
-            !task.description?.toLowerCase().includes(q)) return false
-      }
       if (assigneeId && task.assignee_id !== assigneeId) return false
       if (priority   && task.priority !== priority)       return false
       if (label      && !(task.labels ?? []).includes(label)) return false
@@ -264,11 +262,18 @@ export default function Board() {
       }
       return true
     })
+    return Object.fromEntries(Object.entries(tasksByStatus).map(([s, ts]) => [s, applyFilter(ts)]))
+  }, [tasksByStatus, hasOtherFilter, assigneeId, priority, label, due, project])
 
-    return Object.fromEntries(
-      Object.entries(tasksByStatus).map(([status, tasks]) => [status, applyFilter(tasks)])
+  // All filters including search — used for list/calendar/gantt views
+  const displayByStatus = useMemo(() => {
+    if (!search) return filteredByStatus
+    const q = search.toLowerCase()
+    const applySearch = tasks => tasks.filter(t =>
+      t.text?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
     )
-  }, [tasksByStatus, hasFilter, search, assigneeId, priority, label, due, project])
+    return Object.fromEntries(Object.entries(filteredByStatus).map(([s, ts]) => [s, applySearch(ts)]))
+  }, [filteredByStatus, search])
 
   const navigateTask = (dir) => {
     if (!selectedTaskId) return
@@ -312,27 +317,39 @@ export default function Board() {
 
   const handleComplete = useCallback(async (id) => {
     const task = allTasks.find(t => t.id === id)
+    if (!task) return
+    const prevStatus = task.status
     try {
       await updateTask(id, { status: 'done' })
-      toast.success(`"${task?.text ?? 'Task'}" marked as done`)
       playDoneSound()
+      toast.undo(`"${task.text ?? 'Task'}" marked as done`, async () => {
+        try { await updateTask(id, { status: prevStatus }) }
+        catch (err) { toast.error(err.message || 'Failed to undo') }
+      })
     } catch (err) {
       toast.error(err.message || 'Failed to update task')
     }
   }, [allTasks, updateTask, toast, playDoneSound])
 
   const scheduleDelete = useCallback((id, label) => {
+    const task = allTasks.find(t => t.id === id)
+    if (!task) return
+
+    removeOptimistic(id)
+
     const timerId = setTimeout(async () => {
       delete pendingDeletes.current[id]
       try { await deleteTask(id) }
-      catch (err) { toast.error(err.message || 'Failed to delete task') }
+      catch (err) { restoreOptimistic(task); toast.error(err.message || 'Failed to delete task') }
     }, 4000)
+
     pendingDeletes.current[id] = timerId
     toast.undo(`"${label}" deleted`, () => {
       clearTimeout(pendingDeletes.current[id])
       delete pendingDeletes.current[id]
+      restoreOptimistic(task)
     })
-  }, [deleteTask, toast])
+  }, [allTasks, deleteTask, removeOptimistic, restoreOptimistic, toast])
 
   const handleColumnDelete = useCallback((id) => {
     const task = allTasks.find(t => t.id === id)
@@ -645,6 +662,36 @@ ${colData.map(c => `<div class="col">
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} viewMode={viewMode} onViewChange={setViewMode} onShowShortcuts={() => setShowShortcuts(true)} onProfileClick={() => setShowSettings(true)} />
 
       <main id="main-content" className="board-main">
+
+        {/* Mobile app bar — hidden on desktop via CSS */}
+        <div className="mobile-appbar">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setShowSidebar(prev => !prev)}
+            aria-label="Toggle sidebar"
+          >
+            <List size={22} aria-hidden="true" />
+          </button>
+          <div className="mobile-appbar-title">
+            <div className="mobile-appbar-ws">
+              {currentWorkspace && (
+                <span
+                  className="mobile-appbar-sq"
+                  style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                  aria-hidden="true"
+                >
+                  {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span>{currentWorkspace?.name}</span>
+            </div>
+            <div className="mobile-appbar-sub">
+              {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+            </div>
+          </div>
+          <BellButton />
+        </div>
+
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -678,12 +725,12 @@ ${colData.map(c => `<div class="col">
 
             {isOwner && doneCount > 0 && (
               <button
-                className="ws-settings-btn board-archive-done-btn"
+                className="board-archive-done-btn"
                 onClick={handleArchiveDone}
                 aria-label={`Archive ${doneCount} done task${doneCount !== 1 ? 's' : ''}`}
                 title={`Archive done (${doneCount})`}
               >
-                <Archive size={20} aria-hidden="true" />
+                <Archive size={15} aria-hidden="true" />
                 <span className="board-archive-done-badge">{doneCount}</span>
               </button>
             )}
@@ -781,7 +828,27 @@ ${colData.map(c => `<div class="col">
             )}
 
             {viewMode === 'board' ? (
-              <div className="board-columns-wrap">
+              <>
+                {/* ── Mobile lane chip tabs ── */}
+                <div className="mobile-lane-chips" aria-label="Select column">
+                  {columns.map(col => {
+                    const active = (mobileLane ?? columns[0]?.id) === col.id
+                    return (
+                      <button
+                        key={col.id}
+                        className={`mobile-lane-chip${active ? ' mobile-lane-chip--active' : ''}`}
+                        onClick={() => setMobileLane(col.id)}
+                        aria-pressed={active}
+                      >
+                        <span className="mobile-lane-dot" style={{ background: col.color ?? 'var(--accent)' }} aria-hidden="true" />
+                        {col.label}
+                        <span className="mobile-lane-count">{filteredByStatus[col.id]?.length ?? 0}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="board-columns-wrap">
                 <DndContext
                   sensors={sensors}
                   onDragStart={handleDragStart}
@@ -790,27 +857,32 @@ ${colData.map(c => `<div class="col">
                 >
                   <div className="board-columns">
                     {columns.map((col, idx) => (
-                      <Column
+                      <div
                         key={col.id}
-                        column={col}
-                        tasks={displayByStatus[col.id] ?? []}
-                        canEdit={canEdit}
-                        hasFilter={hasFilter}
-                        canDelete={canDelete}
-                        editingMap={displayEditingMap}
-                        showProject={isGlobalBoard}
-                        onDelete={handleColumnDelete}
-                        onArchive={handleColumnArchive}
-                        onOpen={openTaskDetail}
-                        onComplete={handleComplete}
-                        onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
-                        bulkMode={bulkMode}
-                        selectedIds={selectedIds}
-                        onBulkToggle={handleBulkToggle}
-                        onMove={canEdit ? handleMoveTask : undefined}
-                        isFirstColumn={idx === 0}
-                        isLastColumn={idx === columns.length - 1}
-                      />
+                        className={`column-mobile-wrap${(mobileLane ?? columns[0]?.id) === col.id ? ' column-mobile-wrap--active' : ''}`}
+                      >
+                        <Column
+                          column={col}
+                          tasks={filteredByStatus[col.id] ?? []}
+                          canEdit={canEdit}
+                          hasFilter={hasOtherFilter}
+                          canDelete={canDelete}
+                          editingMap={displayEditingMap}
+                          showProject={isGlobalBoard}
+                          onDelete={handleColumnDelete}
+                          onArchive={handleColumnArchive}
+                          onOpen={openTaskDetail}
+                          onComplete={handleComplete}
+                          onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
+                          bulkMode={bulkMode}
+                          selectedIds={selectedIds}
+                          onBulkToggle={handleBulkToggle}
+                          onMove={canEdit ? handleMoveTask : undefined}
+                          isFirstColumn={idx === 0}
+                          isLastColumn={idx === columns.length - 1}
+                          searchQuery={search}
+                        />
+                      </div>
                     ))}
                   </div>
 
@@ -827,6 +899,7 @@ ${colData.map(c => `<div class="col">
                   </DragOverlay>
                 </DndContext>
               </div>
+              </>
             ) : viewMode === 'list' ? (
               <div className="list-view-wrap">
                 <ListView
@@ -866,20 +939,8 @@ ${colData.map(c => `<div class="col">
             ) : null}
           </div>
 
-          {/* Panels sit inside the canvas as flex siblings — not fixed overlays */}
+          {/* Detail panel stays as a flex sibling inside the canvas */}
           <Suspense fallback={null}>
-            {showModal && canEdit && (
-              <AddTaskPanel
-                columns={columns}
-                onClose={() => setShowModal(false)}
-                onSave={async (data) => {
-                  const taskId = await addTask(data)
-                  toast.success('Task added')
-                  return taskId
-                }}
-              />
-            )}
-
             {selectedTask && (
               <TaskDetailPanel
                 task={selectedTask}
@@ -898,6 +959,27 @@ ${colData.map(c => `<div class="col">
           </Suspense>
         </div>
       </main>
+
+      {/* Add task modal — fixed overlay, rendered outside the canvas */}
+      <Suspense fallback={null}>
+        {showModal && canEdit && (
+          <AddTaskPanel
+            columns={columns}
+            onClose={() => setShowModal(false)}
+            onSave={async (data) => {
+              const taskId = await addTask(data)
+              toast.success('Task added')
+              return taskId
+            }}
+          />
+        )}
+      </Suspense>
+
+      {viewMode === 'board' && canEdit && !isGlobalBoard && (
+        <button className="mobile-fab" aria-label="Add task" onClick={openAddPanel}>
+          <Plus size={24} weight="bold" aria-hidden="true" />
+        </button>
+      )}
 
       {bulkMode && (
         <BulkActionsBar

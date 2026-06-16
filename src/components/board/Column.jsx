@@ -1,16 +1,28 @@
 import { memo, useRef, useState } from 'react'
 import { useDroppable, useDndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { ArrowRight } from '@phosphor-icons/react'
+import { ArrowRight, CaretLeft } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn }) {
+function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn, searchQuery }) {
   const { setNodeRef } = useDroppable({ id: column.id })
   const { over }       = useDndContext()
   const isOver         = over?.id === column.id || tasks.some(t => t.id === over?.id)
   const { workspaceTemplate } = useWorkspace()
   const isJobTracker = workspaceTemplate === 'job-tracker'
+
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(`tm_col_collapsed_${column.id}`) === 'true' } catch { return false }
+  })
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try { localStorage.setItem(`tm_col_collapsed_${column.id}`, String(next)) } catch {}
+      return next
+    })
+  }
 
   const [text, setText] = useState('')
   const [desc, setDesc] = useState('')
@@ -63,6 +75,25 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
     else emptyText = (isJobTracker ? JOB_EMPTY[column.id] : null) ?? 'No tasks'
   }
 
+  if (collapsed && window.innerWidth > 768) {
+    return (
+      <div
+        className={`column column--${column.id} column--collapsed`}
+        style={column.color ? { '--col-color': column.color } : undefined}
+        onClick={toggleCollapsed}
+        role="button"
+        aria-label={`Expand ${column.label} column`}
+        tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed() } }}
+      >
+        <div className="column-rail">
+          <span className="column-rail-label">{column.label}</span>
+          <span className="column-count">{tasks.length}</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -71,7 +102,17 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
     >
       <div className="column-header">
         <span className="column-label">{column.label}</span>
-        <span className="column-count">{tasks.length}</span>
+        <div className="column-header-right">
+          <span className="column-count">{tasks.length}</span>
+          <button
+            className="column-collapse-btn"
+            onClick={toggleCollapsed}
+            aria-label={`Collapse ${column.label} column`}
+            title="Collapse column"
+          >
+            <CaretLeft size={13} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {onQuickAdd && canEdit && (
@@ -134,6 +175,7 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
               onMove={onMove}
               isFirstColumn={isFirstColumn}
               isLastColumn={isLastColumn}
+              searchQuery={searchQuery}
             />
           ))}
           {emptyText && (

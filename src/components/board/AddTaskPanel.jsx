@@ -7,7 +7,6 @@ import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
-import { usePanelResize } from '../../hooks/usePanelResize'
 import TiptapEditor from '../ui/TiptapEditor'
 
 const DEFAULT_COLS = [
@@ -30,10 +29,10 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const { currentWorkspace, workspaceTemplate } = useWorkspace()
   const { labels } = useLabelsCtx()
   const { user } = useAuth()
-  const { width, startResize } = usePanelResize()
 
   const [title,            setTitle]            = useState('')
   const [desc,             setDesc]             = useState('')
+  const [startDate,        setStartDate]        = useState('')
   const [dueDate,          setDueDate]          = useState(initialDate)
   const timeRef                                 = useRef(null)
   const [status,           setStatus]           = useState(columns[0]?.id ?? 'toDo')
@@ -47,15 +46,15 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
   const [showChecklist,    setShowChecklist]    = useState(false)
-  const [closing,          setClosing]          = useState(false)
 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
 
-  const handleClose = () => {
-    setClosing(true)
-    setTimeout(onClose, 220)
-  }
+  useEffect(() => {
+    const onKeyDown = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -92,6 +91,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       const taskId = await onSave({
         text,
         description:  desc || null,
+        start_date:   startDate || null,
         due_date:     dueDate || null,
         due_time:     timeRef.current?.value || null,
         status,
@@ -110,7 +110,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           }))
         )
       }
-      handleClose()
+      onClose()
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -120,20 +120,23 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const isCustomDate = dueDate && dueDate !== today && dueDate !== tomorrow && dueDate !== nextWeek
 
   return (
-    <aside
-      className={`task-panel${closing ? ' task-panel--closing' : ''}`}
-      style={{ width: `${Math.min(width, window.innerWidth)}px` }}
-      role="complementary"
-      aria-label="New task"
+    <div
+      className="modal-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="task-panel-resize" onMouseDown={startResize} aria-hidden="true" title="Drag to resize" />
+      <div
+        className="modal-sheet atp-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="atp-dialog-title"
+      >
 
       {/* ── Header ──────────────────────────────────────── */}
       <div className="atp-hdr">
-        <span className="atp-hdr__label">New Task</span>
+        <span className="atp-hdr__label" id="atp-dialog-title">New Task</span>
         <div className="atp-hdr__actions">
           <span className="atp-kbd" aria-hidden="true">⌘↵</span>
-          <button className="modal-close" onClick={handleClose} aria-label="Close panel">
+          <button className="modal-close" onClick={onClose} aria-label="Close">
             <X size={16} weight="bold" aria-hidden="true" />
           </button>
         </div>
@@ -182,7 +185,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         <div className="atp-props" role="group" aria-label="Task properties">
 
           {/* Column */}
-          <div className="atp-prop">
+          <div className="atp-prop atp-prop--wrap">
             <label className="atp-prop__label" htmlFor="atp-status">Column</label>
             <div className="atp-prop__val">
               <select
@@ -193,6 +196,19 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
               >
                 {columns.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
+              <div className="atp-col-pills" role="group" aria-label="Select column">
+                {columns.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`atp-pill${status === c.id ? ' atp-pill--active atp-pill--col-active' : ''}`}
+                    onClick={() => setStatus(c.id)}
+                    aria-pressed={status === c.id}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -222,29 +238,47 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
             </div>
           </div>
 
-          {/* Due date */}
+          {/* Date range */}
           <div className="atp-prop atp-prop--wrap">
-            <span className="atp-prop__label" id="atp-due-label">Due date</span>
+            <span className="atp-prop__label" id="atp-due-label">Date range</span>
             <div className="atp-prop__val" role="group" aria-labelledby="atp-due-label">
+              {/* Quick-picks set the end (due) date */}
               <div className="atp-pill-row">
                 <button type="button" className={`atp-pill${dueDate === today    ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(today)}    aria-pressed={dueDate === today}>Today</button>
                 <button type="button" className={`atp-pill${dueDate === tomorrow ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(tomorrow)} aria-pressed={dueDate === tomorrow}>Tomorrow</button>
                 <button type="button" className={`atp-pill${dueDate === nextWeek ? ' atp-pill--active' : ''}`} onClick={() => setDueDate(nextWeek)} aria-pressed={dueDate === nextWeek}>Next week</button>
-                <button type="button" className={`atp-pill${!dueDate ? ' atp-pill--active' : ''}`} onClick={() => setDueDate('')} aria-pressed={!dueDate}>None</button>
+                <button type="button" className={`atp-pill${!dueDate && !startDate ? ' atp-pill--active' : ''}`} onClick={() => { setDueDate(''); setStartDate('') }} aria-pressed={!dueDate && !startDate}>None</button>
                 {isCustomDate && (
                   <span className="atp-pill atp-pill--active" style={{ '--p-color': 'var(--accent)' }}>
                     {dayjs(dueDate).format('MMM D')}
                   </span>
                 )}
               </div>
-              <div className="atp-date-row">
-                <input
-                  type="date"
-                  className="due-date-input"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  aria-label="Custom due date"
-                />
+              {/* Start → End date range row */}
+              <div className="atp-date-row atp-date-range-row">
+                <div className="atp-date-range-field">
+                  <label className="atp-date-range-label" htmlFor="atp-start-date">Start</label>
+                  <input
+                    id="atp-start-date"
+                    type="date"
+                    className="due-date-input"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    aria-label="Start date"
+                  />
+                </div>
+                <span className="atp-date-range-sep" aria-hidden="true">→</span>
+                <div className="atp-date-range-field">
+                  <label className="atp-date-range-label" htmlFor="atp-end-date">End</label>
+                  <input
+                    id="atp-end-date"
+                    type="date"
+                    className="due-date-input"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    aria-label="End date"
+                  />
+                </div>
                 <input
                   ref={timeRef}
                   type="time"
@@ -253,12 +287,12 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                   disabled={!dueDate}
                   aria-label="Due time"
                 />
-                {dueDate && (
+                {(startDate || dueDate) && (
                   <button
                     type="button"
                     className="due-date-clear"
-                    onClick={() => setDueDate('')}
-                    aria-label="Clear due date"
+                    onClick={() => { setStartDate(''); setDueDate('') }}
+                    aria-label="Clear dates"
                   >
                     <X size={14} weight="bold" aria-hidden="true" />
                   </button>
@@ -269,7 +303,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
 
           {/* Assignee */}
           {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
-            <div className="atp-prop">
+            <div className="atp-prop atp-prop--assignee">
               <label className="atp-prop__label" htmlFor="atp-assignee">Assignee</label>
               <div className="atp-prop__val">
                 <select
@@ -289,7 +323,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
 
           {/* Labels */}
           {labels.length > 0 && (
-            <div className="atp-prop atp-prop--wrap">
+            <div className="atp-prop atp-prop--wrap atp-prop--labels">
               <span className="atp-prop__label" id="atp-labels-label">Labels</span>
               <div className="atp-prop__val" role="group" aria-labelledby="atp-labels-label">
                 <div className="atp-pill-row">
@@ -395,7 +429,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       {/* ── Footer ──────────────────────────────────────── */}
       <div className="task-panel-ftr">
         <span className="atp-ftr-hint" aria-hidden="true">⌘↵ to save</span>
-        <button type="button" className="btn-ghost" onClick={handleClose}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
         <button
           type="submit"
           form="add-task-panel-form"
@@ -405,6 +439,8 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {loading ? 'Saving…' : 'Create Task'}
         </button>
       </div>
-    </aside>
+
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, CaretLeft, CaretRight, Plus, SignOut, Coffee } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, Plus, SignOut, Kanban, ChartPieSlice } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
@@ -31,7 +31,6 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
     { icon: SquaresFour,   label: 'Dashboard', active: onDashboard, onClick: () => navigate(onDashboard ? '/app' : '/dashboard') },
     { icon: CalendarBlank, label: 'Calendar',  active: onCalendar,  onClick: () => navigate('/calendar') },
     { icon: NotePencil,    label: 'Writes',    active: onWrites,    onClick: () => navigate('/writes') },
-    { icon: Archive,       label: 'Archive',   active: onArchive,   onClick: () => navigate('/archive') },
   ]
 
   return (
@@ -64,6 +63,52 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
           <div className="sidebar-logo-bell-collapsed">
             <BellButton />
           </div>
+        </div>
+
+        {/* ── Mobile workspace list ── */}
+        <div className="sidebar-mobile-ws">
+          <span className="sidebar-mobile-ws-label">Workspaces</span>
+          {workspaces.map(ws => {
+            const isPersonal = ws.id === user?.id
+            const isActive   = currentWorkspace?.id === ws.id
+            const name       = isPersonal ? 'My Workspace' : ws.name
+            return (
+              <div key={ws.id} className="sidebar-mobile-ws-group">
+                <button
+                  className={`sidebar-mobile-ws-row${isActive ? ' sidebar-mobile-ws-row--active' : ''}`}
+                  onClick={() => { switchWorkspace(ws); navigate('/app') }}
+                  aria-current={isActive ? 'true' : undefined}
+                >
+                  <span className="sidebar-mobile-ws-avatar" style={{ background: ws.color ?? '#2563EB' }}>
+                    {ws.emoji || ws.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="sidebar-mobile-ws-name">{name}</span>
+                </button>
+
+                {isActive && projects.length > 0 && (
+                  <div className="sidebar-mobile-projects">
+                    <button
+                      className={`sidebar-mobile-project-row${!currentProject ? ' sidebar-mobile-project-row--active' : ''}`}
+                      onClick={() => { switchProject(null); navigate('/app') }}
+                    >
+                      <span className="sidebar-mobile-project-dot sidebar-mobile-project-dot--all" />
+                      <span className="sidebar-mobile-project-name">All Projects</span>
+                    </button>
+                    {projects.map(p => (
+                      <button
+                        key={p.id}
+                        className={`sidebar-mobile-project-row${currentProject?.id === p.id ? ' sidebar-mobile-project-row--active' : ''}`}
+                        onClick={() => { switchProject(p); navigate('/app') }}
+                      >
+                        <span className="sidebar-mobile-project-dot" style={{ background: p.color }} />
+                        <span className="sidebar-mobile-project-name">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* ── Navigation ── */}
@@ -168,50 +213,45 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
         {/* ── Footer ── */}
         <div className="sidebar-footer sidebar-footer--collapsible">
 
-          {/* Profile */}
-          {onProfileClick ? (
-            <button
-              className="sidebar-profile-btn"
-              onClick={onProfileClick}
-              aria-label={`Settings for ${displayName || user?.email}`}
-              title={collapsed ? (displayName || user?.email) : undefined}
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
-                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                    {(displayName || user?.email || '?')[0].toUpperCase()}
-                  </span>
-              }
-              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
-            </button>
-          ) : (
-            <div
-              className="sidebar-profile-btn sidebar-profile-btn--static"
-              aria-label={`Signed in as ${displayName || user?.email}`}
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
-                : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
-                    {(displayName || user?.email || '?')[0].toUpperCase()}
-                  </span>
-              }
-              <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
-            </div>
-          )}
-
-          {/* Coffee + Sign out */}
+          {/* Profile · Archive · Sign out */}
           <div className="sidebar-footer-row">
-            <a
-              href="https://buymeacoffee.com/schaudhary"
-              target="_blank"
-              rel="noreferrer"
-              className="sidebar-coffee-btn"
-              aria-label="Buy me a coffee"
-              title="Buy me a coffee"
+            {onProfileClick ? (
+              <button
+                className="sidebar-profile-btn"
+                onClick={() => window.innerWidth <= 768 ? navigate('/settings') : onProfileClick()}
+                aria-label={`Settings for ${displayName || user?.email}`}
+                title={collapsed ? (displayName || user?.email) : undefined}
+              >
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                      {(displayName || user?.email || '?')[0].toUpperCase()}
+                    </span>
+                }
+                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+              </button>
+            ) : (
+              <div
+                className="sidebar-profile-btn sidebar-profile-btn--static"
+                aria-label={`Signed in as ${displayName || user?.email}`}
+              >
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
+                      {(displayName || user?.email || '?')[0].toUpperCase()}
+                    </span>
+                }
+                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+              </div>
+            )}
+            <button
+              className={`sidebar-archive-btn${onArchive ? ' sidebar-archive-btn--active' : ''}`}
+              onClick={() => navigate('/archive')}
+              aria-label="Archive"
+              title="Archive"
             >
-              <Coffee size={14} weight="bold" aria-hidden="true" />
-              <span className="sidebar-nav-label">Buy me a coffee</span>
-            </a>
+              <Archive size={14} aria-hidden="true" />
+            </button>
             <button
               className="sidebar-signout-btn"
               onClick={signOut}
@@ -232,23 +272,53 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
           </p>
         </div>
 
-        {/* ── Collapse toggle (desktop only) ── */}
+        {/* ── Collapse edge handle (desktop only) ── */}
         {onToggleCollapse && (
           <button
-            className="sidebar-collapse-btn"
+            className="sidebar-edge-handle"
             onClick={onToggleCollapse}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed
-              ? <CaretRight size={12} weight="bold" aria-hidden="true" />
-              : <CaretLeft  size={12} weight="bold" aria-hidden="true" />
-            }
-          </button>
+          />
         )}
       </aside>
 
       {showCreate && <CreateWorkspaceModal onClose={() => setShowCreate(false)} />}
+
+      <nav className="mobile-bottom-nav" aria-label="Main navigation">
+        <button
+          className={`mobile-nav-btn${onDashboard ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/dashboard')}
+          aria-label="Dashboard"
+        >
+          <ChartPieSlice size={22} aria-hidden="true" />
+          <span>Dashboard</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${location.pathname === '/app' || location.pathname.startsWith('/workspace/') ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/app')}
+          aria-label="Board"
+        >
+          <Kanban size={22} aria-hidden="true" />
+          <span>Board</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${onCalendar ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/calendar')}
+          aria-label="Calendar"
+        >
+          <CalendarBlank size={22} aria-hidden="true" />
+          <span>Calendar</span>
+        </button>
+        <button
+          className={`mobile-nav-btn${onWrites ? ' mobile-nav-btn--active' : ''}`}
+          onClick={() => navigate('/writes')}
+          aria-label="Writes"
+        >
+          <NotePencil size={22} aria-hidden="true" />
+          <span>Writes</span>
+        </button>
+      </nav>
     </>
   )
 }

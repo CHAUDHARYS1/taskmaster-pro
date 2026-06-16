@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
+import PricingPage from './pages/PricingPage'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
@@ -25,6 +26,7 @@ const WritesPage      = lazy(() => import('./components/writes/WritesPage'))
 const CalendarPage    = lazy(() => import('./components/calendar/CalendarPage'))
 const ArchivePage        = lazy(() => import('./pages/ArchivePage'))
 const ReleaseNotesPage   = lazy(() => import('./pages/ReleaseNotesPage'))
+const SettingsPage       = lazy(() => import('./pages/SettingsPage'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -67,8 +69,10 @@ export default function App() {
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/archive"           element={<ProtectedRoute><ArchivePage /></ProtectedRoute>} />
             <Route path="/release-notes"     element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
+            <Route path="/settings"          element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="/about"          element={<AboutPage />} />
+            <Route path="/pricing"        element={<PricingPage />} />
             <Route path="/"               element={<LandingPage />} />
             <Route path="*"               element={<Navigate to="/" replace />} />
           </Routes>

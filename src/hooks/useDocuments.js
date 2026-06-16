@@ -9,7 +9,7 @@ export function useDocuments(workspaceId) {
   const fetchDocs = useCallback(async () => {
     let query = supabase
       .from('documents')
-      .select('id, title, created_by, created_at, updated_at')
+      .select('id, title, workspace_id, created_by, created_at, updated_at, preview, pinned')
       .order('updated_at', { ascending: false })
     if (workspaceId) query = query.eq('workspace_id', workspaceId)
     const { data, error } = await query
@@ -31,6 +31,15 @@ export function useDocuments(workspaceId) {
     if (error) throw error
     setDocs(prev => [data, ...prev])
     return data
+  }
+
+  const pinDoc = async (id, pinned) => {
+    const { error } = await supabase
+      .from('documents')
+      .update({ pinned })
+      .eq('id', id)
+    if (error) throw error
+    setDocs(prev => prev.map(d => d.id === id ? { ...d, pinned } : d))
   }
 
   const updateDoc = async (id, updates) => {
@@ -58,5 +67,5 @@ export function useDocuments(workspaceId) {
     return data
   }
 
-  return { docs, loading, error, createDoc, updateDoc, deleteDoc, fetchDocContent }
+  return { docs, loading, error, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc }
 }

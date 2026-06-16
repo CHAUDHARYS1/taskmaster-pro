@@ -2,14 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
 import {
-  TextB, TextItalic, TextStrikethrough,
+  TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export,
+  Export, CheckCircle, CaretDown,
 } from '@phosphor-icons/react'
+import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+
+function stripHtml(html) {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
 function Btn({ onClick, active, label, children, disabled }) {
   return (
@@ -30,17 +37,22 @@ function Divider() {
   return <span className="we-divider" aria-hidden="true" />
 }
 
-export default function WritesEditor({ doc, onSave, onDelete }) {
-  const { toast } = useToast()
-  const [title,      setTitle]      = useState(doc.title)
-  const [saveStatus, setSaveStatus] = useState('saved')
-  const [linkInput,  setLinkInput]  = useState('')
-  const [showLink,   setShowLink]   = useState(false)
-  const [showExport, setShowExport] = useState(false)
+export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace }) {
+  const { toast }      = useToast()
+  const { workspaces } = useWorkspace()
+  const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
+  const [title,       setTitle]       = useState(doc.title)
+  const [saveStatus,  setSaveStatus]  = useState('saved')
+  const [wordCount,   setWordCount]   = useState(0)
+  const [linkInput,   setLinkInput]   = useState('')
+  const [showLink,    setShowLink]    = useState(false)
+  const [showExport,  setShowExport]  = useState(false)
+  const [showWsPick,  setShowWsPick]  = useState(false)
 
   const saveTimer   = useRef(null)
   const titleRef    = useRef(null)
   const exportRef   = useRef(null)
+  const wsPickRef   = useRef(null)
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -49,6 +61,14 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showExport])
+
+  // Close workspace picker on outside click
+  useEffect(() => {
+    if (!showWsPick) return
+    const handler = (e) => { if (wsPickRef.current && !wsPickRef.current.contains(e.target)) setShowWsPick(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showWsPick])
 
   const handleExportPDF = () => {
     setShowExport(false)
@@ -107,7 +127,12 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
     saveTimer.current = setTimeout(async () => {
       setSaveStatus('saving')
       try {
-        await onSave(updates)
+        const payload = { ...updates }
+        if (updates.content !== undefined) {
+          const plain = stripHtml(updates.content)
+          payload.preview = plain.slice(0, 200)
+        }
+        await onSave(payload)
         setSaveStatus('saved')
       } catch {
         setSaveStatus('unsaved')
@@ -115,22 +140,35 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
     }, 1200)
   }, [onSave])
 
+  const countWords = (editor) => {
+    const text = editor.getText().trim()
+    return text ? text.split(/\s+/).length : 0
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Underline,
       Link.configure({ openOnClick: false, autolink: true }),
     ],
     content: doc.content || '',
     onUpdate: ({ editor }) => {
+      setWordCount(countWords(editor))
       schedule({ content: editor.isEmpty ? '' : editor.getHTML() })
     },
   })
 
-  // Sync content when doc changes
+  // Sync content when doc changes, recount words, and backfill missing preview
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
     const incoming = doc.content || ''
     if (editor.getHTML() !== incoming) editor.commands.setContent(incoming, false)
+    setWordCount(countWords(editor))
+    // Populate preview for docs that existed before the preview column was added
+    if (!doc.preview) {
+      const text = editor.getText().trim()
+      if (text) onSave({ preview: text.slice(0, 200) })
+    }
   }, [doc.id, editor])
 
   const handleTitleChange = (e) => {
@@ -159,6 +197,72 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
 
   return (
     <div className="we-wrap">
+      {/* Editor breadcrumb bar */}
+      <div className="wr-ed-bar">
+        <div className="wr-crumb">
+          <div className="wr-crumb-ws-wrap" ref={wsPickRef}>
+            {workspace && <span className="dot" style={{ background: workspace.color ?? 'var(--accent)' }} aria-hidden="true" />}
+            {onChangeWorkspace ? (
+              <button
+                className="wr-crumb-ws-btn"
+                onClick={() => setShowWsPick(v => !v)}
+                aria-label="Change workspace"
+                aria-expanded={showWsPick}
+              >
+                {workspace?.name ?? 'No workspace'}
+                <CaretDown size={10} weight="bold" aria-hidden="true" />
+              </button>
+            ) : (
+              workspace && <span>{workspace.name}</span>
+            )}
+            {showWsPick && (
+              <div className="wr-ws-picker wr-ws-picker--crumb" role="listbox" aria-label="Move to workspace">
+                <div className="wr-ws-picker-label">Move to…</div>
+                {workspaces?.map(ws => (
+                  <button
+                    key={ws.id}
+                    className={`wr-ws-picker-item${ws.id === doc.workspace_id ? ' wr-ws-picker-item--active' : ''}`}
+                    role="option"
+                    aria-selected={ws.id === doc.workspace_id}
+                    onClick={() => { setShowWsPick(false); onChangeWorkspace(ws.id) }}
+                  >
+                    {ws.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {workspace && <span className="sep">›</span>}
+          <strong>Writes</strong>
+        </div>
+        <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
+          <CheckCircle size={13} weight="fill" aria-hidden="true" />
+          Saved
+        </div>
+        <div className="wr-ed-actions">
+          <div className="we-export-wrap" ref={exportRef}>
+            <button
+              className="wr-ed-btn"
+              onClick={() => setShowExport(v => !v)}
+              aria-label="Export document"
+              title="Export"
+            >
+              <Export size={15} aria-hidden="true" />
+            </button>
+            {showExport && (
+              <div className="we-export-menu" role="menu">
+                <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
+                  PDF
+                </button>
+                <button className="we-export-item we-export-item--disabled" role="menuitem" disabled title="Coming soon">
+                  Google Docs <span className="we-export-soon">soon</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Document header */}
       <div className="we-doc-hdr">
         <input
@@ -176,29 +280,6 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
             {saveStatus === 'saving'  && 'Saving…'}
             {saveStatus === 'unsaved' && 'Unsaved'}
           </span>
-
-          <div className="we-export-wrap" ref={exportRef}>
-            <button
-              className="btn-ghost we-export-btn"
-              onClick={() => setShowExport(v => !v)}
-              aria-label="Export document"
-              title="Export"
-            >
-              <Export size={15} aria-hidden="true" />
-              Export
-            </button>
-            {showExport && (
-              <div className="we-export-menu" role="menu">
-                <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>
-                  PDF
-                </button>
-                <button className="we-export-item we-export-item--disabled" role="menuitem" disabled title="Coming soon">
-                  Google Docs <span className="we-export-soon">soon</span>
-                </button>
-              </div>
-            )}
-          </div>
-
           <button
             className="btn-ghost we-delete-btn"
             onClick={onDelete}
@@ -212,13 +293,14 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
 
       {/* Toolbar */}
       <div className="we-toolbar" role="toolbar" aria-label="Formatting">
+        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleUnderline().run()}     active={editor.isActive('underline')}     label="Underline"><TextUnderline size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
+        <Divider />
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })} label="Title (H1)"><TextHOne size={15} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} label="Heading (H2)"><TextHTwo size={15} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} label="Subheading (H3)"><TextHThree size={15} /></Btn>
-        <Divider />
-        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
         <Divider />
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
@@ -257,6 +339,13 @@ export default function WritesEditor({ doc, onSave, onDelete }) {
       {/* Editor body */}
       <div className="we-body">
         <EditorContent editor={editor} className="we-content" />
+      </div>
+
+      {/* Metadata — bottom-right corner */}
+      <div className="wr-meta-bar" aria-label="Document info">
+        <span>{fmtDate(doc.updated_at)}</span>
+        <span className="wr-meta-sep" aria-hidden="true">·</span>
+        <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
     </div>
   )

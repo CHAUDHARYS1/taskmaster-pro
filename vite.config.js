@@ -18,6 +18,11 @@ const copyBrandAssets = {
 
 export default defineConfig({
   plugins: [react(), copyBrandAssets],
+  server: {
+    watch: {
+      ignored: ['**/design-ref/**', '**/design_handoff_taskmaster_redesign/**'],
+    },
+  },
   build: {
     rollupOptions: {
       output: {

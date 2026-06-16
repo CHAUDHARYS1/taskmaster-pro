@@ -13,9 +13,9 @@ dayjs.extend(isoWeek)
 
 const TIME_FILTERS = [
   { id: 'all',   label: 'All time' },
-  { id: 'week',  label: 'This week' },
-  { id: 'month', label: 'This month' },
   { id: 'year',  label: 'This year' },
+  { id: 'month', label: 'This month' },
+  { id: 'week',  label: 'This week' },
 ]
 
 const STATUS_LABELS = {
@@ -23,6 +23,13 @@ const STATUS_LABELS = {
   inProgress: 'In Progress',
   inReview:   'In Review',
   done:       'Done',
+}
+
+const STATUS_COLORS = {
+  toDo:       'var(--ink-3)',
+  inProgress: '#d97706',
+  inReview:   '#0ea5e9',
+  done:       'var(--green)',
 }
 
 function assigneeName(a) {
@@ -51,7 +58,6 @@ function groupByWeek(tasks) {
 }
 
 export default function ArchivePage() {
-  // null = fetch all workspaces (RLS scopes to user's memberships)
   const { archives, loading, restoreTask, deleteArchive } = useArchive(null)
   const { toast } = useToast()
 
@@ -59,7 +65,7 @@ export default function ArchivePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
   const [search,        setSearch]        = useState('')
   const [timeFilter,    setTimeFilter]    = useState('all')
   const [statusFilter,  setStatusFilter]  = useState('all')
@@ -74,30 +80,23 @@ export default function ArchivePage() {
     })
   }
 
-  // Unique workspaces from the archive data
   const workspaceOptions = useMemo(() => {
     const map = new Map()
     for (const t of archives) {
-      if (t.workspace && !map.has(t.workspace_id)) {
-        map.set(t.workspace_id, t.workspace)
-      }
+      if (t.workspace && !map.has(t.workspace_id)) map.set(t.workspace_id, t.workspace)
     }
     return [...map.entries()].map(([id, ws]) => ({ id, name: ws.name }))
   }, [archives])
 
-  // Projects for the selected workspace (or all projects if no workspace selected)
   const projectOptions = useMemo(() => {
     const map = new Map()
     const source = wsFilter ? archives.filter(t => t.workspace_id === wsFilter) : archives
     for (const t of source) {
-      if (t.project && t.project_id && !map.has(t.project_id)) {
-        map.set(t.project_id, t.project)
-      }
+      if (t.project && t.project_id && !map.has(t.project_id)) map.set(t.project_id, t.project)
     }
     return [...map.entries()].map(([id, p]) => ({ id, name: p.name, color: p.color }))
   }, [archives, wsFilter])
 
-  // Available statuses
   const statuses = useMemo(() => {
     const seen = new Set(archives.map(t => t.status))
     return ['all', ...['toDo', 'inProgress', 'inReview', 'done'].filter(s => seen.has(s))]
@@ -156,9 +155,9 @@ export default function ArchivePage() {
       )}
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
-      <main id="main-content" className="board-main">
+      <main id="main-content" className="board-main board-main--archive">
 
-        {/* ── Header ───────────────────────────────────────── */}
+        {/* ── Header ─────────────────────────────────────────── */}
         <div className="board-header">
           <div className="board-header-left">
             <button
@@ -176,96 +175,117 @@ export default function ArchivePage() {
           </div>
         </div>
 
-        {/* ── Filter bar ───────────────────────────────────── */}
-        <div className="archive-page-filters">
+        {/* ── Body ───────────────────────────────────────────── */}
+        <div className="archive-view">
 
-          {/* Search */}
-          <div className="archive-search-wrap">
-            <MagnifyingGlass size={15} className="archive-search-icon" aria-hidden="true" />
-            <input
-              className="archive-search-input"
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search archived tasks…"
-              aria-label="Search archived tasks"
-            />
-            {search && (
-              <button className="archive-search-clear" onClick={() => setSearch('')} aria-label="Clear search">
-                <X size={13} weight="bold" aria-hidden="true" />
-              </button>
-            )}
+          <div className="archive-header">
+            <div>
+              <h2 className="arc-title">Archive</h2>
+              <p className="arc-sub">Completed tasks are kept here — restore or delete anytime.</p>
+            </div>
           </div>
 
-          {/* Workspace select */}
-          {workspaceOptions.length > 1 && (
-            <select
-              className="archive-filter-select"
-              value={wsFilter}
-              onChange={e => { setWsFilter(e.target.value); setProjectFilter('') }}
-              aria-label="Filter by workspace"
-            >
-              <option value="">All workspaces</option>
-              {workspaceOptions.map(ws => (
-                <option key={ws.id} value={ws.id}>{ws.name}</option>
+          {/* Filter bar */}
+          <div className="arc-filters">
+            <div className="arc-search">
+              <i aria-hidden="true">
+                <MagnifyingGlass size={14} />
+              </i>
+              <input
+                type="search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search archived tasks…"
+                aria-label="Search archived tasks"
+              />
+              {search && (
+                <button
+                  style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', display: 'flex' }}
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                >
+                  <X size={12} weight="bold" />
+                </button>
+              )}
+            </div>
+
+            <div className="arc-pillrow">
+              {/* Workspace select */}
+              {workspaceOptions.length > 1 && (
+                <select
+                  style={{ height: 26, padding: '0 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius)', background: 'var(--card)', color: 'var(--ink-2)', fontSize: 'var(--text-sm)', cursor: 'pointer', outline: 'none' }}
+                  value={wsFilter}
+                  onChange={e => { setWsFilter(e.target.value); setProjectFilter('') }}
+                  aria-label="Filter by workspace"
+                >
+                  <option value="">All workspaces</option>
+                  {workspaceOptions.map(ws => (
+                    <option key={ws.id} value={ws.id}>{ws.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Project select */}
+              {projectOptions.length > 1 && (
+                <select
+                  style={{ height: 26, padding: '0 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius)', background: 'var(--card)', color: 'var(--ink-2)', fontSize: 'var(--text-sm)', cursor: 'pointer', outline: 'none' }}
+                  value={projectFilter}
+                  onChange={e => setProjectFilter(e.target.value)}
+                  aria-label="Filter by project"
+                >
+                  <option value="">All projects</option>
+                  {projectOptions.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Time pills */}
+              {TIME_FILTERS.map(f => (
+                <button
+                  key={f.id}
+                  className={`arc-pill${timeFilter === f.id ? ' on' : ''}`}
+                  onClick={() => setTimeFilter(f.id)}
+                  aria-pressed={timeFilter === f.id}
+                >
+                  {f.label}
+                </button>
               ))}
-            </select>
-          )}
 
-          {/* Project select */}
-          {projectOptions.length > 1 && (
-            <select
-              className="archive-filter-select"
-              value={projectFilter}
-              onChange={e => setProjectFilter(e.target.value)}
-              aria-label="Filter by project"
-            >
-              <option value="">All projects</option>
-              {projectOptions.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          )}
+              <span className="arc-divider" aria-hidden="true" />
 
-          {/* Time chips */}
-          <div className="archive-filter-group" role="group" aria-label="Time range">
-            {TIME_FILTERS.map(f => (
-              <button
-                key={f.id}
-                className={`archive-chip${timeFilter === f.id ? ' archive-chip--active' : ''}`}
-                onClick={() => setTimeFilter(f.id)}
-                aria-pressed={timeFilter === f.id}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Status chips */}
-          {statuses.length > 1 && (
-            <div className="archive-filter-group" role="group" aria-label="Filter by status">
+              {/* Status pills */}
               {statuses.map(s => (
                 <button
                   key={s}
-                  className={`archive-chip${statusFilter === s ? ' archive-chip--active' : ''}`}
+                  className={`arc-pill${statusFilter === s ? ' on' : ''}`}
                   onClick={() => setStatusFilter(s)}
                   aria-pressed={statusFilter === s}
                 >
                   {s === 'all' ? 'All statuses' : (STATUS_LABELS[s] ?? s)}
                 </button>
               ))}
+
+              {hasActiveFilter && (
+                <button
+                  className="arc-pill"
+                  onClick={clearFilters}
+                  style={{ color: 'var(--red)', borderColor: 'rgba(185,28,28,0.3)' }}
+                >
+                  <X size={11} weight="bold" aria-hidden="true" /> Clear
+                </button>
+              )}
             </div>
+          </div>
+
+          {archives.length > 0 && (
+            <p className="arc-sub" style={{ marginBottom: 'var(--space-5)' }}>
+              {filtered.length} task{filtered.length !== 1 ? 's' : ''}
+              {filtered.length < archives.length && ` · showing ${filtered.length} of ${archives.length}`}
+            </p>
           )}
 
-          {hasActiveFilter && (
-            <button className="archive-chip archive-chip--clear" onClick={clearFilters}>
-              <X size={12} weight="bold" aria-hidden="true" /> Clear
-            </button>
-          )}
-        </div>
-
-        {/* ── Content ──────────────────────────────────────── */}
-        <div className="archive-page-body">
+          {/* Content */}
           {loading ? (
             <div className="archive-loading">Loading archive…</div>
           ) : groups.length === 0 ? (
@@ -275,75 +295,84 @@ export default function ArchivePage() {
                 {hasActiveFilter ? 'No tasks match your filters.' : 'Nothing archived yet.'}
               </p>
               {hasActiveFilter && (
-                <button className="btn-ghost btn-sm" onClick={clearFilters}>Clear filters</button>
+                <button className="btn-ghost btn-sm" onClick={clearFilters} style={{ marginTop: 'var(--space-2)' }}>
+                  Clear filters
+                </button>
               )}
             </div>
           ) : (
-            <div className="archive-list">
-              <p className="archive-result-count">
-                {filtered.length} task{filtered.length !== 1 ? 's' : ''}
-              </p>
-              {groups.map(group => (
-                <div key={group.key} className="archive-group">
-                  <p className="archive-group-label">{group.label}</p>
-                  <div className="archive-group-list">
-                    {group.tasks.map(task => (
-                      <div key={task.id} className="archive-row">
-                        <div className="archive-row-main">
-                          <span className="archive-row-text">{task.text}</span>
-
-                          {/* Workspace · Project breadcrumb */}
-                          <span className="archive-row-context">
-                            {task.workspace?.name && (
-                              <span className="archive-row-context-ws">{task.workspace.name}</span>
+            groups.map(group => (
+              <div key={group.key} className="arc-group">
+                <div className="arc-group-h">
+                  {group.label}
+                  <span className="arc-gcount">{group.tasks.length}</span>
+                </div>
+                <div className="arc-list">
+                  {group.tasks.map(task => {
+                    const statusColor = STATUS_COLORS[task.status] ?? 'var(--line)'
+                    const statusLabel = STATUS_LABELS[task.status]  ?? task.status
+                    const wsName      = task.workspace?.name
+                    const projName    = task.project?.name
+                    const assignee    = assigneeName(task.assignee)
+                    return (
+                      <div
+                        key={task.id}
+                        className="arc-row"
+                        style={{ '--c': statusColor }}
+                      >
+                        <div className="arc-main">
+                          <div className="arc-t">{task.text}</div>
+                          {(wsName || projName) && (
+                            <div className="arc-crumb">
+                              {wsName  && <span>{wsName}</span>}
+                              {wsName && projName && <span className="sep" aria-hidden="true">›</span>}
+                              {projName && <span>{projName}</span>}
+                            </div>
+                          )}
+                          <div className="arc-meta">
+                            <span className="arc-status">
+                              <span className="dot" style={{ background: statusColor }} />
+                              {statusLabel}
+                            </span>
+                            {task.due_date && (
+                              <>
+                                <span className="mdot">·</span>
+                                <span className="mono">due {dayjs(task.due_date).format('MMM D')}</span>
+                              </>
                             )}
-                            {task.workspace?.name && task.project?.name && (
-                              <span className="archive-row-context-sep" aria-hidden="true">›</span>
+                            {assignee && (
+                              <>
+                                <span className="mdot">·</span>
+                                <span>{assignee}</span>
+                              </>
                             )}
-                            {task.project?.name && (
-                              <span
-                                className="archive-row-context-project"
-                                style={task.project.color ? { '--proj-color': task.project.color } : {}}
-                              >
-                                {task.project.name}
-                              </span>
-                            )}
-                          </span>
-
-                          <span className="archive-row-meta">
-                            {STATUS_LABELS[task.status] ?? task.status}
-                            {task.due_date && ` · due ${dayjs(task.due_date).format('MMM D')}`}
-                            {assigneeName(task.assignee) && ` · ${assigneeName(task.assignee)}`}
-                          </span>
-                          <span className="archive-row-date">
-                            Archived {dayjs(task.archived_at).format('MMM D, YYYY [at] h:mm a')}
-                          </span>
+                            <span className="mdot">·</span>
+                            <span className="mono">Archived {dayjs(task.archived_at).format('MMM D, h:mm a')}</span>
+                          </div>
                         </div>
-                        <div className="archive-row-actions">
+                        <div className="arc-actions">
                           <button
-                            className="archive-action-btn"
+                            className="arc-restore"
                             onClick={() => handleRestore(task)}
-                            title="Restore to To Do"
                             aria-label={`Restore "${task.text}"`}
                           >
-                            <ArrowCounterClockwise size={15} weight="bold" aria-hidden="true" />
+                            <ArrowCounterClockwise size={15} aria-hidden="true" />
                             <span>Restore</span>
                           </button>
                           <button
-                            className="archive-action-btn archive-action-btn--danger"
+                            className="arc-del"
                             onClick={() => handleDelete(task)}
-                            title="Permanently delete"
                             aria-label={`Delete "${task.text}"`}
                           >
-                            <Trash size={15} weight="bold" aria-hidden="true" />
+                            <Trash size={16} aria-hidden="true" />
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
       </main>

@@ -7,6 +7,7 @@ import { useToast } from '../../contexts/ToastContext'
 import Sidebar from '../layout/Sidebar'
 import CalendarView from './CalendarView'
 import PageHint from '../ui/PageHint'
+import { BellButton } from '../notifications/NotificationCenter'
 
 const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
 const SettingsModal   = lazy(() => import('../ui/SettingsModal'))
@@ -147,7 +148,17 @@ export default function CalendarPage() {
       )}
       <Sidebar isOpen={showSidebar} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleSidebar} onProfileClick={() => setShowSettings(true)} />
 
-      <main className="board-main">
+      <main className="board-main board-main--cal">
+        <div className="mobile-appbar">
+          <button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)} aria-label="Toggle sidebar">
+            <List size={22} aria-hidden="true" />
+          </button>
+          <div className="mobile-appbar-title">
+            <div className="mobile-appbar-ws"><span>Calendar</span></div>
+            <div className="mobile-appbar-sub">All workspaces</div>
+          </div>
+          <BellButton />
+        </div>
         <div className="board-header">
           <div className="board-header-left">
             <button

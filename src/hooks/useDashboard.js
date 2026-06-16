@@ -15,12 +15,11 @@ function buildYearHeatmap(completedDates, year) {
   const jan1        = dayjs(`${year}-01-01`)
   const dec31       = dayjs(`${year}-12-31`)
   const today       = dayjs()
-  const endDate     = dec31.isAfter(today) ? today : dec31
   const startSunday = jan1.startOf('week')
 
   const cells = []
   let cursor = startSunday
-  while (!cursor.isAfter(endDate)) {
+  while (!cursor.isAfter(dec31)) {
     const key    = cursor.format('YYYY-MM-DD')
     const inYear = cursor.year() === year
     cells.push({
@@ -28,6 +27,7 @@ function buildYearHeatmap(completedDates, year) {
       count:     inYear ? (countMap[key] ?? 0) : 0,
       dayOfWeek: cursor.day(),
       faded:     !inYear,
+      future:    inYear && cursor.isAfter(today),
     })
     cursor = cursor.add(1, 'day')
   }
@@ -105,10 +105,10 @@ export function useDashboard(year = 2026) {
         allTasks, completedInYear, recentDone, dueSoonRes, velocityDates,
         archivedInYear, archivedVelocity, archivedRecent,
       ] = await Promise.all([
-        // All tasks — status, priority, due_date
+        // All tasks — status, priority, due_date, workspace_id
         supabase
           .from('tasks')
-          .select('id, status, due_date, priority'),
+          .select('id, status, due_date, priority, workspace_id'),
 
         // Tasks completed in the selected year (heatmap + streak)
         supabase
@@ -126,13 +126,12 @@ export function useDashboard(year = 2026) {
           .order('completed_at', { ascending: false })
           .limit(8),
 
-        // Tasks due within the next 7 days (non-done)
+        // Tasks due within the next 7 days (non-done) — include overdue
         supabase
           .from('tasks')
-          .select('id, text, due_date, priority, status')
+          .select('id, text, due_date, priority, status, workspace:workspaces(id, name)')
           .not('status', 'eq', 'done')
           .not('due_date', 'is', null)
-          .gte('due_date', today.format('YYYY-MM-DD'))
           .lte('due_date', sevenDaysOut)
           .order('due_date', { ascending: true })
           .limit(10),
@@ -204,6 +203,15 @@ export function useDashboard(year = 2026) {
         t.status !== 'done' && t.due_date && dayjs(t.due_date).isBefore(today)
       ).length
 
+      // Per-workspace breakdown (active + done counts)
+      const workspaceBreakdown = {}
+      for (const t of tasks) {
+        if (!t.workspace_id) continue
+        if (!workspaceBreakdown[t.workspace_id]) workspaceBreakdown[t.workspace_id] = { active: 0, done: 0 }
+        if (t.status === 'done') workspaceBreakdown[t.workspace_id].done++
+        else workspaceBreakdown[t.workspace_id].active++
+      }
+
       const activeTasks_ = tasks.filter(t => t.status !== 'done')
       const priorityBreakdown = {
         urgent: activeTasks_.filter(t => t.priority === 'urgent').length,
@@ -252,6 +260,7 @@ export function useDashboard(year = 2026) {
         heatmap,
         statusBreakdown,
         priorityBreakdown,
+        workspaceBreakdown,
         recentCompletions: allRecent,
         dueSoon,
         weeklyVelocity,
