@@ -12054,27 +12054,19 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Column: show pill buttons, hide desktop select */
   .atp-prop:has(#tdp-status) .atp-select { display: none; }
 
-  /* Assignee: show avatar + name, hide select */
-  .tdp-assignee-display {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: var(--text-md);
-    font-weight: 500;
-    color: var(--ink);
+  /* Assignee: show native select (opens phone picker), hide read-only display */
+  .tdp-assignee-display { display: none; }
+  .atp-prop:has(#tdp-assignee) .atp-select {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: var(--text-body);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--paper-2);
+    margin: 0;
   }
-  .tdp-assignee-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-  }
-  .atp-prop:has(#tdp-assignee) .atp-select { display: none; }
 
   /* Re-show atp-section inside task panel (add-task block hides all .atp-section) */
   .task-panel .atp-section {
