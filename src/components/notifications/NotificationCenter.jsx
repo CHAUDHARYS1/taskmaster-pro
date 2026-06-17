@@ -228,10 +228,12 @@ function MobileNotifPage() {
   const {
     notifications, unreadCount, closeMobile,
     markRead, markAllRead,
+    preferences, savePreferences,
   } = useNotifications()
   const { workspaces } = useWorkspace()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('all')
+  const [tab,       setTab]       = useState('all')
+  const [showPrefs, setShowPrefs] = useState(false)
 
   const wsMap = useMemo(() => {
     const m = {}
@@ -260,15 +262,31 @@ function MobileNotifPage() {
             <p className="mn-subtitle">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
           </div>
         </div>
-        {unreadCount > 0 && (
-          <button className="mn-mark-all-btn" onClick={markAllRead}>
-            <Checks size={14} aria-hidden="true" />
-            Mark all read
+        <div className="mn-header-actions">
+          {!showPrefs && unreadCount > 0 && (
+            <button className="mn-mark-all-btn" onClick={markAllRead}>
+              <Checks size={14} aria-hidden="true" />
+              Mark all read
+            </button>
+          )}
+          <button
+            className={`mn-prefs-btn${showPrefs ? ' mn-prefs-btn--active' : ''}`}
+            onClick={() => setShowPrefs(p => !p)}
+            aria-label="Notification preferences"
+            title="Preferences"
+          >
+            <Gear size={18} aria-hidden="true" />
           </button>
-        )}
+        </div>
       </header>
 
-      <div className="mn-tabs">
+      {showPrefs ? (
+        <div className="mn-list mn-prefs-wrap">
+          <PreferencesPanel preferences={preferences} onSave={savePreferences} />
+        </div>
+      ) : null}
+
+      <div className="mn-tabs" style={showPrefs ? { display: 'none' } : undefined}>
         <button
           className={`mn-tab${tab === 'all' ? ' mn-tab--active' : ''}`}
           onClick={() => setTab('all')}
@@ -289,7 +307,7 @@ function MobileNotifPage() {
         </button>
       </div>
 
-      <div className="mn-list">
+      <div className="mn-list" style={showPrefs ? { display: 'none' } : undefined}>
         {groups.length === 0 ? (
           <div className="mn-empty">
             <CheckCircle size={52} color="var(--green,#10b981)" weight="light" aria-hidden="true" />
