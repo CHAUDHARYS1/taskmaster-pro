@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   List, NotePencil, BookOpen, Star, Target, Briefcase,
@@ -60,7 +60,22 @@ export default function WritesPage() {
   const navigate     = useNavigate()
   const { currentWorkspace, workspaces } = useWorkspace()
   const { toast }    = useToast()
-  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } = useDocuments(null)
+
+  // Track our own saves so we can ignore the realtime echo of our own writes
+  const lastSaveRef = useRef(0)
+  const [remoteUpdateAvailable, setRemoteUpdateAvailable] = useState(false)
+
+  const handleRemoteDocUpdate = useCallback((updatedDoc) => {
+    if (updatedDoc.id !== docId) return
+    if (Date.now() - lastSaveRef.current < 3000) return // own save echoing back
+    setRemoteUpdateAvailable(true)
+  }, [docId])
+
+  const wsIds = workspaces.map(w => w.id)
+  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } = useDocuments(
+    wsIds.length ? wsIds : null,
+    { onRemoteUpdate: handleRemoteDocUpdate }
+  )
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [search,      setSearch]      = useState('')
@@ -102,6 +117,7 @@ export default function WritesPage() {
 
   useEffect(() => {
     if (!docId) { setCurrentDoc(null); return }
+    setRemoteUpdateAvailable(false)
     setDocLoading(true)
     fetchDocContent(docId)
       .then(setCurrentDoc)
@@ -145,8 +161,22 @@ export default function WritesPage() {
   }
 
   const handleSave = async (updates) => {
+    lastSaveRef.current = Date.now()
     await updateDoc(docId, updates)
     setCurrentDoc(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleReloadContent = async () => {
+    setRemoteUpdateAvailable(false)
+    setDocLoading(true)
+    try {
+      const fresh = await fetchDocContent(docId)
+      setCurrentDoc(fresh)
+    } catch (err) {
+      toast.error(err.message || 'Failed to reload document')
+    } finally {
+      setDocLoading(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -368,6 +398,8 @@ export default function WritesPage() {
                 onSave={handleSave}
                 onDelete={handleDelete}
                 onChangeWorkspace={handleChangeWorkspace}
+                remoteUpdateAvailable={remoteUpdateAvailable}
+                onReloadContent={handleReloadContent}
               />
             ) : (
               <div className="writes-empty-state">

@@ -37,7 +37,7 @@ function Divider() {
   return <span className="we-divider" aria-hidden="true" />
 }
 
-export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace }) {
+export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace, remoteUpdateAvailable, onReloadContent }) {
   const { toast }      = useToast()
   const { workspaces } = useWorkspace()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
@@ -290,6 +290,14 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
           </button>
         </div>
       </div>
+
+      {/* Remote update banner */}
+      {remoteUpdateAvailable && (
+        <div className="we-remote-banner" role="status">
+          <span>A workspace member updated this document.</span>
+          <button className="we-remote-reload" onClick={onReloadContent}>Reload</button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="we-toolbar" role="toolbar" aria-label="Formatting">
