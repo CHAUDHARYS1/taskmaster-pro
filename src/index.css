@@ -12819,15 +12819,26 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Hide save status text (shown in breadcrumb bar instead) */
   .we-hdr-right .we-save-status { display: none; }
 
-  /* Toolbar: single scrollable row — no wrap */
+  /* Toolbar: single scrollable row — no wrap, 44px touch targets */
   .we-toolbar {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: var(--space-2) var(--space-3);
+    padding: 0 var(--space-3);
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    gap: 0;
   }
   .we-toolbar::-webkit-scrollbar { display: none; }
+  .we-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+  }
+  .we-divider {
+    height: 20px;
+    margin: 0 2px;
+  }
+  .we-btn svg { width: 20px; height: 20px; }
 
   /* Editor body + content: full-bleed, no decorative border */
   .we-body { padding: var(--space-3) var(--space-3) 56px; }
