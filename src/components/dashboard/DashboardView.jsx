@@ -92,7 +92,7 @@ function KpiTile({ icon: Icon, iconBg, iconColor, value, label, sub, delta, delt
 
 function ProgressCard({ statusBreakdown, total, completionRate }) {
   if (!total) return (
-    <div className="dash-card col-7">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
@@ -101,7 +101,7 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
   )
 
   return (
-    <div className="dash-card col-7">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
@@ -145,7 +145,7 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
 
 function DueSoonCard({ items }) {
   return (
-    <div className="dash-card col-5">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title">
           <WarningCircle size={14} aria-hidden="true" />
@@ -475,13 +475,17 @@ export default function DashboardView() {
         />
       </div>
 
-      {/* ── Progress + Due soon ───────────────────────── */}
+      {/* ── Progress ──────────────────────────────────── */}
       <div className="dash-grid dash-grid-row">
         <ProgressCard
           statusBreakdown={statusBreakdown}
           total={stats.totalTasks}
           completionRate={completionRate}
         />
+      </div>
+
+      {/* ── Due soon ──────────────────────────────────── */}
+      <div className="dash-grid dash-due-row">
         <DueSoonCard items={dueSoon} />
       </div>
 

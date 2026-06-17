@@ -12416,8 +12416,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Heatmap: too complex for mobile, hide it */
   .dash-heatmap-card { display: none !important; }
 
-  /* Workspace row: move to top on mobile */
-  .dash-ws-row { order: -1; }
+  /* Due soon above workspaces, workspaces above KPIs */
+  .dash-due-row { order: -2; }
+  .dash-ws-row  { order: -1; }
 
   /* Workspace summary */
   .ws-grid { grid-template-columns: repeat(2, 1fr) !important; }
