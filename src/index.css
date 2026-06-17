@@ -3726,6 +3726,60 @@ a:focus-visible,
 .we-content .tiptap strong { font-weight: var(--weight-bold); }
 .we-content .tiptap em { font-style: italic; }
 .we-content .tiptap s { text-decoration: line-through; color: var(--ink-3); }
+.we-content .tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25em;
+  margin: 0.5em 0 0.75em;
+}
+.we-content .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin-bottom: 0.35em;
+}
+.we-content .tiptap ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  line-height: 1;
+}
+.we-content .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 4px;
+  background: var(--card);
+  cursor: pointer;
+  display: block;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+.we-content .tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.we-content .tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+.we-content .tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.we-content .tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
 .we-content .tiptap p.is-editor-empty:first-child::before {
   content: 'Start writing…';
   color: var(--ink-faint);
