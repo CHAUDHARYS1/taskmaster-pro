@@ -3,9 +3,11 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
-  ListBullets, ListNumbers,
+  ListBullets, ListNumbers, CheckSquare,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
   Export, CheckCircle, CaretDown,
@@ -150,6 +152,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       StarterKit,
       Underline,
       Link.configure({ openOnClick: false, autolink: true }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
     content: doc.content || '',
     onUpdate: ({ editor }) => {
@@ -312,6 +316,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <Divider />
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
         <Divider />
         <Btn
