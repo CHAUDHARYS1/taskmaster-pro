@@ -46,6 +46,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
   const [showChecklist,    setShowChecklist]    = useState(false)
+  const [confirmDiscard,   setConfirmDiscard]   = useState(false)
 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
@@ -61,15 +62,19 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
     checklistItems.length > 0
 
   const handleClose = () => {
-    if (isDirty && !window.confirm('Discard this task? Your changes will be lost.')) return
+    if (isDirty) { setConfirmDiscard(true); return }
     onClose()
   }
 
   useEffect(() => {
-    const onKeyDown = e => { if (e.key === 'Escape') handleClose() }
+    const onKeyDown = e => {
+      if (e.key !== 'Escape') return
+      if (confirmDiscard) { setConfirmDiscard(false); return }
+      handleClose()
+    }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [isDirty, onClose])
+  }, [isDirty, onClose, confirmDiscard])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -454,6 +459,30 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {loading ? 'Saving…' : 'Create Task'}
         </button>
       </div>
+
+      {/* ── Discard confirmation ─────────────────────────── */}
+      {confirmDiscard && (
+        <div className="discard-confirm">
+          <div
+            className="discard-confirm__card"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-title"
+            aria-describedby="discard-msg"
+          >
+            <p className="discard-confirm__title" id="discard-title">Discard task?</p>
+            <p className="discard-confirm__msg" id="discard-msg">Your changes will be lost.</p>
+            <div className="discard-confirm__actions">
+              <button className="btn-ghost" autoFocus onClick={() => setConfirmDiscard(false)}>
+                Keep editing
+              </button>
+              <button className="btn-danger" onClick={() => { setConfirmDiscard(false); onClose() }}>
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

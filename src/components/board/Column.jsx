@@ -5,7 +5,7 @@ import { ArrowRight, CaretLeft } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn, searchQuery }) {
+function Column({ column, tasks, columns, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onComplete, onMoveToStatus, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn, searchQuery }) {
   const { setNodeRef } = useDroppable({ id: column.id })
   const { over }       = useDndContext()
   const isOver         = over?.id === column.id || tasks.some(t => t.id === over?.id)
@@ -167,6 +167,8 @@ function Column({ column, tasks, canEdit, canDelete, hasFilter, onDelete, onArch
               onArchive={onArchive}
               onOpen={onOpen}
               onComplete={onComplete}
+              onMoveToStatus={onMoveToStatus}
+              columns={columns}
               editingUser={editingMap?.[task.id] ?? null}
               showProject={showProject}
               bulkMode={bulkMode}

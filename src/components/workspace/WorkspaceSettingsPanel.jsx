@@ -34,7 +34,7 @@ function memberInitial(m) {
 }
 
 export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
-  const { currentWorkspace, autoSave, autoArchiveDays, userRole, columnLabels, workspaceColumns, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
+  const { currentWorkspace, autoArchiveDays, userRole, columnLabels, workspaceColumns, updateWorkspaceSettings, updateColumnLabels, renameWorkspace, deleteWorkspace } = useWorkspace()
   const { user }     = useAuth()
   const { projects, currentProject, removeProject, renameProject } = useProject()
   const { members, inviteMember, removeMember } = useMembers(currentWorkspace?.id)
@@ -43,8 +43,7 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
   const isOwner    = userRole === 'owner'
   const isPersonal = currentWorkspace?.id === user?.id
 
-  const [tab, setTab]       = useState('general')
-  const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState('general')
 
   const [draftName,   setDraftName]   = useState(currentWorkspace?.name ?? '')
   const [nameSaving,  setNameSaving]  = useState(false)
@@ -138,18 +137,6 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
       toast.error(err.message || 'Failed to rename workspace')
     } finally {
       setNameSaving(false)
-    }
-  }
-
-  const handleToggleAutoSave = async () => {
-    setSaving(true)
-    try {
-      await updateWorkspaceSettings(currentWorkspace.id, { auto_save: !autoSave })
-      toast.success(`Auto-save ${!autoSave ? 'enabled' : 'disabled'}`)
-    } catch (err) {
-      toast.error(err.message || 'Failed to update settings')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -406,16 +393,6 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
               <div className="ws-setting-group">
                 <div className="ws-setting-group-hdr">Automation</div>
                 <div className="ws-setting-group-body">
-                  <div className="ws-settings-row">
-                    <div className="ws-settings-info">
-                      <span className="ws-settings-label">Auto-save task edits</span>
-                      <span className="ws-settings-desc">When off, changes require a manual Save.</span>
-                    </div>
-                    <button className={`toggle-btn${autoSave ? ' toggle-btn--on' : ''}`}
-                      onClick={handleToggleAutoSave} disabled={saving || !isOwner}
-                      aria-pressed={autoSave} aria-label="Toggle auto-save" />
-                  </div>
-                  <div className="ws-settings-divider" style={{ margin: '2px 0' }} />
                   <div className="ws-settings-row">
                     <div className="ws-settings-info">
                       <span className="ws-settings-label">Auto-archive done tasks</span>

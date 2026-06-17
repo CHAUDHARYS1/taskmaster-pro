@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
-import { X, ArrowsClockwise, CheckCircle } from '@phosphor-icons/react'
+import { X, ArrowsClockwise } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
@@ -134,7 +134,7 @@ function RecurrencePicker({ value, onChange, hasDueDate }) {
   )
 }
 
-export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, autoSave = true, onUpdate, onChecklistChange, onClose, onArchive }) {
+export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, onUpdate, onChecklistChange, onClose, onArchive }) {
   const navigate = useNavigate()
   const { user, displayName } = useAuth()
   const { notify } = useNotifications()
@@ -167,23 +167,10 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
   const [showManageLabels,   setShowManageLabels]   = useState(false)
   const [newItemText,        setNewItemText]        = useState('')
   const [drawerDocId,        setDrawerDocId]        = useState(null)
-  const [closing,            setClosing]            = useState(false)
-  const [savedKey,           setSavedKey]           = useState(0)
-  const savedTimer = useRef(null)
+  const [closing,        setClosing]        = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
-  const handleUpdate = useCallback((...args) => {
-    onUpdate(...args)
-    clearTimeout(savedTimer.current)
-    setSavedKey(k => k + 1)
-    savedTimer.current = setTimeout(() => setSavedKey(0), 2200)
-  }, [onUpdate])
-
-  useEffect(() => () => clearTimeout(savedTimer.current), [])
-
-  const handleClose = () => {
-    setClosing(true)
-    setTimeout(onClose, 220)
-  }
+  const handleUpdate = useCallback((...args) => onUpdate(...args), [onUpdate])
 
   const commentInputRef = useRef(null)
   const titleRef        = useRef(null)
@@ -209,19 +196,38 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
 
   const titleChanged = title.trim() !== task.text
   const descChanged  = (description || null) !== (toHtml(task.description) || null)
-  const hasPending   = !autoSave && canEdit && (titleChanged || descChanged)
+  const isDirty      = canEdit && (titleChanged || descChanged)
 
-  const saveTitle = () => {
-    const trimmed = title.trim()
-    if (!trimmed) { setTitle(task.text); return }
-    if (autoSave && trimmed !== task.text) handleUpdate(task.id, { text: trimmed })
+  const performClose = () => {
+    setClosing(true)
+    setTimeout(onClose, 220)
   }
 
-  const saveDescription = () => {
-    const newVal = description || null
-    if (autoSave && newVal !== (toHtml(task.description) || null)) {
-      handleUpdate(task.id, { description: newVal })
+  const handleClose = () => {
+    if (isDirty) { setConfirmDiscard(true); return }
+    performClose()
+  }
+
+  // Intercept Escape before Board's global handler so we can gate on dirty state.
+  useEffect(() => {
+    const onKeyDown = e => {
+      if (e.key !== 'Escape') return
+      if (confirmDiscard) {
+        e.stopImmediatePropagation()
+        setConfirmDiscard(false)
+        return
+      }
+      if (isDirty) {
+        e.stopImmediatePropagation()
+        setConfirmDiscard(true)
+      }
     }
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
+  }, [isDirty, confirmDiscard])
+
+  const resetTitleIfEmpty = () => {
+    if (!title.trim()) setTitle(task.text)
   }
 
   const handleSave = () => {
@@ -231,7 +237,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
     const d = description || null
     if (d !== (toHtml(task.description) || null)) updates.description = d
     if (Object.keys(updates).length) handleUpdate(task.id, updates)
-    handleClose()
+    performClose()
   }
 
   const handleAddComment = async (e) => {
@@ -307,12 +313,6 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
         <div className="atp-hdr">
           <span className="atp-hdr__label">Task</span>
           <div className="atp-hdr__actions">
-            {autoSave && savedKey > 0 && (
-              <span key={savedKey} className="atp-saved" aria-live="polite">
-                <CheckCircle size={12} weight="fill" aria-hidden="true" />
-                Saved
-              </span>
-            )}
             <button className="modal-close" onClick={handleClose} aria-label="Close panel">
               <X size={16} weight="bold" aria-hidden="true" />
             </button>
@@ -331,7 +331,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
               className="atp-title"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              onBlur={saveTitle}
+              onBlur={resetTitleIfEmpty}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.blur() } }}
               aria-label="Task title"
               rows={1}
@@ -346,7 +346,6 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             <TiptapEditor
               content={description}
               onChange={setDescription}
-              onBlur={saveDescription}
               editable={canEdit}
             />
           </div>
@@ -886,9 +885,35 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
 
         </div>{/* /atp-body */}
 
-        {hasPending && (
+        {isDirty && (
           <div className="task-panel-ftr">
             <button className="btn-primary task-panel-save-btn" onClick={handleSave}>Save</button>
+          </div>
+        )}
+
+        {confirmDiscard && (
+          <div className="discard-confirm">
+            <div
+              className="discard-confirm__card"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="discard-title"
+              aria-describedby="discard-msg"
+            >
+              <p className="discard-confirm__title" id="discard-title">Unsaved changes</p>
+              <p className="discard-confirm__msg" id="discard-msg">You have unsaved changes to this task.</p>
+              <div className="discard-confirm__actions">
+                <button className="btn-ghost" autoFocus onClick={() => setConfirmDiscard(false)}>
+                  Keep editing
+                </button>
+                <button className="btn-danger" onClick={() => { setConfirmDiscard(false); performClose() }}>
+                  Discard
+                </button>
+                <button className="btn-primary" onClick={() => { setConfirmDiscard(false); handleSave() }}>
+                  Save & close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </aside>

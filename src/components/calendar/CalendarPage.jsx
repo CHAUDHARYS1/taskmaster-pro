@@ -211,7 +211,6 @@ export default function CalendarPage() {
           <TaskDetailPanel
             task={selectedTask}
             canEdit
-            autoSave
             onUpdate={handleUpdateTask}
             onClose={() => setSelectedTask(null)}
           />
