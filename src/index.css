@@ -4088,13 +4088,23 @@ a:focus-visible,
 
 /* task-card-top removed — priority is now the left border stripe */
 
+/* Title + priority chip row */
+.task-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.task-card-title-row .task-text {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Priority chip on task cards */
 .task-priority-chip {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 3px;
   font-size: 10px;
   font-weight: var(--weight-bold);
@@ -4104,6 +4114,7 @@ a:focus-visible,
   padding: 1px 5px 1px 4px;
   border-radius: 3px;
   pointer-events: none;
+  margin-top: 2px;
 }
 
 /* task-priority-badge kept for the detail panel */

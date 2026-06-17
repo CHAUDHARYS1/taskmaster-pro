@@ -300,19 +300,19 @@ function TaskCard({
       )}
 
 
-      {/* Priority chip */}
-      {priorityDef && (
-        <span
-          className="task-priority-chip"
-          style={{ '--p-color': priorityDef.color }}
-        >
-          <span aria-hidden="true">{priorityDef.icon}</span>
-          {priorityDef.name}
-        </span>
-      )}
-
-      {/* Title */}
-      <p className="task-text">{task.text}</p>
+      {/* Title + priority chip in a flex row so the chip never overlaps the title */}
+      <div className="task-card-title-row">
+        <p className="task-text">{task.text}</p>
+        {priorityDef && (
+          <span
+            className="task-priority-chip"
+            style={{ '--p-color': priorityDef.color }}
+          >
+            <span aria-hidden="true">{priorityDef.icon}</span>
+            {priorityDef.name}
+          </span>
+        )}
+      </div>
 
       {/* Description preview — 2-line clamp */}
       {task.description && (
