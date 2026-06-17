@@ -11706,6 +11706,11 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .notif-close-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── Mobile notification full-screen page ── */
+@keyframes mn-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 .mn-page {
   position: fixed;
   inset: 0;
@@ -11716,7 +11721,10 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   overflow: hidden;
 }
 @media (max-width: 768px) {
-  .mn-page { display: flex; }
+  .mn-page {
+    display: flex;
+    animation: mn-slide-in 0.28s var(--ease-enter, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
 }
 
 .mn-header {
