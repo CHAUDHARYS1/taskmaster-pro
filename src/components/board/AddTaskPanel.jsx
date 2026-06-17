@@ -46,15 +46,35 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
   const [showChecklist,    setShowChecklist]    = useState(false)
+  const [confirmDiscard,   setConfirmDiscard]   = useState(false)
 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
 
+  const isDirty =
+    title.trim() !== '' ||
+    desc.replace(/<[^>]*>/g, '').trim() !== '' ||
+    startDate !== '' ||
+    dueDate !== initialDate ||
+    priority !== null ||
+    assigneeId !== '' ||
+    selectedLabels.length > 0 ||
+    checklistItems.length > 0
+
+  const handleClose = () => {
+    if (isDirty) { setConfirmDiscard(true); return }
+    onClose()
+  }
+
   useEffect(() => {
-    const onKeyDown = e => { if (e.key === 'Escape') onClose() }
+    const onKeyDown = e => {
+      if (e.key !== 'Escape') return
+      if (confirmDiscard) { setConfirmDiscard(false); return }
+      handleClose()
+    }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [isDirty, onClose, confirmDiscard])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -122,7 +142,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   return (
     <div
       className="modal-overlay"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div
         className="modal-sheet atp-modal"
@@ -136,7 +156,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         <span className="atp-hdr__label" id="atp-dialog-title">New Task</span>
         <div className="atp-hdr__actions">
           <span className="atp-kbd" aria-hidden="true">⌘↵</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <button className="modal-close" onClick={handleClose} aria-label="Close">
             <X size={16} weight="bold" aria-hidden="true" />
           </button>
         </div>
@@ -429,7 +449,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       {/* ── Footer ──────────────────────────────────────── */}
       <div className="task-panel-ftr">
         <span className="atp-ftr-hint" aria-hidden="true">⌘↵ to save</span>
-        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={handleClose}>Cancel</button>
         <button
           type="submit"
           form="add-task-panel-form"
@@ -439,6 +459,30 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {loading ? 'Saving…' : 'Create Task'}
         </button>
       </div>
+
+      {/* ── Discard confirmation ─────────────────────────── */}
+      {confirmDiscard && (
+        <div className="discard-confirm">
+          <div
+            className="discard-confirm__card"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-title"
+            aria-describedby="discard-msg"
+          >
+            <p className="discard-confirm__title" id="discard-title">Discard task?</p>
+            <p className="discard-confirm__msg" id="discard-msg">Your changes will be lost.</p>
+            <div className="discard-confirm__actions">
+              <button className="btn-ghost" autoFocus onClick={() => setConfirmDiscard(false)}>
+                Keep editing
+              </button>
+              <button className="btn-danger" onClick={() => { setConfirmDiscard(false); onClose() }}>
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

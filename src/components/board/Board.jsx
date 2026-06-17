@@ -76,7 +76,7 @@ function ColumnMoveToast({ event, columns, onDone }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
+  const { currentWorkspace, userRole, loading: wsLoading, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user, profile, displayName, prefs } = useAuth()
   const { toggle: toggleTheme } = useTheme()
@@ -574,6 +574,10 @@ export default function Board() {
     }
   }
 
+  const handleMoveToStatus = useCallback((taskId, statusId) => {
+    return updateTask(taskId, { status: statusId })
+  }, [updateTask])
+
   const handleMoveTask = useCallback((taskId, currentStatus, direction) => {
     const colIdx = columns.findIndex(c => c.id === currentStatus)
     const newColIdx = direction === 'next' ? colIdx + 1 : colIdx - 1
@@ -863,6 +867,7 @@ ${colData.map(c => `<div class="col">
                       >
                         <Column
                           column={col}
+                          columns={columns}
                           tasks={filteredByStatus[col.id] ?? []}
                           canEdit={canEdit}
                           hasFilter={hasOtherFilter}
@@ -873,6 +878,7 @@ ${colData.map(c => `<div class="col">
                           onArchive={handleColumnArchive}
                           onOpen={openTaskDetail}
                           onComplete={handleComplete}
+                          onMoveToStatus={canEdit ? handleMoveToStatus : undefined}
                           onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
                           bulkMode={bulkMode}
                           selectedIds={selectedIds}
@@ -946,7 +952,6 @@ ${colData.map(c => `<div class="col">
                 task={selectedTask}
                 columns={columns}
                 canEdit={canEdit}
-                autoSave={autoSave}
                 onUpdate={(id, changes) => {
                   if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
                   return updateTask(id, changes)
