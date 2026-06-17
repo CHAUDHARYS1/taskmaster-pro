@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft,
+  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
@@ -351,7 +351,7 @@ export default function WritesPage() {
             {/* Mobile FAB */}
             <div className="wr-fab-wrap" ref={fabRef}>
               <button className="wr-fab" onClick={handleNew} aria-label="New note">
-                <NotePencil size={22} weight="bold" aria-hidden="true" />
+                <Plus size={26} weight="bold" aria-hidden="true" />
               </button>
               {showWsPicker && (
                 <div className="wr-ws-picker wr-ws-picker--fab" role="listbox" aria-label="Select workspace">
