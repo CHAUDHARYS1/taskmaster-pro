@@ -12654,12 +12654,13 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     flex: none;
   }
 
-  /* Let wr-notes overflow naturally for scroll */
+  /* Let wr-notes overflow naturally; side padding so cards float on bg */
   .wr-notes {
     overflow: visible !important;
     flex: none;
-    padding: 0 0 var(--space-4);
+    padding: 6px 14px 80px;
   }
+  .wr-ws-group { gap: 10px; }
 
   /* "Writes" big heading */
   .wr-mobile-title {
@@ -12672,21 +12673,25 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     margin: 0;
   }
 
-  /* Search + New (stacked column, same on mobile) */
+  /* Search + New */
   .wr-list-head {
-    padding: 4px 16px 12px;
+    padding: 4px 14px 10px;
     border-bottom: none;
     gap: var(--space-2);
   }
+  .wr-search {
+    margin-top: 20px;
+  }
   .wr-search input {
-    height: 40px;
+    height: 44px;
     font-size: var(--text-body);
     border-radius: var(--radius);
+    border-color: transparent;
+    background: var(--card);
+    padding-left: 38px;
   }
+  .wr-search i { left: 14px; }
   .wr-new-wrap { display: none; }
-
-  .wr-search input { background: var(--card); }
-  .wr-note { padding-left: 15px; padding-right: 15px; }
 
   /* FAB */
   .wr-fab-wrap {
@@ -12700,8 +12705,8 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: var(--accent);
     color: #fff;
@@ -12719,22 +12724,24 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     left: auto;
   }
 
-  /* Section labels */
+  /* Section labels — aligned with card left edge */
   .wr-sec {
-    padding: 16px 20px 4px;
+    padding: 12px 4px 6px;
     font-size: 11px;
     letter-spacing: 0.1em;
     margin-top: 0;
   }
 
-  /* Note cards: larger, full-width rows */
+  /* Note cards: white floating cards with shadow */
   .wr-note {
-    padding: 14px 20px;
+    padding: 16px;
     border-radius: 0;
-    border-bottom: 1px solid var(--line-soft);
+    border-bottom: none;
+    background: var(--card);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05);
   }
   .wr-note:last-child { border-bottom: none; }
-  .wr-note.on { background: none; }
+  .wr-note.on { background: var(--card); }
   .wr-note.on::before { display: none; }
 
   .wr-note-top { margin-bottom: 6px; }
@@ -12754,7 +12761,17 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .wr-pin-ico { display: none; }
+  .wr-pin-ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px -10px -10px 0;
+    border: none;
+    background: none;
+    padding: 0;
+  }
 
   /* Show workspace name in item meta on mobile */
   .wr-note-meta-ws,
