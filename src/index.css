@@ -12365,8 +12365,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 @media (max-width: 768px) {
   .dashboard { padding: 14px; }
 
-  /* Header */
+  /* Header: order -2 keeps it above the workspace row (order -1) */
   .dash-head {
+    order: -2;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-1);
