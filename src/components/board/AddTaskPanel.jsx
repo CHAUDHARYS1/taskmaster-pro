@@ -21,7 +21,7 @@ function memberDisplayName(m) {
   return full || m.email?.split('@')[0] || m.email
 }
 
-export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, initialDate = '' }) {
+export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, onChecklistCreate, initialDate = '' }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
@@ -120,7 +120,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         labels:       selectedLabels,
       })
       if (taskId && checklistItems.length > 0) {
-        await supabase.from('task_checklist_items').insert(
+        const { data: inserted } = await supabase.from('task_checklist_items').insert(
           checklistItems.map((item, i) => ({
             task_id:    taskId,
             text:       item.text,
@@ -128,7 +128,8 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
             position:   (i + 1) * 1000,
             created_by: user.id,
           }))
-        )
+        ).select()
+        if (inserted) onChecklistCreate?.(taskId, inserted)
       }
       onClose()
     } catch (err) {

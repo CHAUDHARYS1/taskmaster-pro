@@ -976,6 +976,7 @@ ${colData.map(c => `<div class="col">
               toast.success('Task added')
               return taskId
             }}
+            onChecklistCreate={(taskId, items) => patchTaskChecklist(taskId, () => items)}
           />
         )}
       </Suspense>
