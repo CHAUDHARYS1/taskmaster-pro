@@ -15,6 +15,80 @@ import {
 import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useMembers } from '../../hooks/useMembers'
+import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
+
+const MAX_AVATARS = 4
+
+function initials(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  const name = full || m.email?.split('@')[0] || '?'
+  const parts = name.trim().split(/\s+/)
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+}
+
+function displayName(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  return full || m.email?.split('@')[0] || 'Unknown'
+}
+
+function DocAccessAvatars({ workspaceId }) {
+  const { user } = useAuth()
+  const { members } = useMembers(workspaceId)
+  const [openId, setOpenId] = useState(null)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!openId) return
+    const close = (e) => { if (!wrapRef.current?.contains(e.target)) setOpenId(null) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [openId])
+
+  if (!members.length) return null
+
+  const visible  = members.slice(0, MAX_AVATARS)
+  const overflow = members.length - MAX_AVATARS
+
+  return (
+    <div className="we-access-avatars" ref={wrapRef} aria-label="People with access">
+      {visible.map(m => {
+        const isSelf = m.user_id === user?.id
+        const isOpen = openId === m.user_id
+        return (
+          <div key={m.user_id} className="we-access-avatar-wrap">
+            <button
+              className="we-access-avatar"
+              style={{ background: userColor(m.user_id) }}
+              onClick={() => setOpenId(isOpen ? null : m.user_id)}
+              aria-label={displayName(m)}
+              aria-expanded={isOpen}
+            >
+              {initials(m)}
+            </button>
+            {isOpen && (
+              <div className="we-access-tooltip" role="tooltip">
+                <span className="we-access-tooltip-name">
+                  {displayName(m)}{isSelf && <span className="we-access-you"> (you)</span>}
+                </span>
+                <span className="we-access-tooltip-email">{m.email}</span>
+                <span className="we-access-tooltip-role">{m.role}</span>
+              </div>
+            )}
+          </div>
+        )
+      })}
+      {overflow > 0 && (
+        <div className="we-access-avatar we-access-avatar--overflow" aria-label={`${overflow} more`}>
+          +{overflow}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -239,6 +313,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           {workspace && <span className="sep">›</span>}
           <strong>Writes</strong>
         </div>
+        <DocAccessAvatars workspaceId={doc.workspace_id} />
         <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved
