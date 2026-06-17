@@ -44,7 +44,7 @@ function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
     if (delta < -40) { expanded ? setExpanded(false) : onClose() }
   }
 
-  const height = expanded ? '80dvh' : '50dvh'
+  const height = expanded ? '100dvh' : '50dvh'
 
   return (
     <>
