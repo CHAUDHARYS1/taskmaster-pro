@@ -39,10 +39,10 @@ export default function DashboardPage() {
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws">
-              <span>Dashboard</span>
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">Dashboard</div>
+              <div className="mobile-appbar-ws"><span>All workspaces</span></div>
             </div>
-            <div className="mobile-appbar-sub">All workspaces</div>
           </div>
           <BellButton />
         </div>

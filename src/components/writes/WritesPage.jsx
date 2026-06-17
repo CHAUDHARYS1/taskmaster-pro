@@ -461,8 +461,10 @@ export default function WritesPage() {
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws"><span>Writes</span></div>
-            <div className="mobile-appbar-sub">{currentWorkspace?.name ?? 'My Workspace'}</div>
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">Writes</div>
+              <div className="mobile-appbar-ws"><span>{currentWorkspace?.name ?? 'My Workspace'}</span></div>
+            </div>
           </div>
           <BellButton />
         </div>

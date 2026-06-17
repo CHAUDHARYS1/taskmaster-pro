@@ -154,8 +154,10 @@ export default function CalendarPage() {
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws"><span>Calendar</span></div>
-            <div className="mobile-appbar-sub">All workspaces</div>
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">Calendar</div>
+              <div className="mobile-appbar-ws"><span>All workspaces</span></div>
+            </div>
           </div>
           <BellButton />
         </div>

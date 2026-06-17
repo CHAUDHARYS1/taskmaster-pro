@@ -677,20 +677,20 @@ ${colData.map(c => `<div class="col">
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws">
-              {currentWorkspace && (
-                <span
-                  className="mobile-appbar-sq"
-                  style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
-                  aria-hidden="true"
-                >
-                  {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <span>{currentWorkspace?.name}</span>
-            </div>
-            <div className="mobile-appbar-sub">
-              {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+            {currentWorkspace && (
+              <span
+                className="mobile-appbar-sq"
+                style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                aria-hidden="true"
+              >
+                {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">
+                {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+              </div>
+              <div className="mobile-appbar-ws"><span>{currentWorkspace?.name}</span></div>
             </div>
           </div>
           <BellButton />
