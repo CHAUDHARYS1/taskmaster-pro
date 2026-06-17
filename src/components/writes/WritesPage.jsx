@@ -30,36 +30,79 @@ function timeAgo(dateStr) {
 
 function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
   const ws = wsMap[doc.workspace_id]
-  const [expanded, setExpanded] = useState(false)
-  const touchStartY = useRef(null)
+  const [expanded,    setExpanded]    = useState(false)
+  const [liveHeight,  setLiveHeight]  = useState(null)
+  const sheetRef   = useRef(null)
+  const handleRef  = useRef(null)
+  const expandedRef = useRef(false)
+  const drag = useRef(null)
 
-  const onHandleTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY
-  }
-  const onHandleTouchEnd = (e) => {
-    if (touchStartY.current === null) return
-    const delta = touchStartY.current - e.changedTouches[0].clientY
-    touchStartY.current = null
-    if (delta > 40) { setExpanded(true); return }
-    if (delta < -40) { expanded ? setExpanded(false) : onClose() }
-  }
+  useEffect(() => { expandedRef.current = expanded }, [expanded])
 
-  const height = expanded ? '100dvh' : '50dvh'
+  useEffect(() => {
+    const handle = handleRef.current
+    if (!handle) return
+
+    const onStart = (e) => {
+      const t = e.touches[0]
+      drag.current = {
+        startY: t.clientY,
+        startH: sheetRef.current?.offsetHeight ?? window.innerHeight * 0.5,
+        lastY:  t.clientY,
+        lastT:  Date.now(),
+      }
+    }
+
+    const onMove = (e) => {
+      e.preventDefault()
+      if (!drag.current) return
+      const t = e.touches[0]
+      const delta = drag.current.startY - t.clientY
+      const newH = Math.max(120, Math.min(window.innerHeight, drag.current.startH + delta))
+      drag.current.lastY = t.clientY
+      drag.current.lastT = Date.now()
+      setLiveHeight(newH)
+    }
+
+    const onEnd = (e) => {
+      if (!drag.current) return
+      const endY    = e.changedTouches[0].clientY
+      const elapsed = Date.now() - drag.current.lastT
+      const velocity = elapsed > 0 ? (drag.current.lastY - endY) / elapsed : 0
+      const currentH = sheetRef.current?.offsetHeight ?? drag.current.startH
+      drag.current = null
+      setLiveHeight(null)
+
+      if (velocity > 0.4 || currentH > window.innerHeight * 0.65) {
+        setExpanded(true)
+      } else if (velocity < -0.4 || currentH < window.innerHeight * 0.3) {
+        expandedRef.current ? setExpanded(false) : onClose()
+      }
+    }
+
+    handle.addEventListener('touchstart', onStart, { passive: true })
+    handle.addEventListener('touchmove',  onMove,  { passive: false })
+    handle.addEventListener('touchend',   onEnd,   { passive: true })
+    return () => {
+      handle.removeEventListener('touchstart', onStart)
+      handle.removeEventListener('touchmove',  onMove)
+      handle.removeEventListener('touchend',   onEnd)
+    }
+  }, [onClose])
+
+  const height     = liveHeight != null ? `${liveHeight}px` : expanded ? '100dvh' : '50dvh'
+  const transition = liveHeight != null ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
 
   return (
     <>
       <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div
+        ref={sheetRef}
         className="doc-sheet"
-        style={{ height, transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)' }}
+        style={{ height, transition }}
         role="dialog" aria-modal="true" aria-label={doc.title || 'Untitled'}
       >
-        <div
-          className="doc-sheet-handle"
-          aria-hidden="true"
-          onTouchStart={onHandleTouchStart}
-          onTouchEnd={onHandleTouchEnd}
-        />
+        <div ref={handleRef} className="doc-sheet-handle" aria-hidden="true" />
         <div className="doc-sheet-bar">
           <span className="doc-sheet-ws">{ws?.name ?? ''}</span>
           <div className="doc-sheet-actions">
