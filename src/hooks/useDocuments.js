@@ -1,31 +1,89 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useDocuments(workspaceId) {
+/**
+ * @param {string | string[] | null} workspaceId
+ *   - string   → single workspace (backward-compat, also subscribes to realtime)
+ *   - string[] → multiple workspaces (WritesPage passes all workspace IDs)
+ *   - null     → no filter, no realtime subscription
+ * @param {{ onRemoteUpdate?: (doc: object) => void }} options
+ */
+export function useDocuments(workspaceId, { onRemoteUpdate } = {}) {
   const [docs,    setDocs]    = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
+
+  const onRemoteUpdateRef = useRef(onRemoteUpdate)
+  useEffect(() => { onRemoteUpdateRef.current = onRemoteUpdate }, [onRemoteUpdate])
+
+  // Normalise to a stable array or null
+  const wsIds = Array.isArray(workspaceId)
+    ? workspaceId
+    : workspaceId ? [workspaceId] : null
+  const wsKey = wsIds ? wsIds.join(',') : ''
 
   const fetchDocs = useCallback(async () => {
     let query = supabase
       .from('documents')
       .select('id, title, workspace_id, created_by, created_at, updated_at, preview, pinned')
       .order('updated_at', { ascending: false })
-    if (workspaceId) query = query.eq('workspace_id', workspaceId)
+    if (wsIds?.length === 1) query = query.eq('workspace_id', wsIds[0])
+    else if (wsIds?.length > 1) query = query.in('workspace_id', wsIds)
     const { data, error } = await query
     if (error) setError(error.message)
     else setDocs(data ?? [])
     setLoading(false)
-  }, [workspaceId])
+  }, [wsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchDocs()
-  }, [workspaceId, fetchDocs])
+  }, [fetchDocs])
+
+  // Real-time subscription — one Supabase channel per workspace
+  useEffect(() => {
+    if (!wsIds || wsIds.length === 0) return
+
+    const channels = wsIds.map(id =>
+      supabase
+        .channel(`docs:ws:${id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'documents',
+          filter: `workspace_id=eq.${id}`,
+        }, ({ new: doc }) => {
+          setDocs(prev => {
+            if (prev.some(d => d.id === doc.id)) return prev
+            return [doc, ...prev]
+          })
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `workspace_id=eq.${id}`,
+        }, ({ new: doc }) => {
+          setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, ...doc } : d))
+          onRemoteUpdateRef.current?.(doc)
+        })
+        .on('postgres_changes', {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'documents',
+          filter: `workspace_id=eq.${id}`,
+        }, ({ old: doc }) => {
+          setDocs(prev => prev.filter(d => d.id !== doc.id))
+        })
+        .subscribe()
+    )
+
+    return () => { channels.forEach(c => supabase.removeChannel(c)) }
+  }, [wsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const createDoc = async (wsId) => {
     const { data, error } = await supabase
       .from('documents')
-      .insert({ workspace_id: wsId ?? workspaceId, title: 'Untitled' })
+      .insert({ workspace_id: wsId, title: 'Untitled' })
       .select()
       .single()
     if (error) throw error
