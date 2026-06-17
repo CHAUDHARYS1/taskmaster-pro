@@ -79,10 +79,12 @@ export function useTaskChecklist(taskId) {
     }
 
     if (data) {
+      // Remove both the temp placeholder AND any partial row realtime may have added
+      // (realtime INSERT rows can omit columns like `text` when replica identity isn't FULL).
+      // Always use the complete row from the insert-select response.
       setItems(prev => {
-        const withoutTemp = prev.filter(i => i.id !== tempId)
-        // realtime may have already added the real row — avoid duplicate
-        return withoutTemp.some(i => i.id === data.id) ? withoutTemp : [...withoutTemp, data]
+        const without = prev.filter(i => i.id !== tempId && i.id !== data.id)
+        return [...without, data].sort((a, b) => a.position - b.position)
       })
     }
 
