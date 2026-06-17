@@ -4675,7 +4675,6 @@ a:focus-visible,
 .mobile-lane-chips { display: none; }
 .column-mobile-wrap { display: contents; }
 .atp-col-pills        { display: none; }
-.tdp-assignee-display { display: none; }
 .sidebar-mobile-ws    { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
@@ -6723,6 +6722,115 @@ a:focus-visible,
   background: var(--paper-2);
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-tint);
+}
+
+/* ─── AssigneePicker ─────────────────────────────────────── */
+.assignee-picker {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.assignee-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--text-body);
+  color: var(--ink);
+  cursor: pointer;
+  margin: -4px 0 -4px -4px;
+  min-height: 32px;
+  max-width: 100%;
+}
+.assignee-picker-trigger:hover {
+  background: var(--paper-2);
+  border-color: var(--line);
+}
+.assignee-picker-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-tint);
+}
+.assignee-picker-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.assignee-picker-avatar--empty {
+  background: var(--paper-3);
+  color: var(--ink-4);
+  font-size: 13px;
+  font-weight: 400;
+}
+.assignee-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assignee-picker-placeholder { color: var(--ink-4); }
+.assignee-picker-caret { color: var(--ink-4); margin-left: auto; flex-shrink: 0; }
+
+.assignee-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 180px;
+  max-width: 260px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.12));
+  overflow: hidden;
+  padding: 4px 0;
+}
+.assignee-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-body);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.assignee-picker-option:hover { background: var(--paper-2); }
+.assignee-picker-option--active { color: var(--accent); font-weight: 600; }
+.assignee-picker-check { margin-left: auto; color: var(--accent); flex-shrink: 0; }
+
+.assignee-picker-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+/* Mobile: full-width trigger with 44px touch target */
+@media (max-width: 768px) {
+  .assignee-picker { display: block; width: 100%; }
+  .assignee-picker-trigger {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--paper-2);
+    border-radius: var(--radius-sm);
+    margin: 0;
+  }
+  .assignee-picker-dropdown { width: 100%; max-width: 100%; }
+  .assignee-picker-option { padding: 12px 14px; min-height: 44px; }
 }
 
 /* Compact pill buttons (priority, date, labels) */
@@ -11978,7 +12086,6 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
 
   /* Hide desktop-only fields */
-  .atp-prop--assignee { display: none; }
   .atp-section        { display: none; }
   .atp-divider        { display: none; }
 
@@ -12053,20 +12160,6 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
   /* Column: show pill buttons, hide desktop select */
   .atp-prop:has(#tdp-status) .atp-select { display: none; }
-
-  /* Assignee: show native select (opens phone picker), hide read-only display */
-  .tdp-assignee-display { display: none; }
-  .atp-prop:has(#tdp-assignee) .atp-select {
-    display: block;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    font-size: var(--text-body);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    background: var(--paper-2);
-    margin: 0;
-  }
 
   /* Re-show atp-section inside task panel (add-task block hides all .atp-section) */
   .task-panel .atp-section {
