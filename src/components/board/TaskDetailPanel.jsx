@@ -437,7 +437,7 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
                   try {
                     const newItem = await addChecklistItem(newItemText)
                     setNewItemText('')
-                    if (newItem) onChecklistChange?.(task.id, items => [...items, { id: newItem.id, checked: false }])
+                    if (newItem) onChecklistChange?.(task.id, items => [...items, { id: newItem.id, text: newItem.text, checked: false, position: newItem.position }])
                   } catch (err) {
                     toast.error(err.message || 'Failed to add item')
                   }
