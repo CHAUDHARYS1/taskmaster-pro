@@ -693,7 +693,17 @@ ${colData.map(c => `<div class="col">
               <div className="mobile-appbar-ws"><span>{currentWorkspace?.name}</span></div>
             </div>
           </div>
-          <BellButton />
+          <div className="mobile-appbar-actions">
+            <button
+              className="mobile-appbar-settings-btn"
+              onClick={() => setShowWsSettings(true)}
+              aria-label="Workspace settings"
+            >
+              <GearSix size={20} aria-hidden="true" />
+            </button>
+            <span className="mobile-appbar-sep" aria-hidden="true" />
+            <BellButton />
+          </div>
         </div>
 
         <div className="board-header">

@@ -276,7 +276,7 @@ export default function WritesPage() {
   const [previewDoc,  setPreviewDoc]  = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [editDoc,     setEditDoc]     = useState(null)
-  const [showSettings,  setShowSettings]  = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
   const fabRef      = useRef(null)

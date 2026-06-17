@@ -298,7 +298,7 @@ export default function WorkspaceSettingsPanel({ onClose, canEdit }) {
             </div>
             <span className="ws-panel-ws-name">{currentWorkspace?.name ?? 'Settings'}</span>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close settings">
+          <button className="ws-panel-close" onClick={onClose} aria-label="Close settings">
             <X size={18} weight="bold" aria-hidden="true" />
           </button>
         </div>

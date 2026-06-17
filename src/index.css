@@ -4805,6 +4805,33 @@ a:focus-visible,
     height: 44px;
     border-radius: var(--radius);
   }
+  .mobile-appbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .mobile-appbar-settings-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .mobile-appbar-settings-btn:hover  { background: var(--paper-2); color: var(--ink); }
+  .mobile-appbar-settings-btn:active { background: var(--paper-3); }
+  .mobile-appbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--line);
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
 
   /* ── Desktop board shell: hidden on mobile ────────────────── */
   .board-header { display: none; }
@@ -7951,6 +7978,23 @@ a:focus-visible,
   gap: var(--space-3);
 }
 
+.ws-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.ws-panel-close:hover         { background: var(--paper-2); color: var(--ink); }
+.ws-panel-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .ws-panel-hdr-identity {
   display: flex;
   align-items: center;
@@ -8281,6 +8325,124 @@ a:focus-visible,
 }
 .ws-col-rename-input:focus { outline: none; border-color: var(--accent); }
 .ws-col-rename-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Mobile workspace settings panel ─────────────────────── */
+@media (max-width: 768px) {
+  @keyframes ws-panel-slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  /* Full-screen on mobile — slide up from bottom */
+  .ws-panel {
+    inset: 0;
+    width: 100%;
+    border-left: none;
+    border-radius: 0;
+    box-shadow: none;
+    animation: ws-panel-slide-up 0.28s var(--ease-enter);
+  }
+
+  /* Header: slightly taller for touch */
+  .ws-panel-hdr {
+    padding: var(--space-4) var(--space-4);
+    min-height: 56px;
+  }
+
+  /* Stack nav + content vertically */
+  .ws-panel-main {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Nav rail → horizontal tab strip */
+  .ws-panel-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 0 var(--space-3);
+    gap: 0;
+    background: var(--card);
+    flex-shrink: 0;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ws-panel-nav::-webkit-scrollbar { display: none; }
+
+  /* Tab items: underline style */
+  .ws-panel-nav-item {
+    flex: none;
+    flex-direction: row;
+    padding: 12px var(--space-4);
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    gap: 6px;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .ws-panel-nav-item:hover {
+    background: transparent;
+    color: var(--ink);
+  }
+  .ws-panel-nav-item--active {
+    background: transparent;
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+  }
+  .ws-panel-nav-item--active:hover {
+    background: transparent;
+  }
+  .ws-panel-nav-item--danger {
+    margin-top: 0;
+    margin-left: auto;
+  }
+  .ws-panel-nav-item--danger.ws-panel-nav-item--active {
+    background: transparent;
+    border-bottom-color: var(--red);
+  }
+
+  /* Content: takes remaining height, scrollable */
+  .ws-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-4);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Setting group cards: tighter on mobile */
+  .ws-setting-group-body {
+    padding: var(--space-3);
+  }
+
+  /* Member rows: larger touch targets */
+  .ws-member-row {
+    padding: var(--space-3) var(--space-2);
+    min-height: 48px;
+  }
+  .ws-member-remove {
+    padding: 8px 10px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Project rows: show actions always (no hover on touch) */
+  .ws-project-icon-btn { opacity: 1; }
+  .ws-project-delete   { opacity: 1; }
+
+  /* Color swatches: larger tap targets */
+  .col-color-swatch {
+    width: 26px;
+    height: 26px;
+  }
+}
 
 /* ── Workspace folder-structure visual ───────────────────── */
 .ws-switcher { padding-bottom: 0; }
