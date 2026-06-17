@@ -3757,6 +3757,9 @@ a:focus-visible,
   border-radius: var(--radius);
   padding: var(--space-6);
   min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  cursor: text;
 }
 
 /* Prose styles inside the editor */
@@ -3765,6 +3768,8 @@ a:focus-visible,
   font-size: var(--text-body);
   line-height: 1.75;
   color: var(--ink);
+  flex: 1;
+  cursor: text;
 }
 .we-content .tiptap h1 { font-size: var(--text-3xl); font-weight: var(--weight-bold); margin: 1.2em 0 0.4em; line-height: 1.2; }
 .we-content .tiptap h2 { font-size: var(--text-xl);  font-weight: var(--weight-semibold); margin: 1em 0 0.3em; line-height: 1.3; }

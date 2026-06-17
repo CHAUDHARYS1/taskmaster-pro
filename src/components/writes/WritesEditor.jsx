@@ -425,7 +425,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       )}
 
       {/* Editor body */}
-      <div className="we-body">
+      <div className="we-body" onClick={(e) => { if (e.target === e.currentTarget) editor?.commands.focus('end') }}>
         <EditorContent editor={editor} className="we-content" />
       </div>
 
