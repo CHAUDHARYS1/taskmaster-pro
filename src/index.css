@@ -3390,8 +3390,6 @@ a:focus-visible,
   margin-bottom: 4px;
 }
 
-.wr-note-ico { color: var(--ink-4); flex-shrink: 0; }
-.wr-note.on .wr-note-ico { color: var(--accent); }
 
 .wr-note-title {
   flex: 1;

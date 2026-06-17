@@ -1,8 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  List, NotePencil, BookOpen, Star, Target, Briefcase,
-  FileText, MagnifyingGlass, PushPin, ArrowLeft,
+  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
@@ -15,14 +14,7 @@ import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
 import WritesEditor from './WritesEditor'
 
-const NOTE_ICONS = [NotePencil, BookOpen, Star, Target, Briefcase, FileText]
-
-function NoteIcon({ index, size = 15 }) {
-  const Icon = NOTE_ICONS[index % NOTE_ICONS.length]
-  return <Icon size={size} aria-hidden="true" />
-}
-
-function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
+function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
   const ws = wsMap[doc.workspace_id]
   return (
     <button
@@ -30,7 +22,6 @@ function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
       onClick={() => onNavigate(doc.id)}
     >
       <div className="wr-note-top">
-        <span className="wr-note-ico"><NoteIcon index={idx} /></span>
         <span className="wr-note-title">{doc.title || 'Untitled'}</span>
         <button
           className="wr-pin-ico"
@@ -312,7 +303,6 @@ export default function WritesPage() {
                         doc={doc}
                         docId={docId}
                         wsMap={wsMap}
-                        idx={filtered.findIndex(d => d.id === doc.id)}
                         onNavigate={id => navigate('/writes/' + id)}
                         onPin={handlePin}
                       />
@@ -333,8 +323,7 @@ export default function WritesPage() {
                           doc={doc}
                           docId={docId}
                           wsMap={wsMap}
-                          idx={filtered.findIndex(d => d.id === doc.id)}
-                          onNavigate={id => navigate('/writes/' + id)}
+                            onNavigate={id => navigate('/writes/' + id)}
                           onPin={handlePin}
                         />
                       ))}
@@ -349,8 +338,7 @@ export default function WritesPage() {
                           doc={doc}
                           docId={docId}
                           wsMap={wsMap}
-                          idx={filtered.findIndex(d => d.id === doc.id)}
-                          onNavigate={id => navigate('/writes/' + id)}
+                            onNavigate={id => navigate('/writes/' + id)}
                           onPin={handlePin}
                         />
                       ))}
