@@ -275,7 +275,7 @@ function HeatmapCard({ cells, year, onYearChange }) {
   if (col.length) cols.push(col)
 
   return (
-    <div className="dash-card col-8">
+    <div className="dash-card col-8 dash-heatmap-card">
       <div className="dash-card-h">
         <span className="dash-card-title"><CalendarDots size={14} aria-hidden="true" />Activity</span>
         <select
@@ -430,7 +430,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── KPI tiles ────────────────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <KpiTile
           icon={ListChecks}
           iconBg="var(--accent-tint)"
@@ -469,7 +469,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── Progress + Due soon ───────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <ProgressCard
           statusBreakdown={statusBreakdown}
           total={stats.totalTasks}
@@ -479,7 +479,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── Velocity + Priority ───────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <VelocityCard
           weeks={weeklyVelocity}
           thisWeekCount={thisWeekCount}
@@ -489,7 +489,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── Heatmap + Recent ─────────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <HeatmapCard
           cells={heatmap}
           year={heatmapYear}

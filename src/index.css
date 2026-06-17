@@ -8421,6 +8421,7 @@ a:focus-visible,
 
 /* 12-column grid */
 .dash-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--space-4); }
+.dash-grid-row { margin-bottom: var(--space-4); }
 
 /* column spans */
 .col-3  { grid-column: span 3; }
@@ -12361,38 +12362,59 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
 /* ── Mobile dashboard ───────────────────────────────────── */
 @media (max-width: 768px) {
-  .dashboard { padding: var(--space-4); gap: var(--space-4); }
+  .dashboard { padding: 14px; }
 
-  /* Header: fix flex-grow causing giant empty gap */
-  .dash-head { flex-direction: column; align-items: flex-start; gap: var(--space-1); margin-bottom: var(--space-2); }
+  /* Header */
+  .dash-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+  }
   .dash-head > div { flex: none !important; }
-
-  /* Greeting becomes the big title; hide day-of-week + range */
+  .dash-title { display: none; }
   .dash-greeting {
-    font-size: 26px;
+    font-size: 32px;
     font-weight: 800;
     letter-spacing: -0.03em;
     text-transform: none;
     color: var(--ink);
     line-height: 1.1;
+    margin-bottom: 0;
   }
-  .dash-title        { display: none; }
+  .dash-date {
+    font-family: inherit;
+    font-size: var(--text-body);
+    color: var(--ink-3);
+    margin-top: 4px;
+  }
 
-  /* KPI: 2×2 grid — override the 680px single-column breakpoint */
-  .dash-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  /* Grid: 2-col, tighter gap */
+  .dash-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+  }
   .col-3  { grid-column: span 1 !important; }
   .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 { grid-column: span 2 !important; }
 
-  /* KPI tile: bigger number, tighter padding */
+  /* Cards */
   .dash-card { padding: var(--space-4); }
-  .kpi-n { font-size: 36px; }
 
-  /* Progress: ring + rows side by side */
+  /* KPI */
+  .kpi-n { font-size: 34px; }
+  .kpi-l b { display: none; }
+
+  /* Progress */
   .dash-progress-body { gap: var(--space-4); }
   .ring { --size: 100px; }
   .ring-n { font-size: 22px; }
+  .status-pct { display: none; }
 
-  /* Workspace summary: 2 columns, stacked layout */
+  /* Heatmap: too complex for mobile, hide it */
+  .dash-heatmap-card { display: none !important; }
+
+  /* Workspace summary */
   .ws-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .ws-card { padding: var(--space-3); gap: var(--space-2); }
   .ws-card-top { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
