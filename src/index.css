@@ -8484,10 +8484,9 @@ a:focus-visible,
 .status-pct { font-family: var(--font-mono); font-size: var(--text-body); color: var(--ink-4); width: 34px; text-align: right; }
 
 /* ── due soon ── */
-.due-list { display: flex; flex-direction: column; }
-.due-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); margin: 0 calc(var(--space-3) * -1); border-radius: var(--radius); border-left: 3px solid var(--c, var(--line)); transition: background 0.12s; cursor: pointer; }
+.due-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.due-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius); border-left: 3px solid var(--c, var(--line)); background: var(--paper); transition: background 0.12s; cursor: pointer; }
 .due-row:hover { background: var(--paper-2); }
-.due-row + .due-row { margin-top: 2px; }
 .due-main { flex: 1; min-width: 0; }
 .due-t { font-size: var(--text-md); font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .due-meta { display: flex; align-items: center; gap: var(--space-2); margin-top: 3px; }
