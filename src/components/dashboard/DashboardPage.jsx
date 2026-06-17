@@ -1,20 +1,22 @@
 import { lazy, Suspense, useState } from 'react'
-import { List, SquaresFour } from '@phosphor-icons/react'
+import { List, SquaresFour, GearSix } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import Sidebar from '../layout/Sidebar'
 import DashboardView from './DashboardView'
 import { BellButton } from '../notifications/NotificationCenter'
 
-const SettingsModal = lazy(() => import('../ui/SettingsModal'))
+const SettingsModal           = lazy(() => import('../ui/SettingsModal'))
+const WorkspaceSettingsPanel  = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
 
 export default function DashboardPage() {
-  const { currentWorkspace, loading } = useWorkspace()
+  const { currentWorkspace, loading, userRole } = useWorkspace()
   const [showSidebar,  setShowSidebar]  = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings,   setShowSettings]   = useState(false)
+  const [showWsSettings, setShowWsSettings] = useState(false)
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -44,7 +46,17 @@ export default function DashboardPage() {
               <div className="mobile-appbar-ws"><span>All workspaces</span></div>
             </div>
           </div>
-          <BellButton />
+          <div className="mobile-appbar-actions">
+            <button
+              className="mobile-appbar-settings-btn"
+              onClick={() => setShowWsSettings(true)}
+              aria-label="Workspace settings"
+            >
+              <GearSix size={20} aria-hidden="true" />
+            </button>
+            <span className="mobile-appbar-sep" aria-hidden="true" />
+            <BellButton />
+          </div>
         </div>
         <div className="board-header">
           <div className="board-header-left">
@@ -67,7 +79,8 @@ export default function DashboardPage() {
       </main>
 
       <Suspense fallback={null}>
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {showSettings   && <SettingsModal          onClose={() => setShowSettings(false)} />}
+        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={userRole !== 'viewer'} />}
       </Suspense>
     </div>
   )

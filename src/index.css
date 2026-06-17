@@ -4805,6 +4805,33 @@ a:focus-visible,
     height: 44px;
     border-radius: var(--radius);
   }
+  .mobile-appbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .mobile-appbar-settings-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .mobile-appbar-settings-btn:hover  { background: var(--paper-2); color: var(--ink); }
+  .mobile-appbar-settings-btn:active { background: var(--paper-3); }
+  .mobile-appbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--line);
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
 
   /* ── Desktop board shell: hidden on mobile ────────────────── */
   .board-header { display: none; }
