@@ -12819,15 +12819,23 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Hide save status text (shown in breadcrumb bar instead) */
   .we-hdr-right .we-save-status { display: none; }
 
-  /* Toolbar: single scrollable row — no wrap */
+  /* Toolbar: wraps to multiple rows on mobile, 44px touch targets */
   .we-toolbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: var(--space-2) var(--space-3);
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 4px var(--space-3);
+    gap: 0;
   }
-  .we-toolbar::-webkit-scrollbar { display: none; }
+  .we-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+  }
+  .we-divider {
+    height: 20px;
+    margin: 0 2px;
+  }
+  .we-btn svg { width: 20px; height: 20px; }
 
   /* Editor body + content: full-bleed, no decorative border */
   .we-body { padding: var(--space-3) var(--space-3) 56px; }
@@ -12943,4 +12951,62 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: 15px;
   line-height: 1.65;
   cursor: default;
+}
+
+/* ── Edit sheet ─────────────────────────────────────── */
+.doc-sheet--edit {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.we-wrap--sheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.we-wrap--sheet .we-toolbar {
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.we-wrap--sheet .we-link-bar { flex-shrink: 0; }
+.doc-sheet-body--edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 20px 120px;
+}
+.doc-sheet-title-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0;
+  line-height: 1.3;
+}
+.doc-sheet-title-input::placeholder { color: var(--ink-4); }
+.doc-sheet-ws-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.doc-sheet--edit .we-body {
+  flex: 1;
+  min-height: 120px;
+}
+.doc-sheet-editing-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
 }

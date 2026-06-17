@@ -131,6 +131,86 @@ function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
   )
 }
 
+function DocEditSheet({ doc, onSave, onDelete, onClose, onChangeWorkspace }) {
+  const [liveHeight, setLiveHeight] = useState(null)
+  const sheetRef  = useRef(null)
+  const handleRef = useRef(null)
+  const drag      = useRef(null)
+
+  useEffect(() => {
+    const handle = handleRef.current
+    if (!handle) return
+
+    const onStart = (e) => {
+      drag.current = {
+        startY: e.touches[0].clientY,
+        startH: sheetRef.current?.offsetHeight ?? window.innerHeight,
+        lastY:  e.touches[0].clientY,
+        lastT:  Date.now(),
+      }
+    }
+
+    const onMove = (e) => {
+      e.preventDefault()
+      if (!drag.current) return
+      const t = e.touches[0]
+      const delta = drag.current.startY - t.clientY
+      const newH = Math.max(200, Math.min(window.innerHeight, drag.current.startH + delta))
+      drag.current.lastY = t.clientY
+      drag.current.lastT = Date.now()
+      setLiveHeight(newH)
+    }
+
+    const onEnd = (e) => {
+      if (!drag.current) return
+      const endY    = e.changedTouches[0].clientY
+      const elapsed = Date.now() - drag.current.lastT
+      const velocity = elapsed > 0 ? (drag.current.lastY - endY) / elapsed : 0
+      const currentH = sheetRef.current?.offsetHeight ?? drag.current.startH
+      drag.current = null
+      setLiveHeight(null)
+      if (velocity < -0.4 || currentH < window.innerHeight * 0.5) onClose()
+    }
+
+    handle.addEventListener('touchstart', onStart, { passive: true })
+    handle.addEventListener('touchmove',  onMove,  { passive: false })
+    handle.addEventListener('touchend',   onEnd,   { passive: true })
+    return () => {
+      handle.removeEventListener('touchstart', onStart)
+      handle.removeEventListener('touchmove',  onMove)
+      handle.removeEventListener('touchend',   onEnd)
+    }
+  }, [onClose])
+
+  const height     = liveHeight != null ? `${liveHeight}px` : '100dvh'
+  const transition = liveHeight != null ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+
+  return (
+    <>
+      <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={sheetRef}
+        className="doc-sheet doc-sheet--edit"
+        style={{ height, transition }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={doc.title || 'Untitled'}
+      >
+        <div ref={handleRef} className="doc-sheet-handle" aria-hidden="true" />
+        <WritesEditor
+          key={doc.id}
+          doc={doc}
+          onSave={onSave}
+          onDelete={onDelete}
+          onChangeWorkspace={onChangeWorkspace}
+          inSheet
+          onSheetClose={onClose}
+        />
+      </div>
+    </>
+  )
+}
+
 function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
   const ws = wsMap[doc.workspace_id]
   return (
@@ -195,6 +275,7 @@ export default function WritesPage() {
   const [docLoading,  setDocLoading]  = useState(false)
   const [previewDoc,  setPreviewDoc]  = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [editDoc,     setEditDoc]     = useState(null)
   const [showSettings,  setShowSettings]  = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
@@ -244,7 +325,11 @@ export default function WritesPage() {
   const doCreateDoc = async (wsId) => {
     try {
       const doc = await createDoc(wsId)
-      navigate('/writes/' + doc.id)
+      if (isMobile) {
+        setEditDoc(doc)
+      } else {
+        navigate('/writes/' + doc.id)
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to create document')
     }
@@ -297,6 +382,25 @@ export default function WritesPage() {
       toast.success(`"${title}" deleted`)
       navigate('/writes', { replace: true })
       setCurrentDoc(null)
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete document')
+    }
+  }
+
+  const handleSheetSave = async (updates) => {
+    if (!editDoc) return
+    lastSaveRef.current = Date.now()
+    await updateDoc(editDoc.id, updates)
+    setEditDoc(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleSheetDelete = async () => {
+    if (!editDoc) return
+    const title = editDoc.title || 'Untitled'
+    try {
+      await deleteDoc(editDoc.id)
+      toast.success(`"${title}" deleted`)
+      setEditDoc(null)
     } catch (err) {
       toast.error(err.message || 'Failed to delete document')
     }
@@ -541,8 +645,17 @@ export default function WritesPage() {
           doc={previewDoc}
           wsMap={wsMap}
           loading={previewLoading}
-          onEdit={() => { setPreviewDoc(null); navigate('/writes/' + previewDoc.id) }}
+          onEdit={() => { setEditDoc(previewDoc); setPreviewDoc(null) }}
           onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {isMobile && editDoc && (
+        <DocEditSheet
+          doc={editDoc}
+          onSave={handleSheetSave}
+          onDelete={handleSheetDelete}
+          onClose={() => setEditDoc(null)}
         />
       )}
     </div>
