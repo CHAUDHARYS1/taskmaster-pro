@@ -12085,8 +12085,26 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
 
   /* Hide desktop-only sections */
-  .tdp-prop--recurrence                { display: none; }
   .task-panel .tdp-section--docs       { display: none; }
+
+  /* Recurrence — show on mobile with touch-friendly sizing */
+  .recurrence-enable-btn {
+    padding: 10px 14px;
+    font-size: var(--text-body);
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .recurrence-interval,
+  .recurrence-freq,
+  .recurrence-end-date {
+    font-size: var(--text-body);
+    padding: 8px 10px;
+    min-height: 44px;
+  }
+  .recurrence-interval { width: 64px; }
+  .recurrence-remove-btn { min-height: 44px; font-size: var(--text-body); }
+  .recurrence-clear-end { width: 28px; height: 28px; }
 
   /* Labels: wrap to next line instead of scrolling */
   .atp-prop--labels .atp-pill-row {
