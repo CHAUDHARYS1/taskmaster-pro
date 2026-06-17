@@ -12884,8 +12884,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 0;
+  padding: 14px 20px 14px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--line-soft);
 }
 .doc-sheet-ws {
   font-size: 11px;
@@ -12897,23 +12898,22 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .doc-sheet-actions {
   display: flex;
   align-items: center;
-  gap: 0;
-  margin: -10px -10px -10px 0;
+  gap: 8px;
 }
 .doc-sheet-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 50%;
-  background: none;
+  border-radius: 8px;
+  background: var(--paper-2);
   color: var(--ink-3);
   cursor: pointer;
 }
-.doc-sheet-btn:hover  { background: var(--paper-2); color: var(--ink); }
-.doc-sheet-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.doc-sheet-btn:hover  { background: var(--paper-3, var(--line)); color: var(--ink); }
+.doc-sheet-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .doc-sheet-body {
   flex: 1;
   overflow-y: auto;
