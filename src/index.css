@@ -12886,7 +12886,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   justify-content: space-between;
   padding: 14px 20px 14px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line);
 }
 .doc-sheet-ws {
   font-size: 11px;
