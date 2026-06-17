@@ -11781,6 +11781,8 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .mn-prefs-btn:hover        { background: var(--paper-2); color: var(--ink); }
 .mn-prefs-btn--active      { background: var(--accent-tint); color: var(--accent); }
 .mn-prefs-wrap { padding: var(--space-2) 0; }
+.mn-prefs-wrap .notif-pref-label  { font-size: var(--text-md); }
+.mn-prefs-wrap .notif-prefs-desc  { font-size: var(--text-md); }
 
 .mn-mark-all-btn {
   display: flex; align-items: center; gap: 4px;
