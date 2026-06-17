@@ -29,7 +29,7 @@ function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
           onClick={e => onPin(doc, e)}
           aria-label={doc.pinned ? 'Unpin document' : 'Pin document'}
         >
-          <PushPin size={13} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
+          <PushPin size={18} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
         </button>
       </div>
       {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
