@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import {
@@ -340,7 +341,7 @@ function RecentCard({ items }) {
   )
 }
 
-function WorkspaceSummary({ workspaces, breakdown }) {
+function WorkspaceSummary({ workspaces, breakdown, onWorkspaceClick }) {
   if (!workspaces?.length) return null
   return (
     <div className="dash-card col-12">
@@ -354,7 +355,7 @@ function WorkspaceSummary({ workspaces, breakdown }) {
           const pct   = total > 0 ? Math.round((done / total) * 100) : 0
           const color = WS_COLORS[i % WS_COLORS.length]
           return (
-            <div key={ws.id} className="ws-card">
+            <button key={ws.id} className="ws-card" onClick={() => onWorkspaceClick(ws)} aria-label={`Open ${ws.name}`}>
               <div className="ws-card-top">
                 <span className="ws-sq" style={{ background: color }}>{wsInitial(ws.name)}</span>
                 <span className="ws-name">{ws.name}</span>
@@ -370,7 +371,7 @@ function WorkspaceSummary({ workspaces, breakdown }) {
                 <span>{done} done</span>
                 <span>{pct}%</span>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -384,8 +385,14 @@ export default function DashboardView() {
   const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
   const { data, loading, error } = useDashboard(heatmapYear)
   const { profile } = useAuth()
-  const { workspaces } = useWorkspace()
+  const { workspaces, switchWorkspace } = useWorkspace()
+  const navigate = useNavigate()
   const firstName = profile?.first_name || profile?.email?.split('@')[0] || null
+
+  const handleWorkspaceClick = (ws) => {
+    switchWorkspace(ws)
+    navigate('/app')
+  }
 
   if (loading) return (
     <div className="dash-loading">
@@ -499,8 +506,8 @@ export default function DashboardView() {
       </div>
 
       {/* ── Workspace summary ─────────────────────────── */}
-      <div className="dash-grid">
-        <WorkspaceSummary workspaces={workspaces} breakdown={workspaceBreakdown} />
+      <div className="dash-grid dash-ws-row">
+        <WorkspaceSummary workspaces={workspaces} breakdown={workspaceBreakdown} onWorkspaceClick={handleWorkspaceClick} />
       </div>
 
     </div>

@@ -8544,8 +8544,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
 /* ── workspace summary ── */
 .ws-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-3); }
-.ws-card { border: 1px solid var(--line-soft); border-radius: var(--radius); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); transition: border-color 0.12s, box-shadow 0.12s; cursor: pointer; }
+.ws-card { border: 1px solid var(--line-soft); border-radius: var(--radius); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); transition: border-color 0.12s, box-shadow 0.12s; cursor: pointer; background: var(--card); text-align: left; font: inherit; width: 100%; }
 .ws-card:hover { border-color: var(--ink-4); box-shadow: var(--shadow-card); }
+.ws-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ws-card-top { display: flex; align-items: center; gap: var(--space-2); }
 .ws-sq { width: 26px; height: 26px; border-radius: var(--radius); display: grid; place-items: center; color: #fff; font-size: var(--text-body); font-weight: 700; flex: none; }
 .ws-name { font-size: var(--text-body); font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -12413,6 +12414,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 
   /* Heatmap: too complex for mobile, hide it */
   .dash-heatmap-card { display: none !important; }
+
+  /* Workspace row: move to top on mobile */
+  .dash-ws-row { order: -1; }
 
   /* Workspace summary */
   .ws-grid { grid-template-columns: repeat(2, 1fr) !important; }
