@@ -5719,6 +5719,7 @@ a:focus-visible,
 }
 .task-card--done .task-checklist-bar-fill { background: var(--green); }
 .task-card.has-checklist-bar { padding-bottom: 16px; }
+.task-card.has-checklist-bar .task-card-swipe-inner { padding-bottom: 16px; }
 
 /* Self-editing: left + right rail + subtle background tint, no animation */
 .task-card--self-editing {
