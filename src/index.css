@@ -12761,7 +12761,17 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .wr-pin-ico { display: none; }
+  .wr-pin-ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px -10px -10px 0;
+    border: none;
+    background: none;
+    padding: 0;
+  }
 
   /* Show workspace name in item meta on mobile */
   .wr-note-meta-ws,
