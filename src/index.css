@@ -12819,16 +12819,13 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   /* Hide save status text (shown in breadcrumb bar instead) */
   .we-hdr-right .we-save-status { display: none; }
 
-  /* Toolbar: single scrollable row — no wrap, 44px touch targets */
+  /* Toolbar: wraps to multiple rows on mobile, 44px touch targets */
   .we-toolbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 0 var(--space-3);
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 4px var(--space-3);
     gap: 0;
   }
-  .we-toolbar::-webkit-scrollbar { display: none; }
   .we-btn {
     width: 44px;
     height: 44px;
@@ -12972,10 +12969,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .we-wrap--sheet .we-toolbar {
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.we-wrap--sheet .we-toolbar::-webkit-scrollbar { display: none; }
 .we-wrap--sheet .we-link-bar { flex-shrink: 0; }
 .doc-sheet-body--edit {
   display: flex;
