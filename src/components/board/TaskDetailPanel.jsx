@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useNavigate } from 'react-router-dom'
 import { usePanelResize } from '../../hooks/usePanelResize'
 import { X, ArrowsClockwise } from '@phosphor-icons/react'
+import RecurrencePicker from './RecurrencePicker'
+import AssigneePicker from './AssigneePicker'
 import dayjs from 'dayjs'
 import { fmtDateFull, fmtTimeStr, fmtCommentDate } from '../../utils/format'
 import { useAuth } from '../../contexts/AuthContext'
@@ -44,13 +46,6 @@ const DEFAULT_STATUS_OPTIONS = [
   { id: 'done',       label: 'Done' },
 ]
 
-const FREQ_OPTIONS = [
-  { id: 'daily',   label: 'Daily' },
-  { id: 'weekly',  label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-  { id: 'yearly',  label: 'Yearly' },
-]
-
 function recurrenceLabel(rec) {
   if (!rec) return null
   const interval = rec.interval ?? 1
@@ -61,77 +56,6 @@ function recurrenceLabel(rec) {
     yearly:  interval === 1 ? 'Yearly'          : `Every ${interval} years`,
   }[rec.frequency] ?? rec.frequency
   return rec.end_date ? `${freq} until ${dayjs(rec.end_date).format('MMM D, YYYY')}` : freq
-}
-
-function RecurrencePicker({ value, onChange, hasDueDate }) {
-  const isSet      = !!value
-  const frequency  = value?.frequency  ?? 'weekly'
-  const interval   = value?.interval   ?? 1
-  const endDate    = value?.end_date   ?? ''
-
-  const update = (patch) => onChange({ frequency, interval, ...value, ...patch })
-  const clear  = () => onChange(null)
-  const enable = () => onChange({ frequency: 'weekly', interval: 1 })
-
-  if (!hasDueDate) return (
-    <span className="recurrence-no-date">Set a due date first to enable repeat.</span>
-  )
-
-  return (
-    <div className="recurrence-picker">
-      {!isSet ? (
-        <button type="button" className="recurrence-enable-btn" onClick={enable}>
-          <ArrowsClockwise size={13} aria-hidden="true" />
-          Set repeat
-        </button>
-      ) : (
-        <>
-          <div className="recurrence-row">
-            <span className="recurrence-row-label">Every</span>
-            <input
-              type="number"
-              className="recurrence-interval"
-              min={1}
-              max={99}
-              value={interval}
-              onChange={e => update({ interval: Math.max(1, parseInt(e.target.value) || 1) })}
-              aria-label="Repeat interval"
-            />
-            <select
-              className="recurrence-freq"
-              value={frequency}
-              onChange={e => update({ frequency: e.target.value })}
-              aria-label="Repeat frequency"
-            >
-              {FREQ_OPTIONS.map(f => (
-                <option key={f.id} value={f.id}>{interval === 1 ? f.label : f.label.toLowerCase() + 's'}</option>
-              ))}
-            </select>
-          </div>
-          <div className="recurrence-row">
-            <label className="recurrence-row-label" htmlFor="recurrence-end">Until</label>
-            <input
-              id="recurrence-end"
-              type="date"
-              className="recurrence-end-date"
-              value={endDate}
-              onChange={e => update({ end_date: e.target.value || undefined })}
-              aria-label="Repeat end date (optional)"
-            />
-            {endDate && (
-              <button type="button" className="recurrence-clear-end" onClick={() => update({ end_date: undefined })} aria-label="Remove end date">
-                <X size={11} weight="bold" aria-hidden="true" />
-              </button>
-            )}
-            {!endDate && <span className="recurrence-until-hint">optional</span>}
-          </div>
-          <button type="button" className="recurrence-remove-btn" onClick={clear}>
-            Remove repeat
-          </button>
-        </>
-      )}
-    </div>
-  )
 }
 
 export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS, canEdit, onUpdate, onChecklistChange, onClose, onArchive }) {
@@ -645,60 +569,33 @@ export default function TaskDetailPanel({ task, columns = DEFAULT_STATUS_OPTIONS
             {/* Assignee */}
             {workspaceTemplate !== 'job-tracker' && (
               <div className="atp-prop">
-                <label className="atp-prop__label" htmlFor="tdp-assignee">Assignee</label>
+                <span className="atp-prop__label">Assignee</span>
                 <div className="atp-prop__val">
-                  <div className="tdp-assignee-display">
-                    {task.assignee ? (
-                      <>
-                        <span className="tdp-assignee-avatar" style={{ background: userColor(task.assignee_id) }} aria-hidden="true">
-                          {memberDisplayName(task.assignee).charAt(0).toUpperCase()}
-                        </span>
-                        <span>{memberDisplayName(task.assignee)}</span>
-                      </>
-                    ) : (
-                      <span className="task-panel-empty">Unassigned</span>
-                    )}
-                  </div>
-                  {canEdit ? (
-                    <select
-                      id="tdp-assignee"
-                      className="atp-select"
-                      value={task.assignee_id ?? ''}
-                      onChange={e => {
-                        const newId = e.target.value || null
-                        const member = newId ? members.find(m => m.user_id === newId) : null
-                        handleUpdate(task.id, {
-                          assignee_id: newId,
-                          assignee: member
-                            ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
-                            : null,
+                  <AssigneePicker
+                    members={members}
+                    value={task.assignee_id ?? ''}
+                    canEdit={canEdit}
+                    onChange={newId => {
+                      const member = newId ? members.find(m => m.user_id === newId) : null
+                      handleUpdate(task.id, {
+                        assignee_id: newId || null,
+                        assignee: member
+                          ? { email: member.email, first_name: member.first_name, last_name: member.last_name }
+                          : null,
+                      })
+                      if (newId && newId !== user.id) {
+                        const assignerName = displayName || user?.email?.split('@')[0] || 'Someone'
+                        notify({
+                          type: 'task_assigned',
+                          user_id: newId,
+                          workspace_id: task.workspace_id,
+                          title: 'Task assigned to you',
+                          body: `${assignerName} assigned "${task.text}" to you`,
+                          task_id: task.id,
                         })
-                        if (newId && newId !== user.id) {
-                          const assignerName = displayName || user?.email?.split('@')[0] || 'Someone'
-                          notify({
-                            type: 'task_assigned',
-                            user_id: newId,
-                            workspace_id: task.workspace_id,
-                            title: 'Task assigned to you',
-                            body: `${assignerName} assigned "${task.text}" to you`,
-                            task_id: task.id,
-                          })
-                        }
-                      }}
-                    >
-                      <option value="">Unassigned</option>
-                      {members.map(m => (
-                        <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="atp-prop-ro">
-                      {task.assignee
-                        ? memberDisplayName(task.assignee)
-                        : <span className="task-panel-empty">Unassigned</span>
                       }
-                    </span>
-                  )}
+                    }}
+                  />
                 </div>
               </div>
             )}

@@ -8,6 +8,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
 import TiptapEditor from '../ui/TiptapEditor'
+import AssigneePicker from './AssigneePicker'
+import RecurrencePicker from './RecurrencePicker'
 
 const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
@@ -38,6 +40,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [status,           setStatus]           = useState(columns[0]?.id ?? 'toDo')
   const [priority,         setPriority]         = useState(null)
   const [assigneeId,       setAssigneeId]       = useState('')
+  const [recurrence,       setRecurrence]       = useState(null)
   const [selectedLabels,   setSelectedLabels]   = useState([])
   const [members,          setMembers]          = useState([])
   const [membersLoaded,    setMembersLoaded]    = useState(false)
@@ -117,6 +120,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         status,
         priority:     priority || null,
         assignee_id:  assigneeId || null,
+        recurrence:   recurrence || null,
         labels:       selectedLabels,
       })
       if (taskId && checklistItems.length > 0) {
@@ -325,22 +329,28 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {/* Assignee */}
           {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
             <div className="atp-prop atp-prop--assignee">
-              <label className="atp-prop__label" htmlFor="atp-assignee">Assignee</label>
+              <span className="atp-prop__label">Assignee</span>
               <div className="atp-prop__val">
-                <select
-                  id="atp-assignee"
-                  className="atp-select"
+                <AssigneePicker
+                  members={members}
                   value={assigneeId}
-                  onChange={e => setAssigneeId(e.target.value)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map(m => (
-                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                  ))}
-                </select>
+                  onChange={setAssigneeId}
+                />
               </div>
             </div>
           )}
+
+          {/* Repeat */}
+          <div className="atp-prop atp-prop--wrap atp-prop--recurrence">
+            <span className="atp-prop__label">Repeat</span>
+            <div className="atp-prop__val">
+              <RecurrencePicker
+                value={recurrence}
+                onChange={setRecurrence}
+                hasDueDate={!!dueDate}
+              />
+            </div>
+          </div>
 
           {/* Labels */}
           {labels.length > 0 && (
