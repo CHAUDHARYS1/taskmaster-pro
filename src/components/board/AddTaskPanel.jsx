@@ -419,26 +419,25 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                   ))}
                 </ul>
               )}
-              <form
-                className="checklist-add-row"
-                onSubmit={e => { e.preventDefault(); addChecklistItem() }}
-              >
+              <div className="checklist-add-row">
                 <input
                   type="text"
                   className="checklist-add-input"
                   value={newChecklistText}
                   onChange={e => setNewChecklistText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
                   placeholder="Add an item…"
                   aria-label="New checklist item"
                 />
                 <button
-                  type="submit"
+                  type="button"
                   className="btn-primary checklist-add-btn"
                   disabled={!newChecklistText.trim()}
+                  onClick={addChecklistItem}
                 >
                   Add
                 </button>
-              </form>
+              </div>
             </>
           )}
         </div>
