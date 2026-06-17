@@ -59,15 +59,33 @@ export function useTaskChecklist(taskId) {
     const trimmed = text.trim()
     if (!trimmed) return
     const maxPos = items.length ? Math.max(...items.map(i => i.position)) : 0
+    const pos    = maxPos + 1000
+    const tempId = `opt-${Date.now()}`
+
+    // Show immediately; swap with the real row once DB confirms
+    setItems(prev => [...prev, { id: tempId, task_id: taskId, text: trimmed, checked: false, position: pos }])
+
     const { data, error } = await supabase.from('task_checklist_items').insert({
       task_id:    taskId,
       text:       trimmed,
       checked:    false,
-      position:   maxPos + 1000,
+      position:   pos,
       created_by: user.id,
     }).select().single()
-    if (error) throw error
-    if (data) setItems(prev => prev.some(i => i.id === data.id) ? prev : [...prev, data])
+
+    if (error) {
+      setItems(prev => prev.filter(i => i.id !== tempId))
+      throw error
+    }
+
+    if (data) {
+      setItems(prev => {
+        const withoutTemp = prev.filter(i => i.id !== tempId)
+        // realtime may have already added the real row — avoid duplicate
+        return withoutTemp.some(i => i.id === data.id) ? withoutTemp : [...withoutTemp, data]
+      })
+    }
+
     return data
   }
 
