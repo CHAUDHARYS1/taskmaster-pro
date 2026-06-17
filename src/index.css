@@ -3750,9 +3750,12 @@ a:focus-visible,
   padding: var(--space-2) var(--space-3);
   min-height: 80px;
   cursor: text;
+  display: flex;
+  flex-direction: column;
 }
 
 .tiptap-content .ProseMirror {
+  flex: 1;
   outline: none;
   font-size: var(--text-md);
   color: var(--ink-2);
