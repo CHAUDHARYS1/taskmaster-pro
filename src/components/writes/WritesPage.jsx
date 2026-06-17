@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus,
+  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus, PencilSimple, X,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
@@ -13,6 +13,55 @@ import { useToast } from '../../contexts/ToastContext'
 import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
 import WritesEditor from './WritesEditor'
+
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 2) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days}d ago`
+  return fmtDate(dateStr)
+}
+
+function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
+  const ws = wsMap[doc.workspace_id]
+  return (
+    <>
+      <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="doc-sheet" role="dialog" aria-modal="true" aria-label={doc.title || 'Untitled'}>
+        <div className="doc-sheet-handle" aria-hidden="true" />
+        <div className="doc-sheet-bar">
+          <span className="doc-sheet-ws">{ws?.name ?? ''}</span>
+          <div className="doc-sheet-actions">
+            <button className="doc-sheet-btn" onClick={onEdit} aria-label="Edit document">
+              <PencilSimple size={18} aria-hidden="true" />
+            </button>
+            <button className="doc-sheet-btn" onClick={onClose} aria-label="Close preview">
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="doc-sheet-body">
+          <h1 className="doc-sheet-title">{doc.title || 'Untitled'}</h1>
+          <p className="doc-sheet-edited">Edited {timeAgo(doc.updated_at)}</p>
+          {loading ? (
+            <p className="doc-sheet-loading">Loading…</p>
+          ) : (
+            <div
+              className="doc-sheet-content tiptap"
+              dangerouslySetInnerHTML={{ __html: doc.content || '' }}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
 
 function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
   const ws = wsMap[doc.workspace_id]
@@ -76,6 +125,8 @@ export default function WritesPage() {
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
   const [docLoading,  setDocLoading]  = useState(false)
+  const [previewDoc,  setPreviewDoc]  = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [showSettings,  setShowSettings]  = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
@@ -192,6 +243,20 @@ export default function WritesPage() {
     }
   }
 
+  const handlePreviewDoc = async (id) => {
+    const partial = docs.find(d => d.id === id) ?? { id }
+    setPreviewDoc(partial)
+    setPreviewLoading(true)
+    try {
+      const full = await fetchDocContent(id)
+      setPreviewDoc(full)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load document')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   const q = search.trim().toLowerCase()
   const filtered = q ? docs.filter(d => (d.title || '').toLowerCase().includes(q)) : docs
   const grouped  = workspaces
@@ -303,7 +368,7 @@ export default function WritesPage() {
                         doc={doc}
                         docId={docId}
                         wsMap={wsMap}
-                        onNavigate={id => navigate('/writes/' + id)}
+                        onNavigate={handlePreviewDoc}
                         onPin={handlePin}
                       />
                     ))}
@@ -402,6 +467,16 @@ export default function WritesPage() {
       <Suspense fallback={null}>
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
+
+      {isMobile && previewDoc && (
+        <DocPreviewSheet
+          doc={previewDoc}
+          wsMap={wsMap}
+          loading={previewLoading}
+          onEdit={() => { setPreviewDoc(null); navigate('/writes/' + previewDoc.id) }}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
     </div>
   )
 }

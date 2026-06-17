@@ -12845,3 +12845,100 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     right: auto;
   }
 }
+
+/* ── Doc preview bottom sheet ────────────────────────────────
+   Mobile-only; rendered via JS so no display:none needed.     */
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.doc-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 120;
+}
+.doc-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 121;
+  background: var(--paper);
+  border-radius: 20px 20px 0 0;
+  max-height: 78dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.doc-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+.doc-sheet-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 0;
+  flex-shrink: 0;
+}
+.doc-sheet-ws {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.doc-sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: -10px -10px -10px 0;
+}
+.doc-sheet-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.doc-sheet-btn:hover  { background: var(--paper-2); color: var(--ink); }
+.doc-sheet-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.doc-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 32px;
+}
+.doc-sheet-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 4px;
+  line-height: 1.15;
+}
+.doc-sheet-edited {
+  font-size: 13px;
+  color: var(--ink-4);
+  margin: 0 0 20px;
+}
+.doc-sheet-loading {
+  color: var(--ink-4);
+  font-size: var(--text-body);
+  margin: 0;
+}
+.doc-sheet-content {
+  font-size: 15px;
+  line-height: 1.65;
+  cursor: default;
+}
