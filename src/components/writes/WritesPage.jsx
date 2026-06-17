@@ -30,11 +30,36 @@ function timeAgo(dateStr) {
 
 function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
   const ws = wsMap[doc.workspace_id]
+  const [expanded, setExpanded] = useState(false)
+  const touchStartY = useRef(null)
+
+  const onHandleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY
+  }
+  const onHandleTouchEnd = (e) => {
+    if (touchStartY.current === null) return
+    const delta = touchStartY.current - e.changedTouches[0].clientY
+    touchStartY.current = null
+    if (delta > 40) { setExpanded(true); return }
+    if (delta < -40) { expanded ? setExpanded(false) : onClose() }
+  }
+
+  const height = expanded ? '80dvh' : '50dvh'
+
   return (
     <>
       <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="doc-sheet" role="dialog" aria-modal="true" aria-label={doc.title || 'Untitled'}>
-        <div className="doc-sheet-handle" aria-hidden="true" />
+      <div
+        className="doc-sheet"
+        style={{ height, transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)' }}
+        role="dialog" aria-modal="true" aria-label={doc.title || 'Untitled'}
+      >
+        <div
+          className="doc-sheet-handle"
+          aria-hidden="true"
+          onTouchStart={onHandleTouchStart}
+          onTouchEnd={onHandleTouchEnd}
+        />
         <div className="doc-sheet-bar">
           <span className="doc-sheet-ws">{ws?.name ?? ''}</span>
           <div className="doc-sheet-actions">

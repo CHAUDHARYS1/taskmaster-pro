@@ -12866,19 +12866,21 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   z-index: 121;
   background: var(--paper);
   border-radius: 20px 20px 0 0;
-  max-height: 78dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
   animation: sheet-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .doc-sheet-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
   background: var(--line);
-  margin: 10px auto 0;
+  margin: 12px auto 0;
   flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
 }
 .doc-sheet-bar {
   display: flex;
