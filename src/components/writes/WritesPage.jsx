@@ -1,13 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus, PencilSimple, X, GearSix,
+  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus, PencilSimple, X,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
 
-const SettingsModal          = lazy(() => import('../ui/SettingsModal'))
-const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
+const SettingsModal = lazy(() => import('../ui/SettingsModal'))
 import { fmtDate } from '../../utils/format'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -247,7 +246,7 @@ function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
 export default function WritesPage() {
   const { docId }    = useParams()
   const navigate     = useNavigate()
-  const { currentWorkspace, workspaces, userRole } = useWorkspace()
+  const { currentWorkspace, workspaces } = useWorkspace()
   const { toast }    = useToast()
 
   // Track our own saves so we can ignore the realtime echo of our own writes
@@ -277,8 +276,7 @@ export default function WritesPage() {
   const [previewDoc,  setPreviewDoc]  = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [editDoc,     setEditDoc]     = useState(null)
-  const [showSettings,   setShowSettings]   = useState(false)
-  const [showWsSettings, setShowWsSettings] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
   const fabRef      = useRef(null)
@@ -468,17 +466,7 @@ export default function WritesPage() {
               <div className="mobile-appbar-ws"><span>{currentWorkspace?.name ?? 'My Workspace'}</span></div>
             </div>
           </div>
-          <div className="mobile-appbar-actions">
-            <button
-              className="mobile-appbar-settings-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-            >
-              <GearSix size={20} aria-hidden="true" />
-            </button>
-            <span className="mobile-appbar-sep" aria-hidden="true" />
-            <BellButton />
-          </div>
+          <BellButton />
         </div>
 
         {/* ── Page header ─────────────────────────────────────── */}
@@ -651,8 +639,7 @@ export default function WritesPage() {
       </div>
 
       <Suspense fallback={null}>
-        {showSettings   && <SettingsModal          onClose={() => setShowSettings(false)} />}
-        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={userRole !== 'viewer'} />}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
 
       {isMobile && previewDoc && (

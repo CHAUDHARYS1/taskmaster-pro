@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { List, CalendarBlank, GearSix } from '@phosphor-icons/react'
+import { List, CalendarBlank } from '@phosphor-icons/react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -9,12 +9,11 @@ import CalendarView from './CalendarView'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
 
-const TaskDetailPanel        = lazy(() => import('../board/TaskDetailPanel'))
-const SettingsModal          = lazy(() => import('../ui/SettingsModal'))
-const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
+const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
+const SettingsModal   = lazy(() => import('../ui/SettingsModal'))
 
 export default function CalendarPage() {
-  const { workspaces, currentWorkspace, loading: wsLoading, userRole } = useWorkspace()
+  const { workspaces, currentWorkspace, loading: wsLoading } = useWorkspace()
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -22,8 +21,7 @@ export default function CalendarPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
-  const [showSettings,   setShowSettings]   = useState(false)
-  const [showWsSettings, setShowWsSettings] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [filterWsId,   setFilterWsId]   = useState('all')
   const [tasks,        setTasks]        = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -161,17 +159,7 @@ export default function CalendarPage() {
               <div className="mobile-appbar-ws"><span>All workspaces</span></div>
             </div>
           </div>
-          <div className="mobile-appbar-actions">
-            <button
-              className="mobile-appbar-settings-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-            >
-              <GearSix size={20} aria-hidden="true" />
-            </button>
-            <span className="mobile-appbar-sep" aria-hidden="true" />
-            <BellButton />
-          </div>
+          <BellButton />
         </div>
         <div className="board-header">
           <div className="board-header-left">
@@ -229,8 +217,7 @@ export default function CalendarPage() {
             onClose={() => setSelectedTask(null)}
           />
         )}
-        {showSettings   && <SettingsModal          onClose={() => setShowSettings(false)} />}
-        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={userRole !== 'viewer'} />}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
     </div>
   )
