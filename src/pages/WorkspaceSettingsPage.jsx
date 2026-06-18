@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   DndContext,
@@ -518,6 +518,67 @@ function GeneralTab({ workspace, isOwner, workspaceColumns, onSaved }) {
   )
 }
 
+// ── Swipe-to-reveal row (mobile delete gesture) ────────────────────────────
+function SwipeMemberRow({ children, isOpen, onOpen, onClose, onDelete }) {
+  const startXRef = useRef(null)
+  const startOpenRef = useRef(false)
+  const [offset, setOffset] = useState(0)
+  const [animate, setAnimate] = useState(false)
+  const REVEAL_WIDTH = 72
+
+  useEffect(() => {
+    setAnimate(true)
+    setOffset(isOpen ? -REVEAL_WIDTH : 0)
+  }, [isOpen])
+
+  const handleTouchStart = e => {
+    startXRef.current = e.touches[0].clientX
+    startOpenRef.current = isOpen
+    setAnimate(false)
+  }
+
+  const handleTouchMove = e => {
+    if (startXRef.current === null) return
+    const dx = e.touches[0].clientX - startXRef.current
+    const base = startOpenRef.current ? -REVEAL_WIDTH : 0
+    setOffset(Math.max(-REVEAL_WIDTH, Math.min(0, base + dx)))
+  }
+
+  const handleTouchEnd = () => {
+    setAnimate(true)
+    if (offset < -(REVEAL_WIDTH / 2)) {
+      setOffset(-REVEAL_WIDTH)
+      onOpen()
+    } else {
+      setOffset(0)
+      onClose()
+    }
+    startXRef.current = null
+  }
+
+  return (
+    <div className="wsp-swipe-wrap">
+      <div className="wsp-swipe-action" aria-hidden="true">
+        <button className="wsp-swipe-delete-btn" onClick={onDelete} tabIndex={isOpen ? 0 : -1}>
+          <Trash size={16} weight="bold" color="#fff" aria-hidden="true" />
+        </button>
+      </div>
+      <div
+        className="wsp-swipe-row"
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: animate ? 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // ── Members tab ────────────────────────────────────────────────────────────
 function MembersTab({ workspace, isOwner, canEdit, onSaved }) {
   const { members, inviteMember, removeMember } = useMembers(workspace?.id)
@@ -527,6 +588,7 @@ function MembersTab({ workspace, isOwner, canEdit, onSaved }) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('member')
   const [inviting, setInviting] = useState(false)
+  const [openSwipeId, setOpenSwipeId] = useState(null)
   const [inviteLink, setInviteLink] = useState('')
   const [inviteError, setInviteError] = useState('')
 
@@ -573,37 +635,45 @@ function MembersTab({ workspace, isOwner, canEdit, onSaved }) {
             const isOwnerMember = m.role === 'owner'
             const color = userColor(m.user_id ?? '')
             return (
-              <li key={m.user_id} className="wsp-member-row">
-                <span
-                  className="wsp-member-avatar"
-                  style={{ background: color }}
-                  aria-hidden="true"
-                >
-                  {memberInitial(m)}
-                </span>
-                <div className="wsp-member-info">
-                  <span className="wsp-member-name">
-                    {memberDisplayName(m)}
-                    {isMe && <span className="wsp-member-you"> (you)</span>}
+              <SwipeMemberRow
+                key={m.user_id}
+                isOpen={openSwipeId === m.user_id && isOwner && !isMe && !isOwnerMember}
+                onOpen={() => setOpenSwipeId(m.user_id)}
+                onClose={() => setOpenSwipeId(null)}
+                onDelete={() => { setOpenSwipeId(null); handleRemoveMember(m) }}
+              >
+                <li className="wsp-member-row">
+                  <span
+                    className="wsp-member-avatar"
+                    style={{ background: color }}
+                    aria-hidden="true"
+                  >
+                    {memberInitial(m)}
                   </span>
-                  <span className="wsp-member-email">{m.email}</span>
-                </div>
-                {isOwnerMember
-                  ? <span className="wsp-member-badge">OWNER</span>
-                  : isOwner && !isMe && (
-                    <>
-                      <span className="wsp-member-role-label">{ROLE_LABELS[m.role] ?? m.role}</span>
-                      <button
-                        className="wsp-member-remove"
-                        onClick={() => handleRemoveMember(m)}
-                        aria-label={`Remove ${memberDisplayName(m)}`}
-                      >
-                        <X size={14} weight="bold" aria-hidden="true" />
-                      </button>
-                    </>
-                  )
-                }
-              </li>
+                  <div className="wsp-member-info">
+                    <span className="wsp-member-name">
+                      {memberDisplayName(m)}
+                      {isMe && <span className="wsp-member-you"> (you)</span>}
+                    </span>
+                    <span className="wsp-member-email">{m.email}</span>
+                  </div>
+                  {isOwnerMember
+                    ? <span className="wsp-member-badge">OWNER</span>
+                    : isOwner && !isMe && (
+                      <>
+                        <span className="wsp-member-role-label">{ROLE_LABELS[m.role] ?? m.role}</span>
+                        <button
+                          className="wsp-member-remove"
+                          onClick={() => handleRemoveMember(m)}
+                          aria-label={`Remove ${memberDisplayName(m)}`}
+                        >
+                          <X size={14} weight="bold" aria-hidden="true" />
+                        </button>
+                      </>
+                    )
+                  }
+                </li>
+              </SwipeMemberRow>
             )
           })}
         </ul>
@@ -952,6 +1022,9 @@ export default function WorkspaceSettingsPage() {
   const [navCollapsed, setNavCollapsed] = useState(
     () => localStorage.getItem('wsp-nav-collapsed') === 'true'
   )
+  const [mobileShowIndex, setMobileShowIndex] = useState(true)
+  const { members } = useMembers(currentWorkspace?.id)
+  const { projects } = useProject()
 
   const isOwner = userRole === 'owner'
   const canEdit = userRole === 'owner' || userRole === 'member'
@@ -969,10 +1042,10 @@ export default function WorkspaceSettingsPage() {
   const handleSaved = () => setSavedAt(Date.now())
 
   const TABS = [
-    { id: 'general',  label: 'General',  Icon: Sliders },
-    { id: 'members',  label: 'Members',  Icon: Users },
-    { id: 'projects', label: 'Projects', Icon: FolderSimple },
-    ...(isOwner ? [{ id: 'danger', label: 'Danger zone', Icon: WarningCircle }] : []),
+    { id: 'general',  label: 'General',     Icon: Sliders,       description: 'Name, branding, columns', iconBg: '#7c3aed' },
+    { id: 'members',  label: 'Members',     Icon: Users,         description: 'People & invites',        iconBg: '#0f766e' },
+    { id: 'projects', label: 'Projects',    Icon: FolderSimple,  description: 'Groups & colors',         iconBg: '#d97706' },
+    ...(isOwner ? [{ id: 'danger', label: 'Danger zone', Icon: WarningCircle, description: 'Leave or delete', iconBg: '#ef4444' }] : []),
   ]
 
   return (
@@ -987,13 +1060,33 @@ export default function WorkspaceSettingsPage() {
         onProfileClick={() => setShowUserSettings(true)}
       />
 
-      <main className="wsp-page" id="main-content">
+      <main className={`wsp-page${mobileShowIndex ? ' wsp-page--mob-idx' : ''}`} id="main-content">
         {/* ── Top bar ─────────────────────────────────────────── */}
         <div className="wsp-topbar">
-          <button className="wsp-back-btn" onClick={handleBack} aria-label="Back to board">
+          {/* Desktop back — hidden on mobile */}
+          <button className="wsp-back-btn wsp-back-btn--desktop" onClick={handleBack} aria-label="Back to board">
             <ArrowLeft size={16} weight="bold" aria-hidden="true" />
             Back to board
           </button>
+
+          {/* Mobile back — hidden on desktop */}
+          <button
+            className="wsp-back-btn wsp-back-btn--mobile"
+            onClick={() => mobileShowIndex ? handleBack() : setMobileShowIndex(true)}
+            aria-label={mobileShowIndex ? 'Back to board' : 'Back to settings'}
+          >
+            <ArrowLeft size={16} weight="bold" aria-hidden="true" />
+          </button>
+
+          {/* Mobile page title — hidden on desktop */}
+          <div className="wsp-topbar-mob-title">
+            <span className="wsp-topbar-mob-main">
+              {mobileShowIndex ? 'Settings' : (TABS.find(t => t.id === tab)?.label ?? 'Settings')}
+            </span>
+            {currentWorkspace && (
+              <span className="wsp-topbar-mob-sub">{currentWorkspace.name}</span>
+            )}
+          </div>
 
           {currentWorkspace && (
             <div className="wsp-topbar-identity">
@@ -1019,6 +1112,62 @@ export default function WorkspaceSettingsPage() {
               </>
             )}
           </div>
+        </div>
+
+        {/* ── Panels wrapper (enables sliding transition on mobile) */}
+        <div className="wsp-mob-panels">
+
+        {/* ── Mobile index ────────────────────────────────────── */}
+        <div className="wsp-mobile-index" aria-label="Settings sections">
+          {currentWorkspace && (
+            <div className="wsp-mob-ws-card">
+              <div
+                className="wsp-mob-ws-avatar"
+                style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                aria-hidden="true"
+              >
+                {currentWorkspace.emoji || currentWorkspace.name?.[0]?.toUpperCase() || '?'}
+              </div>
+              <div className="wsp-mob-ws-info">
+                <span className="wsp-mob-ws-name">{currentWorkspace.name}</span>
+                <span className="wsp-mob-ws-meta">
+                  {members.length} {members.length === 1 ? 'member' : 'members'} · {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <nav className="wsp-mob-sections" aria-label="Settings sections">
+            {TABS.map(t => {
+              const count =
+                t.id === 'members' ? members.length :
+                t.id === 'projects' ? projects.length :
+                null
+              return (
+                <button
+                  key={t.id}
+                  className={`wsp-mob-section-row${t.id === 'danger' ? ' wsp-mob-section-row--danger' : ''}`}
+                  onClick={() => { setTab(t.id); setMobileShowIndex(false) }}
+                >
+                  <span className="wsp-mob-section-icon" style={{ background: t.iconBg }} aria-hidden="true">
+                    <t.Icon size={18} weight="bold" color="#fff" aria-hidden="true" />
+                  </span>
+                  <span className="wsp-mob-section-info">
+                    <span className="wsp-mob-section-label">{t.label}</span>
+                    <span className="wsp-mob-section-desc">{t.description}</span>
+                  </span>
+                  {count != null && (
+                    <span className="wsp-mob-section-count">{count}</span>
+                  )}
+                  <CaretRight size={14} weight="bold" className="wsp-mob-section-caret" aria-hidden="true" />
+                </button>
+              )
+            })}
+          </nav>
+
+          <p className="wsp-mob-index-footer">
+            Changes apply to everyone in this workspace and save automatically.
+          </p>
         </div>
 
         {/* ── Body: nav + content ─────────────────────────────── */}
@@ -1101,6 +1250,8 @@ export default function WorkspaceSettingsPage() {
             )}
           </div>
         </div>
+
+        </div>{/* end wsp-mob-panels */}
       </main>
 
       <Suspense fallback={null}>
