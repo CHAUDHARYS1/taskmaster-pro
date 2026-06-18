@@ -14060,6 +14060,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   line-height: 1.2;
 }
 
+
 .wsp-section-sub {
   font-size: var(--text-body);
   color: var(--ink-3);
@@ -14654,6 +14655,40 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .wsp-member-remove:hover { color: var(--red); background: var(--red-tint); }
 .wsp-member-remove:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
 
+/* ── Swipe-to-reveal delete (mobile) ───────────────────────────────────── */
+.wsp-swipe-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.wsp-swipe-action {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wsp-swipe-delete-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.wsp-swipe-row {
+  background: var(--card);
+  position: relative;
+}
+
 /* ── Invite form ────────────────────────────────────────────────────────── */
 .wsp-invite-form { display: flex; flex-direction: column; gap: var(--space-3); }
 
@@ -14841,4 +14876,255 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: var(--text-xs);
   color: var(--ink-4);
   line-height: 1.5;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE SETTINGS — new elements hidden on desktop by default
+   ════════════════════════════════════════════════════════════════ */
+
+.wsp-back-btn--mobile  { display: none; }
+.wsp-topbar-mob-title  { display: none; }
+.wsp-mobile-index      { display: none; }
+
+/* Panels wrapper: transparent on desktop, slide container on mobile */
+.wsp-mob-panels { display: contents; }
+
+/* ── Mobile index: workspace card ───────────────────────────── */
+.wsp-mob-ws-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.wsp-mob-ws-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: var(--weight-bold);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.wsp-mob-ws-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wsp-mob-ws-name {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.wsp-mob-ws-meta {
+  font-size: var(--text-body);
+  color: var(--ink-3);
+}
+
+/* ── Mobile index: section rows ──────────────────────────────── */
+.wsp-mob-sections {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.wsp-mob-section-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.wsp-mob-section-row:last-child { border-bottom: none; }
+.wsp-mob-section-row:active,
+.wsp-mob-section-row:hover { background: var(--paper-2); }
+.wsp-mob-section-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.wsp-mob-section-row--danger .wsp-mob-section-label { color: var(--red); }
+
+.wsp-mob-section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wsp-mob-section-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wsp-mob-section-label {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.wsp-mob-section-desc {
+  font-size: var(--text-body);
+  color: var(--ink-3);
+}
+
+.wsp-mob-section-count {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-4);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.wsp-mob-section-caret {
+  color: var(--ink-4);
+  flex-shrink: 0;
+}
+
+.wsp-mob-index-footer {
+  padding: var(--space-4) var(--space-4) 0;
+  font-size: var(--text-body);
+  color: var(--ink-4);
+  line-height: 1.5;
+}
+
+/* ── Mobile topbar title ─────────────────────────────────────── */
+.wsp-topbar-mob-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wsp-topbar-mob-main {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.wsp-topbar-mob-sub {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE SETTINGS — responsive overrides at ≤768px
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Show/hide swaps */
+  .wsp-back-btn--mobile  { display: flex; align-items: center; }
+  .wsp-topbar-mob-title  { display: flex; }
+  .wsp-back-btn--desktop { display: none; }
+  .wsp-topbar-identity   { display: none; }
+  .wsp-topbar-status     { min-width: unset; }
+
+  /* Topbar compact */
+  .wsp-topbar { padding: 0 var(--space-4); }
+
+  /* Panels wrapper: slide container */
+  .wsp-mob-panels {
+    display: block;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Both panels absolutely fill the container and slide */
+  .wsp-mobile-index,
+  .wsp-mob-panels .wsp-layout {
+    position: absolute;
+    inset: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .wsp-mobile-index {
+    background: var(--bg);
+    gap: var(--space-3);
+    padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Index shown: index at 0, layout fully off to the right */
+  .wsp-page--mob-idx .wsp-mobile-index           { transform: translateX(0); }
+  .wsp-page--mob-idx .wsp-mob-panels .wsp-layout { transform: translateX(100%); }
+
+  /* Section shown: layout at 0, index fully off to the left */
+  .wsp-page:not(.wsp-page--mob-idx) .wsp-mobile-index           { transform: translateX(-100%); }
+  .wsp-page:not(.wsp-page--mob-idx) .wsp-mob-panels .wsp-layout { transform: translateX(0); }
+
+  /* Always hide nav sidebar and collapse toggle on mobile */
+  .wsp-nav,
+  .wsp-nav-toggle { display: none; }
+
+  /* Content area: full width, tighter padding */
+  .wsp-content {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  /* Cards: remove max-width cap */
+  .wsp-card,
+  .wsp-section-hdr,
+  .wsp-danger-container { max-width: 100%; }
+
+  /* Tighten card inner padding */
+  .wsp-card-hdr,
+  .wsp-card-body { padding: var(--space-4); }
+
+  /* Invite form: email full-width on top, role + button on same row below */
+  .wsp-invite-row { flex-wrap: wrap; gap: var(--space-2); align-items: stretch; }
+  .wsp-invite-email { flex: 0 0 100%; width: 100%; }
+  .wsp-invite-role { flex: 0 0 auto; }
+  .wsp-invite-btn { flex: 1; justify-content: center; }
+
+  /* Member role label: push to the far right */
+  .wsp-member-role-label { margin-left: auto; }
+
+  /* Hide desktop remove button on mobile — swipe gesture handles it */
+  .wsp-member-remove { display: none; }
+
+  /* Danger rows: stack vertically */
+  .wsp-danger-row { flex-direction: column; gap: var(--space-3); }
+  .wsp-danger-row .wsp-btn-outline { width: 100%; justify-content: center; }
+  .wsp-danger-confirm-row { flex-direction: column; align-items: stretch; }
+  .wsp-danger-input { flex: unset; }
 }
