@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight, Plus } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -76,6 +77,7 @@ function ColumnMoveToast({ event, columns, onDone }) {
 }
 
 export default function Board() {
+  const navigate = useNavigate()
   const { currentWorkspace, userRole, loading: wsLoading, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user, profile, displayName, prefs } = useAuth()
@@ -696,7 +698,7 @@ ${colData.map(c => `<div class="col">
           <div className="mobile-appbar-actions">
             <button
               className="mobile-appbar-settings-btn"
-              onClick={() => setShowWsSettings(true)}
+              onClick={() => navigate('/workspace-settings')}
               aria-label="Workspace settings"
             >
               <GearSix size={20} aria-hidden="true" />
@@ -760,14 +762,6 @@ ${colData.map(c => `<div class="col">
               <Printer size={20} aria-hidden="true" />
             </button>
 
-            <button
-              className="ws-settings-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-              title="Workspace settings"
-            >
-              <GearSix size={20} aria-hidden="true" />
-            </button>
           </div>
         </div>
 
@@ -808,6 +802,14 @@ ${colData.map(c => `<div class="col">
           >
             <ChartBar size={18} aria-hidden="true" />
             <span className="icon-bar-label">Gantt</span>
+          </button>
+          <button
+            className="ws-settings-btn icon-bar-settings-btn"
+            onClick={() => navigate('/workspace-settings')}
+            aria-label="Workspace settings"
+            title="Workspace settings"
+          >
+            <GearSix size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -1014,7 +1016,6 @@ ${colData.map(c => `<div class="col">
 
       <Suspense fallback={null}>
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
         {showSettings   && <SettingsModal           onClose={() => setShowSettings(false)} />}
         {welcomeData    && (
           <WelcomeModal
