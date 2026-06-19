@@ -2,22 +2,30 @@ import { createContext, useContext, useEffect, useState } from 'react'
 
 const ThemeContext = createContext(null)
 
-function getInitialIsDark() {
-  const stored = localStorage.getItem('theme')
-  if (stored) return stored === 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+function getInitialMode() {
+  return localStorage.getItem('themeMode') || localStorage.getItem('theme') || 'system'
+}
+
+function resolveIsDark(mode) {
+  if (mode === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches
+  return mode === 'dark'
 }
 
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(getInitialIsDark)
+  const [themeMode, setThemeModeState] = useState(getInitialMode)
+  const isDark = resolveIsDark(themeMode)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    localStorage.setItem('themeMode', themeMode)
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
-  }, [isDark])
+  }, [isDark, themeMode])
+
+  const setThemeMode = (mode) => setThemeModeState(mode)
+  const toggle = () => setThemeModeState(p => p === 'dark' ? 'light' : 'dark')
 
   return (
-    <ThemeContext.Provider value={{ isDark, toggle: () => setIsDark(p => !p) }}>
+    <ThemeContext.Provider value={{ isDark, themeMode, toggle, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   )
