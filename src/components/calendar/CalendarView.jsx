@@ -119,31 +119,33 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
 }
 
 // ── MobileDateStrip ───────────────────────────────────────────────────────────
-function MobileDateStrip({ tasksByDate, today, selectedDate, onDaySelect }) {
+function MobileDateStrip({ tasksByDate, today, month, selectedDate, onDaySelect }) {
   const scrollRef = useRef(null)
 
   const days = useMemo(() => {
+    const start  = month.startOf('month').subtract(2, 'day')
+    const end    = month.endOf('month').add(2, 'day')
     const result = []
-    for (let i = -7; i <= 21; i++) {
-      const d = dayjs(today).add(i, 'day')
+    for (let d = start; !d.isAfter(end); d = d.add(1, 'day')) {
       const key = d.format('YYYY-MM-DD')
       result.push({ d, key, hasEvents: !!(tasksByDate[key]?.length) })
     }
     return result
-  }, [today, tasksByDate])
+  }, [month, tasksByDate])
 
-  // Center the selected/today pill in the strip
+  // Center on selected date, today (if in strip), or first pill of the month
   useEffect(() => {
     if (!scrollRef.current) return
     const target = selectedDate || today
     const el = scrollRef.current.querySelector(`[data-key="${target}"]`)
+      || scrollRef.current.querySelector('button[data-key]')
     if (!el) return
     const containerW = scrollRef.current.offsetWidth
     scrollRef.current.scrollTo({
       left: el.offsetLeft - containerW / 2 + el.offsetWidth / 2,
       behavior: 'smooth',
     })
-  }, [selectedDate, today])
+  }, [selectedDate, today, month])
 
   return (
     <div className="cal-date-strip" ref={scrollRef} aria-label="Jump to date">
@@ -748,20 +750,21 @@ function relDayLabel(dateKey, today) {
   return null
 }
 
-function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate }) {
+function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate, filterMonth, addingDay, setAddingDay, projectOptions, defaultProject, onQuickAdd }) {
   const today       = dayjs().format('YYYY-MM-DD')
   const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
   const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
 
   const allDates = useMemo(() => {
-    if (filterDate) return tasksByDate[filterDate] ? [filterDate] : []
+    if (filterDate)  return tasksByDate[filterDate] ? [filterDate] : []
     const dates = Object.keys(tasksByDate).sort()
+    if (filterMonth) return dates.filter(d => d.startsWith(filterMonth))
     return upcomingOnly ? dates.filter(d => d >= today) : dates
-  }, [tasksByDate, upcomingOnly, today, filterDate])
+  }, [tasksByDate, upcomingOnly, today, filterDate, filterMonth])
 
   const hasPast = useMemo(
-    () => !filterDate && Object.keys(tasksByDate).some(d => d < today),
-    [tasksByDate, today, filterDate]
+    () => !filterDate && !filterMonth && Object.keys(tasksByDate).some(d => d < today),
+    [tasksByDate, today, filterDate, filterMonth]
   )
 
   if (allDates.length === 0 && !hasPast) {
@@ -769,7 +772,9 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
       <p className="cal-day-empty">
         {filterDate
           ? `No tasks due on ${dayjs(filterDate).format('MMMM D')}.`
-          : 'No tasks with due dates match the current filters.'
+          : filterMonth
+            ? `No tasks in ${dayjs(filterMonth + '-01').format('MMMM YYYY')}.`
+            : 'No tasks with due dates match the current filters.'
         }
       </p>
     )
@@ -830,6 +835,14 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
                 <span className="cal-agenda-mon-full">{d.format('MMMM YYYY')}</span>
               </div>
               <span className="cal-agenda-count" aria-hidden="true">{events.length}</span>
+              <button
+                type="button"
+                className="cal-agenda-add-btn"
+                onClick={e => { e.stopPropagation(); setAddingDay?.(addingDay === dateKey ? null : dateKey) }}
+                aria-label={`Add task on ${d.format('MMMM D')}`}
+              >
+                <Plus size={13} weight="bold" aria-hidden="true" />
+              </button>
             </div>
             <div className="cal-agenda-events">
               {events.map(t => (
@@ -850,6 +863,20 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
                 </div>
               ))}
             </div>
+            {addingDay === dateKey && (
+              <div className="cal-agenda-quick-add">
+                <QuickAddForm
+                  date={dateKey}
+                  projectOptions={projectOptions || []}
+                  defaultProject={defaultProject || ''}
+                  onAdd={(date, text, wsId, projectId) => {
+                    onQuickAdd?.(date, text, wsId, projectId)
+                    setAddingDay?.(null)
+                  }}
+                  onCancel={() => setAddingDay?.(null)}
+                />
+              </div>
+            )}
           </div>
         )
       })}
@@ -993,6 +1020,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const [mobileSearch,     setMobileSearch]     = useState('')
   const [selectedDate,     setSelectedDate]     = useState(null)
+  const [mobileMonth,      setMobileMonth]      = useState(() => dayjs().startOf('month'))
 
   const defaultProject    = projectOptions[0]?.value ?? ''
   const activeFilterCount = Object.values(filters).filter(Boolean).length
@@ -1031,9 +1059,15 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   }, [filteredTasks])
 
   const today = dayjs().format('YYYY-MM-DD')
-  const allDateKeys      = Object.keys(tasksByDate)
+  const allDateKeys       = Object.keys(tasksByDate)
   const upcomingDateCount = allDateKeys.filter(d => d >= today).length
   const totalDateCount    = allDateKeys.length
+
+  const mobileMonthKey = mobileMonth.format('YYYY-MM')
+  const isCurrentMonth = mobileMonthKey === dayjs().format('YYYY-MM')
+  const monthTaskCount = Object.entries(tasksByDate)
+    .filter(([d]) => d.startsWith(mobileMonthKey))
+    .reduce((sum, [, arr]) => sum + arr.length, 0)
 
   const handleMobileDaySelect = useCallback((dateKey) => {
     setSelectedDate(prev => prev === dateKey ? null : dateKey)
@@ -1110,15 +1144,46 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
     <div className="cal-wrap">
       {/* ── Mobile header ───────────────────────────────────── */}
       <div className="cal-mobile-hdr">
-        <h2 className="cal-mobile-month">{cursor.format('MMMM YYYY')}</h2>
-        <p className="cal-mobile-sub">
-          {selectedDate
-            ? dayjs(selectedDate).format('dddd, MMMM D')
-            : `${upcomingDateCount} of ${totalDateCount} upcoming`
-          }
-        </p>
+        <div className="cal-mob-nav">
+          <button
+            type="button"
+            className="cal-mob-nav-arrow"
+            onClick={() => { setMobileMonth(m => m.subtract(1, 'month')); setSelectedDate(null) }}
+            aria-label="Previous month"
+          >
+            <CaretLeft size={16} weight="bold" aria-hidden="true" />
+          </button>
+          <div className="cal-mob-nav-center">
+            <h2 className="cal-mobile-month">{mobileMonth.format('MMMM YYYY')}</h2>
+            <p className="cal-mobile-sub">
+              {selectedDate
+                ? dayjs(selectedDate).format('dddd, MMMM D')
+                : isCurrentMonth
+                  ? `${upcomingDateCount} of ${totalDateCount} upcoming`
+                  : `${monthTaskCount} task${monthTaskCount !== 1 ? 's' : ''} this month`
+              }
+            </p>
+          </div>
+          <button
+            type="button"
+            className="cal-mob-nav-arrow"
+            onClick={() => { setMobileMonth(m => m.add(1, 'month')); setSelectedDate(null) }}
+            aria-label="Next month"
+          >
+            <CaretRight size={16} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+        {!isCurrentMonth && (
+          <button
+            type="button"
+            className="cal-mob-today-chip"
+            onClick={() => { setMobileMonth(dayjs().startOf('month')); setSelectedDate(null) }}
+          >
+            Back to today
+          </button>
+        )}
       </div>
-      <MobileDateStrip tasksByDate={tasksByDate} today={today} selectedDate={selectedDate} onDaySelect={handleMobileDaySelect} />
+      <MobileDateStrip tasksByDate={tasksByDate} today={today} month={mobileMonth} selectedDate={selectedDate} onDaySelect={handleMobileDaySelect} />
 
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div className="cal-toolbar">
@@ -1180,7 +1245,22 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
           {calView === 'month'  && <MonthView {...sharedProps} setOverflowData={setOverflowData} />}
           {calView === 'week'   && <WeekView  {...sharedProps} />}
           {calView === 'day'    && <DayView   {...sharedProps} />}
-          {calView === 'agenda' && <AgendaView tasksByDate={tasksByDate} onTaskClick={onTaskClick} colorBy={colorBy} onOpenCtxMenu={openCtxMenu} onDeleteTask={onDeleteTask} filterDate={selectedDate} />}
+          {calView === 'agenda' && (
+            <AgendaView
+              tasksByDate={tasksByDate}
+              onTaskClick={onTaskClick}
+              colorBy={colorBy}
+              onOpenCtxMenu={openCtxMenu}
+              onDeleteTask={onDeleteTask}
+              filterDate={selectedDate}
+              filterMonth={!isCurrentMonth ? mobileMonthKey : null}
+              addingDay={addingDay}
+              setAddingDay={setAddingDay}
+              projectOptions={projectOptions}
+              defaultProject={defaultProject}
+              onQuickAdd={onQuickAdd}
+            />
+          )}
         </div>
       </div>
 

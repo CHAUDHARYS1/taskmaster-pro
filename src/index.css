@@ -12579,6 +12579,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
 .cal-agenda-today-tag   { display: none; }
 .cal-agenda-event-wrap  { display: contents; }
 .cal-agenda-rel         { display: none; }
+.cal-agenda-add-btn     { display: none; }
+.cal-mob-today-chip     { display: none; }
+.cal-mob-nav-arrow      { display: none; }
 .cal-agenda-filter-row  { display: none; }
 .cal-event-ws           { display: none; }
 .cal-mobile-fab         { display: none; }
@@ -12612,10 +12615,47 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-view-area { width: 100%; overflow: visible; }
   .cal-agenda    { overflow-y: visible !important; height: auto !important; flex: none !important; }
 
-  /* Mobile header: "June 2026" + "7 of 7 upcoming" */
+  /* Mobile header */
   .cal-mobile-hdr {
-    display: block;
-    padding: 20px 20px 4px;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 16px 4px;
+    gap: 8px;
+  }
+  /* Month nav row: ‹ MMMM YYYY › */
+  .cal-mob-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cal-mob-nav-center {
+    flex: 1;
+    text-align: center;
+  }
+  .cal-mob-nav-arrow {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink-2);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .cal-mob-nav-arrow:hover,
+  .cal-mob-nav-arrow:focus-visible { background: var(--paper-2); }
+  /* "Back to today" chip */
+  .cal-mob-today-chip {
+    align-self: center;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
   .cal-mobile-month {
     font-size: 32px;
@@ -12623,7 +12663,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     letter-spacing: -0.03em;
     color: var(--ink);
     line-height: 1.1;
-    margin: 0 0 4px;
+    margin: 0 0 2px;
   }
   .cal-mobile-sub {
     font-size: 13px;
@@ -12766,6 +12806,50 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     color: var(--ink-3);
     flex-shrink: 0;
   }
+
+  /* + add task button on each day card */
+  .cal-agenda-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-3);
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .cal-agenda-add-btn:hover,
+  .cal-agenda-add-btn:focus-visible {
+    background: var(--accent-muted, rgba(37,99,235,0.1));
+    color: var(--accent);
+  }
+
+  /* Inline quick-add form inside a day card */
+  .cal-agenda-quick-add {
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--line-soft, rgba(0,0,0,0.07));
+  }
+  .cal-agenda-quick-add .cal-quick-add {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    gap: 8px;
+  }
+  .cal-agenda-quick-add .cal-quick-add-input {
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--accent);
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  /* Month nav arrows + back-to-today chip — shown on mobile only */
+  .cal-mob-nav-arrow  { display: flex; }
+  .cal-mob-today-chip { display: inline-block; }
 
   /* Events container */
   .cal-agenda-events {
