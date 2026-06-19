@@ -730,8 +730,9 @@ function DayView({ cursor, tasksByDate, onTaskClick, addingDay, setAddingDay, pr
 // ── AgendaView ────────────────────────────────────────────────────────────────
 function relDayLabel(dateKey, today) {
   const diff = dayjs(dateKey).diff(dayjs(today).startOf('day'), 'day')
-  if (diff === 0) return { label: 'Today', variant: 'today' }
-  if (diff > 0)  return { label: `In ${diff}d`, variant: 'future' }
+  if (diff === 0)             return { label: 'Today',      variant: 'today'  }
+  if (diff > 0 && diff <= 2) return { label: `In ${diff}d`, variant: 'soon'   }
+  if (diff > 0)              return { label: `In ${diff}d`, variant: 'future' }
   return null
 }
 
