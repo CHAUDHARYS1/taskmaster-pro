@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 const SettingsModal = lazy(() => import('../components/ui/SettingsModal'))
 import {
-  ArrowLeft, CheckCircle, Sliders, Users, FolderSimple, WarningCircle,
+  ArrowLeft, ArrowUp, ArrowDown, CheckCircle, Sliders, Users, FolderSimple, WarningCircle,
   DotsSixVertical, Trash, PencilSimple, Check, X, PaperPlaneTilt,
   Palette, CaretRight,
 } from '@phosphor-icons/react'
@@ -102,7 +102,7 @@ function SegPill({ options, value, onChange, disabled }) {
 
 // ── General tab ────────────────────────────────────────────────────────────
 // ── Sortable column row ────────────────────────────────────────────────────
-function SortableColItem({ col, index, isOwner, colSaving, openColorCol, setOpenColorCol, onRename, onRemove, onSetColor, totalCols }) {
+function SortableColItem({ col, index, isOwner, colSaving, openColorCol, setOpenColorCol, onRename, onRemove, onSetColor, onMoveUp, onMoveDown, totalCols }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: col.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -121,6 +121,28 @@ function SortableColItem({ col, index, isOwner, colSaving, openColorCol, setOpen
         >
           <DotsSixVertical size={14} />
         </span>
+        {isOwner && (
+          <div className="wsp-col-arrows" aria-label="Reorder column">
+            <button
+              type="button"
+              className="wsp-col-arrow-btn"
+              onClick={() => onMoveUp(col.id)}
+              disabled={index === 0 || colSaving}
+              aria-label={`Move ${col.label} up`}
+            >
+              <ArrowUp size={12} weight="bold" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="wsp-col-arrow-btn"
+              onClick={() => onMoveDown(col.id)}
+              disabled={index === totalCols - 1 || colSaving}
+              aria-label={`Move ${col.label} down`}
+            >
+              <ArrowDown size={12} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         <span className="wsp-col-num">{index + 1}</span>
         <input
           type="text"
@@ -253,6 +275,22 @@ function GeneralTab({ workspace, isOwner, workspaceColumns, onSaved }) {
       const oldIndex = prev.findIndex(c => c.id === active.id)
       const newIndex = prev.findIndex(c => c.id === over.id)
       return arrayMove(prev, oldIndex, newIndex)
+    })
+  }
+
+  const handleMoveUp = (id) => {
+    setDraftColumns(prev => {
+      const i = prev.findIndex(c => c.id === id)
+      if (i <= 0) return prev
+      return arrayMove(prev, i, i - 1)
+    })
+  }
+
+  const handleMoveDown = (id) => {
+    setDraftColumns(prev => {
+      const i = prev.findIndex(c => c.id === id)
+      if (i >= prev.length - 1) return prev
+      return arrayMove(prev, i, i + 1)
     })
   }
 
@@ -464,6 +502,8 @@ function GeneralTab({ workspace, isOwner, workspaceColumns, onSaved }) {
                   onRename={handleRenameColumn}
                   onRemove={handleRemoveColumn}
                   onSetColor={handleSetColumnColor}
+                  onMoveUp={handleMoveUp}
+                  onMoveDown={handleMoveDown}
                   totalCols={draftColumns.length}
                 />
               ))}

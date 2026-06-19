@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Camera, SquaresFour, List, CalendarBlank, ChartBar, Cards, Rows, Clock, CalendarDot, Sun, Moon, ArrowsOut } from '@phosphor-icons/react'
+import { X, Camera, SquaresFour, List, CalendarBlank, Cards, Rows, Clock, CalendarDot, Sun, Moon, ArrowsOut } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -213,7 +213,6 @@ function PreferencesTab() {
             { value: 'board',    label: 'Board',    icon: <SquaresFour size={13} weight="bold" /> },
             { value: 'list',     label: 'List',     icon: <List        size={13} weight="bold" /> },
             { value: 'calendar', label: 'Calendar', icon: <CalendarBlank size={13} weight="bold" /> },
-            { value: 'gantt',    label: 'Gantt',    icon: <ChartBar    size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>

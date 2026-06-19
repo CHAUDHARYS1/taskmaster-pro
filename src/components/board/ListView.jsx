@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import dayjs from 'dayjs'
-import { Check, X, ArrowSquareOut, CaretDown, CaretUp, Archive } from '@phosphor-icons/react'
+import { Check, X, ArrowSquareOut, CaretDown, CaretUp, Archive, CheckSquare, Calendar, ArrowDown, ArrowUp } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { PRIORITIES, priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
@@ -155,6 +155,10 @@ export default function ListView({
     setEditing(null)
   }
 
+  // ── Mobile grouped state ─────────────────────────────────────────────
+  const firstNonEmpty = columns.find(c => (tasksByStatus[c.id] ?? []).length > 0)?.id ?? null
+  const [openGroup, setOpenGroup] = useState(firstNonEmpty)
+
   if (allTasks.length === 0) return (
     <div className="lv-empty-state">
       <span className="lv-empty-icon">◻</span>
@@ -162,8 +166,122 @@ export default function ListView({
     </div>
   )
 
+  // ── Mobile accordion view ─────────────────────────────────────────────
+  const mobileView = (
+    <div className="lv-mobile">
+      {columns.map(col => {
+        const colTasks = tasksByStatus[col.id] ?? []
+        if (colTasks.length === 0) return null
+        const isOpen = openGroup === col.id
+        return (
+          <div key={col.id} className="lv-mob-group">
+            <button
+              className="lv-mob-group-hdr"
+              onClick={() => setOpenGroup(isOpen ? null : col.id)}
+              aria-expanded={isOpen}
+            >
+              <span className="lv-mob-dot" style={{ background: col.color ?? '#94a3b8' }} aria-hidden="true" />
+              <span className="lv-mob-group-name">{col.label}</span>
+              <span className="lv-mob-group-count">{colTasks.length}</span>
+              {isOpen
+                ? <ArrowUp size={14} weight="bold" className="lv-mob-caret" aria-hidden="true" />
+                : <ArrowDown size={14} weight="bold" className="lv-mob-caret" aria-hidden="true" />
+              }
+            </button>
+
+            <div className={`lv-mob-tasks${isOpen ? ' lv-mob-tasks--open' : ''}`} aria-hidden={!isOpen}>
+            <div className="lv-mob-tasks-inner">
+            {colTasks.map(task => {
+              const p       = task.priority ? priorityMap[task.priority] : null
+              const isDone  = col.id === 'done'
+              const urgency = (() => {
+                if (!task.due_date || isDone) return null
+                const diff = dayjs(task.due_date).diff(dayjs(), 'day')
+                if (diff < 0)  return 'overdue'
+                if (diff <= 1) return 'soon'
+                return null
+              })()
+              const checkTotal = task.checklist?.length ?? 0
+              const checkDone  = task.checklist?.filter(i => i.done).length ?? 0
+              const assignee   = task.assignee
+              const assigneeInitial = assignee
+                ? ((assignee.first_name?.[0] ?? assignee.email?.[0] ?? '?').toUpperCase())
+                : null
+
+              return (
+                <button
+                  key={task.id}
+                  className={[
+                    'lv-mob-row',
+                    isDone           ? 'lv-mob-row--done'    : '',
+                    urgency === 'overdue' ? 'lv-mob-row--overdue' : '',
+                    urgency === 'soon'    ? 'lv-mob-row--soon'    : '',
+                  ].filter(Boolean).join(' ')}
+                  style={{ '--lv-mob-col': col.color ?? '#94a3b8' }}
+                  onClick={() => onOpen?.(task.id)}
+                >
+                  <span className="lv-mob-border" aria-hidden="true" />
+                  <span className="lv-mob-body">
+                    <span className={`lv-mob-title${isDone ? ' lv-mob-title--done' : ''}`}>{task.text}</span>
+                    <span className="lv-mob-chips">
+                      {p && (
+                        <span
+                          className="lv-mob-chip lv-mob-chip--priority"
+                          style={{ background: p.color + '22', color: p.color, borderColor: p.color + '55' }}
+                        >
+                          <span aria-hidden="true">{p.icon}</span>
+                        </span>
+                      )}
+                      {(task.labels ?? []).map(lid => {
+                        const lbl = labelMap[lid]
+                        if (!lbl) return null
+                        return (
+                          <span
+                            key={lid}
+                            className="lv-mob-chip lv-mob-chip--label"
+                            style={{ background: lbl.color + '22', color: lbl.color, borderColor: lbl.color + '44' }}
+                          >
+                            {lbl.name}
+                          </span>
+                        )
+                      })}
+                      {task.due_date && (
+                        <span className={`lv-mob-chip lv-mob-chip--due${urgency === 'overdue' ? ' lv-mob-chip--overdue' : urgency === 'soon' ? ' lv-mob-chip--soon' : ''}`}>
+                          <Calendar size={10} aria-hidden="true" />
+                          {dayjs(task.due_date).format('MMM D')}
+                        </span>
+                      )}
+                      {checkTotal > 0 && (
+                        <span className="lv-mob-chip lv-mob-chip--check">
+                          <CheckSquare size={10} aria-hidden="true" />
+                          {checkDone}/{checkTotal}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  {assigneeInitial && (
+                    <span
+                      className="lv-mob-avatar"
+                      style={{ background: userColor(assignee.id ?? '') }}
+                      aria-hidden="true"
+                    >
+                      {assigneeInitial}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+            </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div className="lv-root">
+      {mobileView}
       <table className="lv-table">
         <thead className="lv-thead">
           <tr>

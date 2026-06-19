@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight, Plus } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ArrowRight, Plus } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -34,7 +34,6 @@ const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
 const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
-const GanttView             = lazy(() => import('./GanttView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
@@ -479,7 +478,6 @@ export default function Board() {
     '?':      () => setShowShortcuts(prev => !prev),
     'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
     'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
-    'ctrl+g': (e) => { e.preventDefault(); setViewMode('gantt') },
     'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -765,6 +763,24 @@ ${colData.map(c => `<div class="col">
           </div>
         </div>
 
+        {/* ── Mobile pill view toggle (Board / List) ── */}
+        <div className="mob-view-bar" role="group" aria-label="View mode">
+          {[
+            { id: 'board', label: 'Board', Icon: SquaresFour },
+            { id: 'list',  label: 'List',  Icon: Rows        },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={`mob-view-btn${viewMode === id ? ' mob-view-btn--active' : ''}`}
+              onClick={() => setViewMode(id)}
+              aria-pressed={viewMode === id}
+            >
+              <Icon size={14} weight={viewMode === id ? 'bold' : 'regular'} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* ── View tab bar (below breadcrumb, all screen sizes) ── */}
         <div className="icon-bar" role="group" aria-label="View mode">
           <button
@@ -793,15 +809,6 @@ ${colData.map(c => `<div class="col">
           >
             <CalendarBlank size={18} aria-hidden="true" />
             <span className="icon-bar-label">Calendar</span>
-          </button>
-          <button
-            className={`icon-bar-btn${viewMode === 'gantt' ? ' icon-bar-btn--active' : ''}`}
-            onClick={() => setViewMode('gantt')}
-            aria-pressed={viewMode === 'gantt'}
-            title="Gantt view (Ctrl+G)"
-          >
-            <ChartBar size={18} aria-hidden="true" />
-            <span className="icon-bar-label">Gantt</span>
           </button>
           <button
             className="ws-settings-btn icon-bar-settings-btn"
@@ -946,12 +953,6 @@ ${colData.map(c => `<div class="col">
                     onDeleteTask={canEdit ? handleCalDelete : undefined}
                     projectOptions={calProjectOptions}
                   />
-                </Suspense>
-              </div>
-            ) : viewMode === 'gantt' ? (
-              <div className="gantt-page-body">
-                <Suspense fallback={null}>
-                  <GanttView tasks={allTasks} columns={columns} onTaskClick={openTaskDetail} />
                 </Suspense>
               </div>
             ) : null}
