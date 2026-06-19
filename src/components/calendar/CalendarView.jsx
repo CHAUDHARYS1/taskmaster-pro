@@ -119,12 +119,12 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
 }
 
 // ── MobileDateStrip ───────────────────────────────────────────────────────────
-function MobileDateStrip({ tasksByDate, today, onDaySelect }) {
+function MobileDateStrip({ tasksByDate, today, selectedDate, onDaySelect }) {
   const scrollRef = useRef(null)
 
   const days = useMemo(() => {
     const result = []
-    for (let i = -7; i <= 14; i++) {
+    for (let i = -7; i <= 21; i++) {
       const d = dayjs(today).add(i, 'day')
       const key = d.format('YYYY-MM-DD')
       result.push({ d, key, hasEvents: !!(tasksByDate[key]?.length) })
@@ -132,26 +132,38 @@ function MobileDateStrip({ tasksByDate, today, onDaySelect }) {
     return result
   }, [today, tasksByDate])
 
+  // Center the selected/today pill in the strip
   useEffect(() => {
     if (!scrollRef.current) return
-    const todayEl = scrollRef.current.querySelector('[data-today="true"]')
-    if (!todayEl) return
+    const target = selectedDate || today
+    const el = scrollRef.current.querySelector(`[data-key="${target}"]`)
+    if (!el) return
     const containerW = scrollRef.current.offsetWidth
-    scrollRef.current.scrollLeft = todayEl.offsetLeft - containerW / 2 + todayEl.offsetWidth / 2
-  }, [])
+    scrollRef.current.scrollTo({
+      left: el.offsetLeft - containerW / 2 + el.offsetWidth / 2,
+      behavior: 'smooth',
+    })
+  }, [selectedDate, today])
 
   return (
     <div className="cal-date-strip" ref={scrollRef} aria-label="Jump to date">
       {days.map(({ d, key, hasEvents }) => {
-        const isToday = key === today
+        const isToday    = key === today
+        const isSelected = key === selectedDate && !isToday
         return (
           <button
             key={key}
             type="button"
-            className={`cal-date-pill${isToday ? ' cal-date-pill--today' : ''}`}
+            data-key={key}
             data-today={isToday ? 'true' : undefined}
+            className={[
+              'cal-date-pill',
+              isToday    ? 'cal-date-pill--today'    : '',
+              isSelected ? 'cal-date-pill--selected' : '',
+            ].filter(Boolean).join(' ')}
             onClick={() => onDaySelect(key)}
             aria-label={d.format('dddd, MMMM D')}
+            aria-pressed={key === selectedDate}
           >
             <span className="cal-date-pill-dow">{d.format('ddd').toUpperCase()}</span>
             <span className="cal-date-pill-day">{d.format('D')}</span>
@@ -967,6 +979,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   const [ctxMenu,          setCtxMenu]          = useState(null) // { x, y, dayKey, task }
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const [mobileSearch,     setMobileSearch]     = useState('')
+  const [selectedDate,     setSelectedDate]     = useState(null)
 
   const defaultProject    = projectOptions[0]?.value ?? ''
   const activeFilterCount = Object.values(filters).filter(Boolean).length
@@ -1010,8 +1023,15 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   const totalDateCount    = allDateKeys.length
 
   const handleMobileDaySelect = useCallback((dateKey) => {
+    setSelectedDate(dateKey)
     const el = document.getElementById(`cal-day-${dateKey}`)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!el) return
+    // Scroll within the board-main--cal container (the mobile scroll root)
+    const container = document.querySelector('.board-main--cal') || document.documentElement
+    const containerRect = container.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const offset = elRect.top - containerRect.top - 80 // 80px breathing room below the strip
+    container.scrollTo({ top: container.scrollTop + offset, behavior: 'smooth' })
   }, [])
 
   const goBack = () => {
@@ -1090,7 +1110,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
           {upcomingDateCount} of {totalDateCount} upcoming
         </p>
       </div>
-      <MobileDateStrip tasksByDate={tasksByDate} today={today} onDaySelect={handleMobileDaySelect} />
+      <MobileDateStrip tasksByDate={tasksByDate} today={today} selectedDate={selectedDate} onDaySelect={handleMobileDaySelect} />
 
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div className="cal-toolbar">
