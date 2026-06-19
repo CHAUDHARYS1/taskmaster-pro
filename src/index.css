@@ -12656,7 +12656,10 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     flex-shrink: 0;
     position: relative;
   }
-  .cal-date-pill--today { background: var(--accent); }
+  .cal-date-pill--today    { background: var(--accent); }
+  .cal-date-pill--selected { background: var(--paper-2); border-radius: 10px; }
+  .cal-date-pill--selected .cal-date-pill-day { color: var(--accent); }
+  .cal-date-pill--selected .cal-date-pill-dow { color: var(--accent); opacity: 0.8; }
   .cal-date-pill-dow {
     font-size: 9px;
     font-weight: 700;
