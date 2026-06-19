@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, CaretRight, Camera,
-  Sun, Moon, SquaresFour, List, CalendarBlank, ChartBar,
+  Sun, Moon, SquaresFour, List, CalendarBlank,
   Cards, Rows, ArrowsOut, Clock, CalendarDot,
 } from '@phosphor-icons/react'
 import { useAuth } from '../contexts/AuthContext'
@@ -188,7 +188,6 @@ function PreferencesView() {
             { value: 'board',    label: 'Board',    icon: <SquaresFour   size={13} weight="bold" /> },
             { value: 'list',     label: 'List',     icon: <List          size={13} weight="bold" /> },
             { value: 'calendar', label: 'Calendar', icon: <CalendarBlank size={13} weight="bold" /> },
-            { value: 'gantt',    label: 'Gantt',    icon: <ChartBar      size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>
