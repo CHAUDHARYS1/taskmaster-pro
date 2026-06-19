@@ -748,28 +748,36 @@ function relDayLabel(dateKey, today) {
   return null
 }
 
-function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
+function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate }) {
   const today       = dayjs().format('YYYY-MM-DD')
   const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
   const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
 
   const allDates = useMemo(() => {
+    if (filterDate) return tasksByDate[filterDate] ? [filterDate] : []
     const dates = Object.keys(tasksByDate).sort()
     return upcomingOnly ? dates.filter(d => d >= today) : dates
-  }, [tasksByDate, upcomingOnly, today])
+  }, [tasksByDate, upcomingOnly, today, filterDate])
 
   const hasPast = useMemo(
-    () => Object.keys(tasksByDate).some(d => d < today),
-    [tasksByDate, today]
+    () => !filterDate && Object.keys(tasksByDate).some(d => d < today),
+    [tasksByDate, today, filterDate]
   )
 
   if (allDates.length === 0 && !hasPast) {
-    return <p className="cal-day-empty">No tasks with due dates match the current filters.</p>
+    return (
+      <p className="cal-day-empty">
+        {filterDate
+          ? `No tasks due on ${dayjs(filterDate).format('MMMM D')}.`
+          : 'No tasks with due dates match the current filters.'
+        }
+      </p>
+    )
   }
 
   return (
     <div className="cal-agenda">
-      {hasPast && (
+      {hasPast && !filterDate && (
         <div className="cal-agenda-filter-row">
           <button
             type="button"
@@ -788,7 +796,12 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
         </div>
       )}
       {allDates.length === 0 && (
-        <p className="cal-day-empty">No upcoming tasks with due dates.</p>
+        <p className="cal-day-empty">
+          {filterDate
+            ? `No tasks due on ${dayjs(filterDate).format('MMMM D')}.`
+            : 'No upcoming tasks with due dates.'
+          }
+        </p>
       )}
       {allDates.map(dateKey => {
         const events  = tasksByDate[dateKey]
@@ -1023,15 +1036,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   const totalDateCount    = allDateKeys.length
 
   const handleMobileDaySelect = useCallback((dateKey) => {
-    setSelectedDate(dateKey)
-    const el = document.getElementById(`cal-day-${dateKey}`)
-    if (!el) return
-    // Scroll within the board-main--cal container (the mobile scroll root)
-    const container = document.querySelector('.board-main--cal') || document.documentElement
-    const containerRect = container.getBoundingClientRect()
-    const elRect = el.getBoundingClientRect()
-    const offset = elRect.top - containerRect.top - 80 // 80px breathing room below the strip
-    container.scrollTo({ top: container.scrollTop + offset, behavior: 'smooth' })
+    setSelectedDate(prev => prev === dateKey ? null : dateKey)
   }, [])
 
   const goBack = () => {
@@ -1107,7 +1112,10 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
       <div className="cal-mobile-hdr">
         <h2 className="cal-mobile-month">{cursor.format('MMMM YYYY')}</h2>
         <p className="cal-mobile-sub">
-          {upcomingDateCount} of {totalDateCount} upcoming
+          {selectedDate
+            ? dayjs(selectedDate).format('dddd, MMMM D')
+            : `${upcomingDateCount} of ${totalDateCount} upcoming`
+          }
         </p>
       </div>
       <MobileDateStrip tasksByDate={tasksByDate} today={today} selectedDate={selectedDate} onDaySelect={handleMobileDaySelect} />
@@ -1172,7 +1180,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
           {calView === 'month'  && <MonthView {...sharedProps} setOverflowData={setOverflowData} />}
           {calView === 'week'   && <WeekView  {...sharedProps} />}
           {calView === 'day'    && <DayView   {...sharedProps} />}
-          {calView === 'agenda' && <AgendaView tasksByDate={tasksByDate} onTaskClick={onTaskClick} colorBy={colorBy} onOpenCtxMenu={openCtxMenu} onDeleteTask={onDeleteTask} />}
+          {calView === 'agenda' && <AgendaView tasksByDate={tasksByDate} onTaskClick={onTaskClick} colorBy={colorBy} onOpenCtxMenu={openCtxMenu} onDeleteTask={onDeleteTask} filterDate={selectedDate} />}
         </div>
       </div>
 
