@@ -12618,12 +12618,12 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     padding: 20px 20px 4px;
   }
   .cal-mobile-month {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 800;
     letter-spacing: -0.03em;
     color: var(--ink);
-    line-height: 1.15;
-    margin: 0 0 2px;
+    line-height: 1.1;
+    margin: 0 0 4px;
   }
   .cal-mobile-sub {
     font-size: 13px;
@@ -12781,17 +12781,17 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     gap: 8px;
     margin: 0;
     padding: 0 14px 0 0;
-    min-height: 52px;
+    min-height: 60px;
     background: transparent;
     border-radius: 0;
     overflow: hidden;
-    border-bottom: 1px solid var(--paper, #f8f8f8);
+    border-bottom: 1px solid var(--line-soft, rgba(0,0,0,0.06));
   }
   .cal-agenda-event-wrap:last-child { border-bottom: none; }
 
   /* Event chip: full-width row with left colored border */
   .cal-agenda-events .cal-event-time { font-size: 13px; }
-  .cal-agenda-events .cal-event-text { margin-top: 10px; }
+  .cal-agenda-events .cal-event-text { margin-top: 0; }
   .cal-agenda-events .cal-event-desc {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -12855,6 +12855,14 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     font-weight: 600;
     font-size: 13px;
   }
+  .cal-agenda-rel--soon {
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: rgba(220, 38, 38, 0.10);
+    color: var(--red, #dc2626);
+    font-weight: 600;
+    font-size: 13px;
+  }
   .cal-agenda-rel--future {
     color: var(--ink-3);
     font-weight: 500;
@@ -12864,7 +12872,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-agenda-events .cal-event-desc { display: none !important; }
   .cal-agenda-events .cal-event-meta { display: none !important; }
 
-  /* Future date badge: box style to match Today */
+  /* Future date badge: box style */
   .cal-agenda-rel--future {
     padding: 3px 10px;
     border-radius: 6px;
@@ -12872,6 +12880,16 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     color: var(--ink-3);
     font-weight: 600;
     font-size: 13px;
+  }
+
+  /* Workspace label — uppercase small caps under title */
+  .cal-agenda-events .cal-event-ws {
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-4);
   }
 
   /* Project/workspace label below task name */
