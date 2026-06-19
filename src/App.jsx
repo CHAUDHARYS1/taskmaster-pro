@@ -28,6 +28,7 @@ const ArchivePage        = lazy(() => import('./pages/ArchivePage'))
 const ReleaseNotesPage   = lazy(() => import('./pages/ReleaseNotesPage'))
 const SettingsPage            = lazy(() => import('./pages/SettingsPage'))
 const WorkspaceSettingsPage   = lazy(() => import('./pages/WorkspaceSettingsPage'))
+const ProfileSettingsPage     = lazy(() => import('./pages/ProfileSettingsPage'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="/archive"           element={<ProtectedRoute><ArchivePage /></ProtectedRoute>} />
             <Route path="/release-notes"     element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
             <Route path="/settings"          element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/profile"           element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/workspace-settings" element={<ProtectedRoute><WorkspaceSettingsPage /></ProtectedRoute>} />
             <Route path="/app"            element={<ProtectedRoute><Board /></ProtectedRoute>} />
             <Route path="/about"          element={<AboutPage />} />
