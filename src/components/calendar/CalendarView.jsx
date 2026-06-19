@@ -750,7 +750,7 @@ function relDayLabel(dateKey, today) {
   return null
 }
 
-function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate, filterMonth, addingDay, setAddingDay, projectOptions, defaultProject, onQuickAdd }) {
+function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate, filterMonth, onMobileAddRequest }) {
   const today       = dayjs().format('YYYY-MM-DD')
   const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
   const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
@@ -838,7 +838,7 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
               <button
                 type="button"
                 className="cal-agenda-add-btn"
-                onClick={e => { e.stopPropagation(); setAddingDay?.(addingDay === dateKey ? null : dateKey) }}
+                onClick={e => { e.stopPropagation(); onMobileAddRequest?.(dateKey) }}
                 aria-label={`Add task on ${d.format('MMMM D')}`}
               >
                 <Plus size={13} weight="bold" aria-hidden="true" />
@@ -863,20 +863,6 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
                 </div>
               ))}
             </div>
-            {addingDay === dateKey && (
-              <div className="cal-agenda-quick-add">
-                <QuickAddForm
-                  date={dateKey}
-                  projectOptions={projectOptions || []}
-                  defaultProject={defaultProject || ''}
-                  onAdd={(date, text, wsId, projectId) => {
-                    onQuickAdd?.(date, text, wsId, projectId)
-                    setAddingDay?.(null)
-                  }}
-                  onCancel={() => setAddingDay?.(null)}
-                />
-              </div>
-            )}
           </div>
         )
       })}
@@ -1007,7 +993,7 @@ function MobileFilterSheet({ isOpen, onClose, filters, onApply, tasksByDate, tod
 }
 
 // ── CalendarView (main export) ────────────────────────────────────────────────
-export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [] }) {
+export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [], onMobileAddRequest }) {
   const [calView,      setCalView]      = useState(() => window.innerWidth <= 768 ? 'agenda' : 'month')
   const [cursor,       setCursor]       = useState(dayjs())
   const [addingDay,    setAddingDay]    = useState(null)
@@ -1254,11 +1240,7 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
               onDeleteTask={onDeleteTask}
               filterDate={selectedDate}
               filterMonth={!isCurrentMonth ? mobileMonthKey : null}
-              addingDay={addingDay}
-              setAddingDay={setAddingDay}
-              projectOptions={projectOptions}
-              defaultProject={defaultProject}
-              onQuickAdd={onQuickAdd}
+              onMobileAddRequest={onMobileAddRequest}
             />
           )}
         </div>

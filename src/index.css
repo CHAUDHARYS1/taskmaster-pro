@@ -12851,6 +12851,137 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .cal-mob-nav-arrow  { display: flex; }
   .cal-mob-today-chip { display: inline-block; }
 
+  /* ── CalMobAddSheet — workspace → project picker bottom sheet ── */
+  .cal-mob-add-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+    animation: cal-mob-fade-in 0.2s ease;
+  }
+  @keyframes cal-mob-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .cal-mob-add-sheet {
+    width: 100%;
+    background: var(--paper);
+    border-radius: 20px 20px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    max-height: 70vh;
+    overflow-y: auto;
+    animation: cal-mob-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes cal-mob-slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .cal-mob-add-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--ink-4);
+    margin: 10px auto 0;
+  }
+  .cal-mob-add-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px 10px;
+  }
+  .cal-mob-add-hdr-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .cal-mob-add-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .cal-mob-add-date {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .cal-mob-add-back,
+  .cal-mob-add-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--ink-2);
+    flex-shrink: 0;
+  }
+  .cal-mob-add-back:hover,
+  .cal-mob-add-close:hover { background: var(--paper-2); }
+  .cal-mob-add-back-spacer { width: 32px; flex-shrink: 0; }
+
+  /* Workspace badge shown above project list */
+  .cal-mob-add-ws-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 20px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Item list */
+  .cal-mob-add-list {
+    padding: 4px 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cal-mob-add-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    border-radius: 12px;
+    background: var(--paper-2, #f5f5f5);
+    text-align: left;
+    transition: background 0.15s;
+    min-height: 52px;
+  }
+  .cal-mob-add-item:hover,
+  .cal-mob-add-item:focus-visible { background: var(--paper-3, #ebebeb); }
+  .cal-mob-add-item-name {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .cal-mob-add-item-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .cal-mob-add-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .cal-mob-add-swatch--sm { width: 8px; height: 8px; border-radius: 2px; }
+  .cal-mob-add-empty {
+    padding: 24px 12px;
+    font-size: 14px;
+    color: var(--ink-3);
+    text-align: center;
+  }
+
   /* Events container */
   .cal-agenda-events {
     flex-direction: column;

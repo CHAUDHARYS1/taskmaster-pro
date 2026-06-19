@@ -23,7 +23,7 @@ function memberDisplayName(m) {
   return full || m.email?.split('@')[0] || m.email
 }
 
-export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, onChecklistCreate, initialDate = '' }) {
+export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, onChecklistCreate, initialDate = '', overrideWorkspaceId }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
@@ -86,14 +86,15 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
     el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px'
   }, [title])
 
+  const effectiveWsId = overrideWorkspaceId || currentWorkspace?.id
   useEffect(() => {
-    if (!currentWorkspace?.id) return
+    if (!effectiveWsId) return
     supabase
       .from('workspace_members_view')
       .select('user_id, email, first_name, last_name')
-      .eq('workspace_id', currentWorkspace.id)
+      .eq('workspace_id', effectiveWsId)
       .then(({ data }) => { if (data) setMembers(data); setMembersLoaded(true) })
-  }, [currentWorkspace?.id])
+  }, [effectiveWsId])
 
   const toggleLabel = (id) =>
     setSelectedLabels(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id])
