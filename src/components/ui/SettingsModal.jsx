@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Camera, SquaresFour, List, CalendarBlank, Cards, Rows, Clock, CalendarDot, Sun, Moon, ArrowsOut } from '@phosphor-icons/react'
+import { X, Camera, SquaresFour, List, CalendarBlank, Cards, Rows, Clock, CalendarDot, Sun, Moon, Desktop, ArrowsOut } from '@phosphor-icons/react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -175,7 +175,7 @@ function AccountTab({ onClose }) {
 // ── Preferences tab ───────────────────────────────────────────────────────
 function PreferencesTab() {
   const { prefs, updatePrefs } = useAuth()
-  const { isDark, toggle: toggleTheme } = useTheme()
+  const { themeMode, setThemeMode } = useTheme()
   const { showToast } = useToast()
 
   const save = async (patch) => {
@@ -190,14 +190,15 @@ function PreferencesTab() {
     <div className="modal-body settings-prefs-body">
       <PrefRow
         label="Theme"
-        hint="Switch between light and dark interface."
+        hint="Choose light, dark, or follow your system setting."
       >
         <SegmentedControl
-          value={isDark ? 'dark' : 'light'}
-          onChange={v => { if ((v === 'dark') !== isDark) toggleTheme() }}
+          value={themeMode}
+          onChange={setThemeMode}
           options={[
-            { value: 'light', label: 'Light', icon: <Sun  size={13} weight="bold" /> },
-            { value: 'dark',  label: 'Dark',  icon: <Moon size={13} weight="bold" /> },
+            { value: 'system', label: 'System', icon: <Desktop size={13} weight="bold" /> },
+            { value: 'light',  label: 'Light',  icon: <Sun     size={13} weight="bold" /> },
+            { value: 'dark',   label: 'Dark',   icon: <Moon    size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>

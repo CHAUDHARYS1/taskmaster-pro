@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, CaretRight, Camera,
-  Sun, Moon, SquaresFour, List, CalendarBlank,
+  Sun, Moon, Desktop, SquaresFour, List, CalendarBlank,
   Cards, Rows, ArrowsOut, Clock, CalendarDot,
 } from '@phosphor-icons/react'
 import { useAuth } from '../contexts/AuthContext'
@@ -160,7 +160,7 @@ function PrefRow({ label, hint, children, inline = false }) {
 
 function PreferencesView() {
   const { prefs, updatePrefs } = useAuth()
-  const { isDark, toggle: toggleTheme } = useTheme()
+  const { themeMode, setThemeMode } = useTheme()
   const { toast } = useToast()
 
   const save = async (patch) => {
@@ -170,13 +170,14 @@ function PreferencesView() {
 
   return (
     <div className="spage-body settings-prefs-body">
-      <PrefRow label="Theme" hint="Switch between light and dark interface.">
+      <PrefRow label="Theme" hint="Choose light, dark, or follow your system setting.">
         <SegmentedControl
-          value={isDark ? 'dark' : 'light'}
-          onChange={v => { if ((v === 'dark') !== isDark) toggleTheme() }}
+          value={themeMode}
+          onChange={setThemeMode}
           options={[
-            { value: 'light', label: 'Light', icon: <Sun  size={13} weight="bold" /> },
-            { value: 'dark',  label: 'Dark',  icon: <Moon size={13} weight="bold" /> },
+            { value: 'system', label: 'System', icon: <Desktop size={13} weight="bold" /> },
+            { value: 'light',  label: 'Light',  icon: <Sun     size={13} weight="bold" /> },
+            { value: 'dark',   label: 'Dark',   icon: <Moon    size={13} weight="bold" /> },
           ]}
         />
       </PrefRow>
