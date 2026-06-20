@@ -191,6 +191,7 @@ export default function ListView({
 
             <div className={`lv-mob-tasks${isOpen ? ' lv-mob-tasks--open' : ''}`} aria-hidden={!isOpen}>
             <div className="lv-mob-tasks-inner">
+            <div className="lv-mob-tasks-list">
             {colTasks.map(task => {
               const p       = task.priority ? priorityMap[task.priority] : null
               const isDone  = col.id === 'done'
@@ -271,6 +272,7 @@ export default function ListView({
                 </button>
               )
             })}
+            </div>
             </div>
             </div>
           </div>

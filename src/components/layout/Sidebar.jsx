@@ -109,6 +109,14 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
               </div>
             )
           })}
+
+          <button
+            className="sidebar-mobile-new-ws-btn"
+            onClick={() => setShowCreate(true)}
+          >
+            <Plus size={14} weight="bold" aria-hidden="true" />
+            New workspace
+          </button>
         </div>
 
         {/* ── Navigation ── */}
