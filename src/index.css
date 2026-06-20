@@ -6879,10 +6879,10 @@ a:focus-visible,
   color: var(--ink);
 }
 
-/* Mobile: full-width trigger with 44px touch target */
+/* Mobile: full-width trigger — dropdown replaced by bottom sheet portal */
 @media (max-width: 768px) {
-  .assignee-picker { display: block; width: 100%; }
   .assignee-picker-trigger {
+    display: flex;
     width: 100%;
     min-height: 44px;
     padding: 10px 12px;
@@ -6891,9 +6891,103 @@ a:focus-visible,
     border-radius: var(--radius-sm);
     margin: 0;
   }
-  .assignee-picker-dropdown { width: 100%; max-width: 100%; }
-  .assignee-picker-option { padding: 12px 14px; min-height: 44px; }
 }
+
+/* ── Assignee mobile bottom sheet (portalled to body) ── */
+.assignee-mob-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  animation: assignee-fade 0.18s ease;
+}
+@keyframes assignee-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.assignee-mob-sheet {
+  width: 100%;
+  background: var(--paper);
+  border-radius: 20px 20px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  max-height: 60vh;
+  overflow-y: auto;
+  animation: assignee-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes assignee-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.assignee-mob-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-4);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+.assignee-mob-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+}
+.assignee-mob-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.assignee-mob-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--ink-2);
+}
+.assignee-mob-close:hover { background: var(--paper-2); }
+.assignee-mob-list {
+  padding: 4px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.assignee-mob-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--paper-2);
+  text-align: left;
+  min-height: 56px;
+  transition: background 0.12s;
+}
+.assignee-mob-option:hover,
+.assignee-mob-option:focus-visible { background: var(--paper-3); }
+.assignee-mob-option--active { background: var(--accent-muted, rgba(37,99,235,0.08)); }
+.assignee-mob-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.assignee-mob-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.assignee-mob-option--active .assignee-mob-name {
+  font-weight: 600;
+  color: var(--accent);
+}
+.assignee-mob-check { margin-left: auto; color: var(--accent); flex-shrink: 0; }
 
 /* Compact pill buttons (priority, date, labels) */
 .atp-pill-row {
