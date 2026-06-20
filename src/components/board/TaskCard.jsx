@@ -2,12 +2,15 @@ import { memo, useCallback, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import dayjs from 'dayjs'
+import { toPng } from 'html-to-image'
 import { DotsSix, Check, ChatCircle, CheckSquare, ArrowsClockwise, Trash } from '@phosphor-icons/react'
 import { useLabelsCtx } from '../../contexts/LabelsContext'
 import { priorityMap } from '../../lib/priority'
 import { userColor } from '../../lib/userColor'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../contexts/ToastContext'
+import TaskContextMenu from './TaskContextMenu'
 
 function urgencyClass(due_date) {
   if (!due_date) return ''
@@ -58,6 +61,8 @@ function TaskCard({
   onArchive,
   onOpen,
   onComplete,
+  onMoveToStatus,
+  columns = [],
   isOverlay = false,
   editingUser = null,
   showProject = false,
@@ -72,6 +77,7 @@ function TaskCard({
   const { labelMap } = useLabelsCtx()
   const { workspaceTemplate } = useWorkspace()
   const { prefs } = useAuth()
+  const { toast } = useToast()
   const isJobTracker = workspaceTemplate === 'job-tracker'
   const isExpanded   = prefs?.cardDensity === 'expanded'
   const isLockedByOther = editingUser != null && !editingUser.is_self
@@ -114,6 +120,38 @@ function TaskCard({
   const [swipeX, setSwipeX] = useState(0)
   const touchRef = useRef(null)
   const dirRef   = useRef(null)
+  const innerRef = useRef(null)
+
+  const [ctxMenu, setCtxMenu] = useState(null)
+
+  const handleContextMenu = useCallback((e) => {
+    if (isOverlay || isSortableDragging) return
+    e.preventDefault()
+    setCtxMenu({ x: e.clientX, y: e.clientY })
+  }, [isOverlay, isSortableDragging])
+
+  const handleScreenshot = async () => {
+    setCtxMenu(null)
+    const el = innerRef.current?.parentElement ?? innerRef.current  // <li class="task-card"> has the bg/border/radius
+    if (!el) return
+    try {
+      const dataUrl = await toPng(el, { pixelRatio: window.devicePixelRatio || 2 })
+      const res  = await fetch(dataUrl)
+      const blob = await res.blob()
+      if (navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        toast.success('Screenshot copied to clipboard')
+      } else {
+        const a = document.createElement('a')
+        a.href     = dataUrl
+        a.download = `task-${task.id.slice(0, 8)}.png`
+        a.click()
+      }
+    } catch (err) {
+      console.error('Screenshot failed:', err)
+      toast.error('Could not capture screenshot')
+    }
+  }
 
   const L_REVEAL = -56   // left-swipe threshold → snap to delete
   const L_MAX    = -76   // fully-revealed delete position
@@ -172,6 +210,7 @@ function TaskCard({
   const hasFooter = due_or_meta(task, isJobTracker, checklistTotal, commentCount)
 
   return (
+    <>
     <li
       ref={isOverlay ? undefined : setNodeRef}
       style={style}
@@ -189,6 +228,7 @@ function TaskCard({
         isSearchMatch                     ? 'task-card--search-match' : '',
       ].filter(Boolean).join(' ')}
       onClick={handleOpen}
+      onContextMenu={handleContextMenu}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >
       {/* Done zone — revealed by right-swipe, left side of card */}
@@ -217,6 +257,7 @@ function TaskCard({
 
       {/* Sliding content layer */}
       <div
+        ref={innerRef}
         className="task-card-swipe-inner"
         style={swipeEnabled ? {
           transform: `translateX(${swipeX}px)`,
@@ -259,19 +300,19 @@ function TaskCard({
       )}
 
 
-      {/* Priority chip */}
-      {priorityDef && (
-        <span
-          className="task-priority-chip"
-          style={{ '--p-color': priorityDef.color }}
-        >
-          <span aria-hidden="true">{priorityDef.icon}</span>
-          {priorityDef.name}
-        </span>
-      )}
-
-      {/* Title */}
-      <p className="task-text">{task.text}</p>
+      {/* Title + priority chip in a flex row so the chip never overlaps the title */}
+      <div className="task-card-title-row">
+        <p className="task-text">{task.text}</p>
+        {priorityDef && (
+          <span
+            className="task-priority-chip"
+            style={{ '--p-color': priorityDef.color }}
+          >
+            <span aria-hidden="true">{priorityDef.icon}</span>
+            {priorityDef.name}
+          </span>
+        )}
+      </div>
 
       {/* Description preview — 2-line clamp */}
       {task.description && (
@@ -393,6 +434,31 @@ function TaskCard({
       </div>{/* end .task-card-swipe-inner */}
 
     </li>
+
+    {ctxMenu && (
+      <TaskContextMenu
+        x={ctxMenu.x}
+        y={ctxMenu.y}
+        task={task}
+        columns={columns}
+        canEdit={canEdit && !isLockedByOther}
+        canDelete={canDelete}
+        onClose={() => setCtxMenu(null)}
+        onOpen={() => { setCtxMenu(null); onOpen(task.id) }}
+        onMoveToStatus={onMoveToStatus ? (statusId) => { setCtxMenu(null); onMoveToStatus(task.id, statusId) } : undefined}
+        onComplete={() => { setCtxMenu(null); onComplete?.(task.id) }}
+        onArchive={onArchive ? () => { setCtxMenu(null); onArchive(task.id) } : undefined}
+        onDelete={onDelete ? () => { setCtxMenu(null); onDelete(task.id) } : undefined}
+        onCopyTitle={() => { navigator.clipboard.writeText(task.text); setCtxMenu(null) }}
+        onScreenshot={handleScreenshot}
+        onCopyDescription={task.description ? () => {
+          const plain = task.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+          navigator.clipboard.writeText(plain)
+          setCtxMenu(null)
+        } : undefined}
+      />
+    )}
+    </>
   )
 }
 

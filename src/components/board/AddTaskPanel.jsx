@@ -8,6 +8,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { PRIORITIES } from '../../lib/priority'
 import { supabase } from '../../lib/supabase'
 import TiptapEditor from '../ui/TiptapEditor'
+import AssigneePicker from './AssigneePicker'
+import RecurrencePicker from './RecurrencePicker'
 
 const DEFAULT_COLS = [
   { id: 'toDo',       label: 'To Do' },
@@ -21,7 +23,7 @@ function memberDisplayName(m) {
   return full || m.email?.split('@')[0] || m.email
 }
 
-export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, initialDate = '' }) {
+export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, onChecklistCreate, initialDate = '', overrideWorkspaceId }) {
   const today    = dayjs().format('YYYY-MM-DD')
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
   const nextWeek = dayjs().add(7, 'day').format('YYYY-MM-DD')
@@ -38,6 +40,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [status,           setStatus]           = useState(columns[0]?.id ?? 'toDo')
   const [priority,         setPriority]         = useState(null)
   const [assigneeId,       setAssigneeId]       = useState('')
+  const [recurrence,       setRecurrence]       = useState(null)
   const [selectedLabels,   setSelectedLabels]   = useState([])
   const [members,          setMembers]          = useState([])
   const [membersLoaded,    setMembersLoaded]    = useState(false)
@@ -46,15 +49,35 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   const [checklistItems,   setChecklistItems]   = useState([])
   const [newChecklistText, setNewChecklistText] = useState('')
   const [showChecklist,    setShowChecklist]    = useState(false)
+  const [confirmDiscard,   setConfirmDiscard]   = useState(false)
 
   const titleRef = useRef(null)
   const formRef  = useRef(null)
 
+  const isDirty =
+    title.trim() !== '' ||
+    desc.replace(/<[^>]*>/g, '').trim() !== '' ||
+    startDate !== '' ||
+    dueDate !== initialDate ||
+    priority !== null ||
+    assigneeId !== '' ||
+    selectedLabels.length > 0 ||
+    checklistItems.length > 0
+
+  const handleClose = () => {
+    if (isDirty) { setConfirmDiscard(true); return }
+    onClose()
+  }
+
   useEffect(() => {
-    const onKeyDown = e => { if (e.key === 'Escape') onClose() }
+    const onKeyDown = e => {
+      if (e.key !== 'Escape') return
+      if (confirmDiscard) { setConfirmDiscard(false); return }
+      handleClose()
+    }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [isDirty, onClose, confirmDiscard])
 
   useLayoutEffect(() => {
     const el = titleRef.current
@@ -63,14 +86,15 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
     el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px'
   }, [title])
 
+  const effectiveWsId = overrideWorkspaceId || currentWorkspace?.id
   useEffect(() => {
-    if (!currentWorkspace?.id) return
+    if (!effectiveWsId) return
     supabase
       .from('workspace_members_view')
       .select('user_id, email, first_name, last_name')
-      .eq('workspace_id', currentWorkspace.id)
+      .eq('workspace_id', effectiveWsId)
       .then(({ data }) => { if (data) setMembers(data); setMembersLoaded(true) })
-  }, [currentWorkspace?.id])
+  }, [effectiveWsId])
 
   const toggleLabel = (id) =>
     setSelectedLabels(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id])
@@ -97,10 +121,11 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         status,
         priority:     priority || null,
         assignee_id:  assigneeId || null,
+        recurrence:   recurrence || null,
         labels:       selectedLabels,
       })
       if (taskId && checklistItems.length > 0) {
-        await supabase.from('task_checklist_items').insert(
+        const { data: inserted } = await supabase.from('task_checklist_items').insert(
           checklistItems.map((item, i) => ({
             task_id:    taskId,
             text:       item.text,
@@ -108,7 +133,8 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
             position:   (i + 1) * 1000,
             created_by: user.id,
           }))
-        )
+        ).select()
+        if (inserted) onChecklistCreate?.(taskId, inserted)
       }
       onClose()
     } catch (err) {
@@ -122,7 +148,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
   return (
     <div
       className="modal-overlay"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div
         className="modal-sheet atp-modal"
@@ -136,7 +162,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
         <span className="atp-hdr__label" id="atp-dialog-title">New Task</span>
         <div className="atp-hdr__actions">
           <span className="atp-kbd" aria-hidden="true">⌘↵</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <button className="modal-close" onClick={handleClose} aria-label="Close">
             <X size={16} weight="bold" aria-hidden="true" />
           </button>
         </div>
@@ -304,22 +330,28 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {/* Assignee */}
           {workspaceTemplate !== 'job-tracker' && (!membersLoaded || members.length > 1) && (
             <div className="atp-prop atp-prop--assignee">
-              <label className="atp-prop__label" htmlFor="atp-assignee">Assignee</label>
+              <span className="atp-prop__label">Assignee</span>
               <div className="atp-prop__val">
-                <select
-                  id="atp-assignee"
-                  className="atp-select"
+                <AssigneePicker
+                  members={members}
                   value={assigneeId}
-                  onChange={e => setAssigneeId(e.target.value)}
-                >
-                  <option value="">Unassigned</option>
-                  {members.map(m => (
-                    <option key={m.user_id} value={m.user_id}>{memberDisplayName(m)}</option>
-                  ))}
-                </select>
+                  onChange={setAssigneeId}
+                />
               </div>
             </div>
           )}
+
+          {/* Repeat */}
+          <div className="atp-prop atp-prop--wrap atp-prop--recurrence">
+            <span className="atp-prop__label">Repeat</span>
+            <div className="atp-prop__val">
+              <RecurrencePicker
+                value={recurrence}
+                onChange={setRecurrence}
+                hasDueDate={!!dueDate}
+              />
+            </div>
+          </div>
 
           {/* Labels */}
           {labels.length > 0 && (
@@ -399,26 +431,25 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
                   ))}
                 </ul>
               )}
-              <form
-                className="checklist-add-row"
-                onSubmit={e => { e.preventDefault(); addChecklistItem() }}
-              >
+              <div className="checklist-add-row">
                 <input
                   type="text"
                   className="checklist-add-input"
                   value={newChecklistText}
                   onChange={e => setNewChecklistText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
                   placeholder="Add an item…"
                   aria-label="New checklist item"
                 />
                 <button
-                  type="submit"
+                  type="button"
                   className="btn-primary checklist-add-btn"
                   disabled={!newChecklistText.trim()}
+                  onClick={addChecklistItem}
                 >
                   Add
                 </button>
-              </form>
+              </div>
             </>
           )}
         </div>
@@ -429,7 +460,7 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
       {/* ── Footer ──────────────────────────────────────── */}
       <div className="task-panel-ftr">
         <span className="atp-ftr-hint" aria-hidden="true">⌘↵ to save</span>
-        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={handleClose}>Cancel</button>
         <button
           type="submit"
           form="add-task-panel-form"
@@ -439,6 +470,30 @@ export default function AddTaskPanel({ columns = DEFAULT_COLS, onClose, onSave, 
           {loading ? 'Saving…' : 'Create Task'}
         </button>
       </div>
+
+      {/* ── Discard confirmation ─────────────────────────── */}
+      {confirmDiscard && (
+        <div className="discard-confirm">
+          <div
+            className="discard-confirm__card"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-title"
+            aria-describedby="discard-msg"
+          >
+            <p className="discard-confirm__title" id="discard-title">Discard task?</p>
+            <p className="discard-confirm__msg" id="discard-msg">Your changes will be lost.</p>
+            <div className="discard-confirm__actions">
+              <button className="btn-ghost" autoFocus onClick={() => setConfirmDiscard(false)}>
+                Keep editing
+              </button>
+              <button className="btn-danger" onClick={() => { setConfirmDiscard(false); onClose() }}>
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

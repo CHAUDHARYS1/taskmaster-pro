@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import {
@@ -91,7 +92,7 @@ function KpiTile({ icon: Icon, iconBg, iconColor, value, label, sub, delta, delt
 
 function ProgressCard({ statusBreakdown, total, completionRate }) {
   if (!total) return (
-    <div className="dash-card col-7">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
@@ -100,7 +101,7 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
   )
 
   return (
-    <div className="dash-card col-7">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title"><ChartDonut size={14} aria-hidden="true" />Progress &amp; status</span>
       </div>
@@ -144,7 +145,7 @@ function ProgressCard({ statusBreakdown, total, completionRate }) {
 
 function DueSoonCard({ items }) {
   return (
-    <div className="dash-card col-5">
+    <div className="dash-card col-12">
       <div className="dash-card-h">
         <span className="dash-card-title">
           <WarningCircle size={14} aria-hidden="true" />
@@ -275,7 +276,7 @@ function HeatmapCard({ cells, year, onYearChange }) {
   if (col.length) cols.push(col)
 
   return (
-    <div className="dash-card col-8">
+    <div className="dash-card col-8 dash-heatmap-card">
       <div className="dash-card-h">
         <span className="dash-card-title"><CalendarDots size={14} aria-hidden="true" />Activity</span>
         <select
@@ -340,7 +341,7 @@ function RecentCard({ items }) {
   )
 }
 
-function WorkspaceSummary({ workspaces, breakdown }) {
+function WorkspaceSummary({ workspaces, breakdown, onWorkspaceClick }) {
   if (!workspaces?.length) return null
   return (
     <div className="dash-card col-12">
@@ -354,7 +355,7 @@ function WorkspaceSummary({ workspaces, breakdown }) {
           const pct   = total > 0 ? Math.round((done / total) * 100) : 0
           const color = WS_COLORS[i % WS_COLORS.length]
           return (
-            <div key={ws.id} className="ws-card">
+            <button key={ws.id} className="ws-card" onClick={() => onWorkspaceClick(ws)} aria-label={`Open ${ws.name}`}>
               <div className="ws-card-top">
                 <span className="ws-sq" style={{ background: color }}>{wsInitial(ws.name)}</span>
                 <span className="ws-name">{ws.name}</span>
@@ -370,7 +371,7 @@ function WorkspaceSummary({ workspaces, breakdown }) {
                 <span>{done} done</span>
                 <span>{pct}%</span>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -384,8 +385,14 @@ export default function DashboardView() {
   const [heatmapYear, setHeatmapYear] = useState(CURRENT_YEAR)
   const { data, loading, error } = useDashboard(heatmapYear)
   const { profile } = useAuth()
-  const { workspaces } = useWorkspace()
+  const { workspaces, switchWorkspace } = useWorkspace()
+  const navigate = useNavigate()
   const firstName = profile?.first_name || profile?.email?.split('@')[0] || null
+
+  const handleWorkspaceClick = (ws) => {
+    switchWorkspace(ws)
+    navigate('/app')
+  }
 
   if (loading) return (
     <div className="dash-loading">
@@ -430,7 +437,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── KPI tiles ────────────────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <KpiTile
           icon={ListChecks}
           iconBg="var(--accent-tint)"
@@ -468,18 +475,22 @@ export default function DashboardView() {
         />
       </div>
 
-      {/* ── Progress + Due soon ───────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      {/* ── Progress ──────────────────────────────────── */}
+      <div className="dash-grid dash-grid-row">
         <ProgressCard
           statusBreakdown={statusBreakdown}
           total={stats.totalTasks}
           completionRate={completionRate}
         />
+      </div>
+
+      {/* ── Due soon ──────────────────────────────────── */}
+      <div className="dash-grid dash-due-row">
         <DueSoonCard items={dueSoon} />
       </div>
 
       {/* ── Velocity + Priority ───────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <VelocityCard
           weeks={weeklyVelocity}
           thisWeekCount={thisWeekCount}
@@ -489,7 +500,7 @@ export default function DashboardView() {
       </div>
 
       {/* ── Heatmap + Recent ─────────────────────────── */}
-      <div className="dash-grid" style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="dash-grid dash-grid-row">
         <HeatmapCard
           cells={heatmap}
           year={heatmapYear}
@@ -499,8 +510,8 @@ export default function DashboardView() {
       </div>
 
       {/* ── Workspace summary ─────────────────────────── */}
-      <div className="dash-grid">
-        <WorkspaceSummary workspaces={workspaces} breakdown={workspaceBreakdown} />
+      <div className="dash-grid dash-ws-row">
+        <WorkspaceSummary workspaces={workspaces} breakdown={workspaceBreakdown} onWorkspaceClick={handleWorkspaceClick} />
       </div>
 
     </div>

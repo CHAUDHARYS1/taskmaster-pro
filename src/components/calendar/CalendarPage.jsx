@@ -11,6 +11,9 @@ import { BellButton } from '../notifications/NotificationCenter'
 
 const TaskDetailPanel = lazy(() => import('../board/TaskDetailPanel'))
 const SettingsModal   = lazy(() => import('../ui/SettingsModal'))
+const AddTaskPanel    = lazy(() => import('../board/AddTaskPanel'))
+
+import CalMobAddSheet from './CalMobAddSheet'
 
 export default function CalendarPage() {
   const { workspaces, currentWorkspace, loading: wsLoading } = useWorkspace()
@@ -27,6 +30,9 @@ export default function CalendarPage() {
   const [loading,      setLoading]      = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
   const [allProjects,  setAllProjects]  = useState([])
+  // Mobile add-task flow: workspace → project → AddTaskPanel
+  const [mobAddDate,   setMobAddDate]   = useState(null)
+  const [mobAddCfg,    setMobAddCfg]    = useState(null) // { wsId, projectId }
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -141,6 +147,36 @@ export default function CalendarPage() {
     }
   }
 
+  // Full task add triggered by mobile ws → project → AddTaskPanel flow
+  const handleFullAdd = async (taskData) => {
+    if (!mobAddCfg || !mobAddDate) return
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        workspace_id: mobAddCfg.wsId,
+        project_id:   mobAddCfg.projectId,
+        created_by:   user.id,
+        text:         taskData.text,
+        description:  taskData.description  || null,
+        start_date:   taskData.start_date   || null,
+        due_date:     taskData.due_date     || mobAddDate,
+        due_time:     taskData.due_time     || null,
+        status:       taskData.status       || 'toDo',
+        priority:     taskData.priority     || null,
+        assignee_id:  taskData.assignee_id  || null,
+        recurrence:   taskData.recurrence   || null,
+        position:     (tasks.length + 1) * 1000,
+      })
+      .select('*, assignee:profiles!assignee_id(email), project:projects(id,name,color), task_checklist_items(id,checked)')
+      .single()
+    if (error) throw new Error(error.message)
+    setTasks(prev => [...prev, data])
+    toast.success('Task added')
+    return data.id // AddTaskPanel uses this for checklist insertion
+  }
+
+  const closeMobAdd = () => { setMobAddDate(null); setMobAddCfg(null) }
+
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -154,8 +190,10 @@ export default function CalendarPage() {
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws"><span>Calendar</span></div>
-            <div className="mobile-appbar-sub">All workspaces</div>
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">Calendar</div>
+              <div className="mobile-appbar-ws"><span>All workspaces</span></div>
+            </div>
           </div>
           <BellButton />
         </div>
@@ -201,19 +239,39 @@ export default function CalendarPage() {
               onReschedule={handleReschedule}
               onDeleteTask={handleDeleteTask}
               projectOptions={projectOptions}
+              onMobileAddRequest={setMobAddDate}
             />
           )}
         </div>
       </main>
+
+      {/* Mobile: workspace → project picker */}
+      {mobAddDate && !mobAddCfg && (
+        <CalMobAddSheet
+          date={mobAddDate}
+          workspaces={workspaces}
+          projects={allProjects}
+          onSelect={(wsId, projectId) => setMobAddCfg({ wsId, projectId })}
+          onClose={closeMobAdd}
+        />
+      )}
 
       <Suspense fallback={null}>
         {selectedTask && (
           <TaskDetailPanel
             task={selectedTask}
             canEdit
-            autoSave
             onUpdate={handleUpdateTask}
             onClose={() => setSelectedTask(null)}
+          />
+        )}
+        {/* Mobile: full AddTaskPanel after workspace + project selected */}
+        {mobAddDate && mobAddCfg && (
+          <AddTaskPanel
+            initialDate={mobAddDate}
+            overrideWorkspaceId={mobAddCfg.wsId}
+            onSave={handleFullAdd}
+            onClose={closeMobAdd}
           />
         )}
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

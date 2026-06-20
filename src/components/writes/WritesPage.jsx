@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  List, NotePencil, BookOpen, Star, Target, Briefcase,
-  FileText, MagnifyingGlass, PushPin, ArrowLeft,
+  List, NotePencil, MagnifyingGlass, PushPin, ArrowLeft, Plus, PencilSimple, X,
 } from '@phosphor-icons/react'
 import PageHint from '../ui/PageHint'
 import { BellButton } from '../notifications/NotificationCenter'
@@ -15,14 +14,204 @@ import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
 import WritesEditor from './WritesEditor'
 
-const NOTE_ICONS = [NotePencil, BookOpen, Star, Target, Briefcase, FileText]
-
-function NoteIcon({ index, size = 15 }) {
-  const Icon = NOTE_ICONS[index % NOTE_ICONS.length]
-  return <Icon size={size} aria-hidden="true" />
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 2) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days}d ago`
+  return fmtDate(dateStr)
 }
 
-function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
+function DocPreviewSheet({ doc, wsMap, loading, onEdit, onClose }) {
+  const ws = wsMap[doc.workspace_id]
+  const [expanded,    setExpanded]    = useState(false)
+  const [liveHeight,  setLiveHeight]  = useState(null)
+  const sheetRef   = useRef(null)
+  const handleRef  = useRef(null)
+  const expandedRef = useRef(false)
+  const drag = useRef(null)
+
+  useEffect(() => { expandedRef.current = expanded }, [expanded])
+
+  useEffect(() => {
+    const handle = handleRef.current
+    if (!handle) return
+
+    const onStart = (e) => {
+      const t = e.touches[0]
+      drag.current = {
+        startY: t.clientY,
+        startH: sheetRef.current?.offsetHeight ?? window.innerHeight * 0.5,
+        lastY:  t.clientY,
+        lastT:  Date.now(),
+      }
+    }
+
+    const onMove = (e) => {
+      e.preventDefault()
+      if (!drag.current) return
+      const t = e.touches[0]
+      const delta = drag.current.startY - t.clientY
+      const newH = Math.max(120, Math.min(window.innerHeight, drag.current.startH + delta))
+      drag.current.lastY = t.clientY
+      drag.current.lastT = Date.now()
+      setLiveHeight(newH)
+    }
+
+    const onEnd = (e) => {
+      if (!drag.current) return
+      const endY    = e.changedTouches[0].clientY
+      const elapsed = Date.now() - drag.current.lastT
+      const velocity = elapsed > 0 ? (drag.current.lastY - endY) / elapsed : 0
+      const currentH = sheetRef.current?.offsetHeight ?? drag.current.startH
+      drag.current = null
+      setLiveHeight(null)
+
+      if (velocity > 0.4 || currentH > window.innerHeight * 0.65) {
+        setExpanded(true)
+      } else if (velocity < -0.4 || currentH < window.innerHeight * 0.3) {
+        expandedRef.current ? setExpanded(false) : onClose()
+      }
+    }
+
+    handle.addEventListener('touchstart', onStart, { passive: true })
+    handle.addEventListener('touchmove',  onMove,  { passive: false })
+    handle.addEventListener('touchend',   onEnd,   { passive: true })
+    return () => {
+      handle.removeEventListener('touchstart', onStart)
+      handle.removeEventListener('touchmove',  onMove)
+      handle.removeEventListener('touchend',   onEnd)
+    }
+  }, [onClose])
+
+  const height     = liveHeight != null ? `${liveHeight}px` : expanded ? '100dvh' : '50dvh'
+  const transition = liveHeight != null ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+
+  return (
+    <>
+      <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={sheetRef}
+        className="doc-sheet"
+        style={{ height, transition }}
+        role="dialog" aria-modal="true" aria-label={doc.title || 'Untitled'}
+      >
+        <div ref={handleRef} className="doc-sheet-handle" aria-hidden="true" />
+        <div className="doc-sheet-bar">
+          <span className="doc-sheet-ws">{ws?.name ?? ''}</span>
+          <div className="doc-sheet-actions">
+            <button className="doc-sheet-btn" onClick={onEdit} aria-label="Edit document">
+              <PencilSimple size={18} aria-hidden="true" />
+            </button>
+            <button className="doc-sheet-btn" onClick={onClose} aria-label="Close preview">
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="doc-sheet-body">
+          <h1 className="doc-sheet-title">{doc.title || 'Untitled'}</h1>
+          <p className="doc-sheet-edited">Edited {timeAgo(doc.updated_at)}</p>
+          {loading ? (
+            <p className="doc-sheet-loading">Loading…</p>
+          ) : (
+            <div
+              className="doc-sheet-content tiptap"
+              dangerouslySetInnerHTML={{ __html: doc.content || '' }}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function DocEditSheet({ doc, onSave, onDelete, onClose, onChangeWorkspace }) {
+  const [liveHeight, setLiveHeight] = useState(null)
+  const sheetRef  = useRef(null)
+  const handleRef = useRef(null)
+  const drag      = useRef(null)
+
+  useEffect(() => {
+    const handle = handleRef.current
+    if (!handle) return
+
+    const onStart = (e) => {
+      drag.current = {
+        startY: e.touches[0].clientY,
+        startH: sheetRef.current?.offsetHeight ?? window.innerHeight,
+        lastY:  e.touches[0].clientY,
+        lastT:  Date.now(),
+      }
+    }
+
+    const onMove = (e) => {
+      e.preventDefault()
+      if (!drag.current) return
+      const t = e.touches[0]
+      const delta = drag.current.startY - t.clientY
+      const newH = Math.max(200, Math.min(window.innerHeight, drag.current.startH + delta))
+      drag.current.lastY = t.clientY
+      drag.current.lastT = Date.now()
+      setLiveHeight(newH)
+    }
+
+    const onEnd = (e) => {
+      if (!drag.current) return
+      const endY    = e.changedTouches[0].clientY
+      const elapsed = Date.now() - drag.current.lastT
+      const velocity = elapsed > 0 ? (drag.current.lastY - endY) / elapsed : 0
+      const currentH = sheetRef.current?.offsetHeight ?? drag.current.startH
+      drag.current = null
+      setLiveHeight(null)
+      if (velocity < -0.4 || currentH < window.innerHeight * 0.5) onClose()
+    }
+
+    handle.addEventListener('touchstart', onStart, { passive: true })
+    handle.addEventListener('touchmove',  onMove,  { passive: false })
+    handle.addEventListener('touchend',   onEnd,   { passive: true })
+    return () => {
+      handle.removeEventListener('touchstart', onStart)
+      handle.removeEventListener('touchmove',  onMove)
+      handle.removeEventListener('touchend',   onEnd)
+    }
+  }, [onClose])
+
+  const height     = liveHeight != null ? `${liveHeight}px` : '100dvh'
+  const transition = liveHeight != null ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+
+  return (
+    <>
+      <div className="doc-sheet-backdrop" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={sheetRef}
+        className="doc-sheet doc-sheet--edit"
+        style={{ height, transition }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={doc.title || 'Untitled'}
+      >
+        <div ref={handleRef} className="doc-sheet-handle" aria-hidden="true" />
+        <WritesEditor
+          key={doc.id}
+          doc={doc}
+          onSave={onSave}
+          onDelete={onDelete}
+          onChangeWorkspace={onChangeWorkspace}
+          inSheet
+          onSheetClose={onClose}
+        />
+      </div>
+    </>
+  )
+}
+
+function DocItem({ doc, docId, wsMap, onNavigate, onPin }) {
   const ws = wsMap[doc.workspace_id]
   return (
     <button
@@ -30,7 +219,6 @@ function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
       onClick={() => onNavigate(doc.id)}
     >
       <div className="wr-note-top">
-        <span className="wr-note-ico"><NoteIcon index={idx} /></span>
         <span className="wr-note-title">{doc.title || 'Untitled'}</span>
         <button
           className="wr-pin-ico"
@@ -38,7 +226,7 @@ function DocItem({ doc, docId, wsMap, idx, onNavigate, onPin }) {
           onClick={e => onPin(doc, e)}
           aria-label={doc.pinned ? 'Unpin document' : 'Pin document'}
         >
-          <PushPin size={13} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
+          <PushPin size={18} weight={doc.pinned ? 'fill' : 'regular'} aria-hidden="true" />
         </button>
       </div>
       {doc.preview && <p className="wr-note-snip">{doc.preview}</p>}
@@ -60,7 +248,22 @@ export default function WritesPage() {
   const navigate     = useNavigate()
   const { currentWorkspace, workspaces } = useWorkspace()
   const { toast }    = useToast()
-  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } = useDocuments(null)
+
+  // Track our own saves so we can ignore the realtime echo of our own writes
+  const lastSaveRef = useRef(0)
+  const [remoteUpdateAvailable, setRemoteUpdateAvailable] = useState(false)
+
+  const handleRemoteDocUpdate = useCallback((updatedDoc) => {
+    if (updatedDoc.id !== docId) return
+    if (Date.now() - lastSaveRef.current < 3000) return // own save echoing back
+    setRemoteUpdateAvailable(true)
+  }, [docId])
+
+  const wsIds = workspaces.map(w => w.id)
+  const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } = useDocuments(
+    wsIds.length ? wsIds : null,
+    { onRemoteUpdate: handleRemoteDocUpdate }
+  )
 
   const [currentDoc,  setCurrentDoc]  = useState(null)
   const [search,      setSearch]      = useState('')
@@ -70,7 +273,10 @@ export default function WritesPage() {
     localStorage.getItem('tm_sidebar_collapsed') === 'true'
   )
   const [docLoading,  setDocLoading]  = useState(false)
-  const [showSettings,  setShowSettings]  = useState(false)
+  const [previewDoc,  setPreviewDoc]  = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [editDoc,     setEditDoc]     = useState(null)
+  const [showSettings, setShowSettings] = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
   const fabRef      = useRef(null)
@@ -102,6 +308,7 @@ export default function WritesPage() {
 
   useEffect(() => {
     if (!docId) { setCurrentDoc(null); return }
+    setRemoteUpdateAvailable(false)
     setDocLoading(true)
     fetchDocContent(docId)
       .then(setCurrentDoc)
@@ -118,7 +325,11 @@ export default function WritesPage() {
   const doCreateDoc = async (wsId) => {
     try {
       const doc = await createDoc(wsId)
-      navigate('/writes/' + doc.id)
+      if (isMobile) {
+        setEditDoc(doc)
+      } else {
+        navigate('/writes/' + doc.id)
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to create document')
     }
@@ -145,8 +356,22 @@ export default function WritesPage() {
   }
 
   const handleSave = async (updates) => {
+    lastSaveRef.current = Date.now()
     await updateDoc(docId, updates)
     setCurrentDoc(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleReloadContent = async () => {
+    setRemoteUpdateAvailable(false)
+    setDocLoading(true)
+    try {
+      const fresh = await fetchDocContent(docId)
+      setCurrentDoc(fresh)
+    } catch (err) {
+      toast.error(err.message || 'Failed to reload document')
+    } finally {
+      setDocLoading(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -162,12 +387,45 @@ export default function WritesPage() {
     }
   }
 
+  const handleSheetSave = async (updates) => {
+    if (!editDoc) return
+    lastSaveRef.current = Date.now()
+    await updateDoc(editDoc.id, updates)
+    setEditDoc(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleSheetDelete = async () => {
+    if (!editDoc) return
+    const title = editDoc.title || 'Untitled'
+    try {
+      await deleteDoc(editDoc.id)
+      toast.success(`"${title}" deleted`)
+      setEditDoc(null)
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete document')
+    }
+  }
+
   const handlePin = async (doc, e) => {
     e.stopPropagation()
     try {
       await pinDoc(doc.id, !doc.pinned)
     } catch (err) {
       toast.error(err.message || 'Failed to update pin')
+    }
+  }
+
+  const handlePreviewDoc = async (id) => {
+    const partial = docs.find(d => d.id === id) ?? { id }
+    setPreviewDoc(partial)
+    setPreviewLoading(true)
+    try {
+      const full = await fetchDocContent(id)
+      setPreviewDoc(full)
+    } catch (err) {
+      toast.error(err.message || 'Failed to load document')
+    } finally {
+      setPreviewLoading(false)
     }
   }
 
@@ -203,8 +461,10 @@ export default function WritesPage() {
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws"><span>Writes</span></div>
-            <div className="mobile-appbar-sub">{currentWorkspace?.name ?? 'My Workspace'}</div>
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">Writes</div>
+              <div className="mobile-appbar-ws"><span>{currentWorkspace?.name ?? 'My Workspace'}</span></div>
+            </div>
           </div>
           <BellButton />
         </div>
@@ -282,8 +542,7 @@ export default function WritesPage() {
                         doc={doc}
                         docId={docId}
                         wsMap={wsMap}
-                        idx={filtered.findIndex(d => d.id === doc.id)}
-                        onNavigate={id => navigate('/writes/' + id)}
+                        onNavigate={handlePreviewDoc}
                         onPin={handlePin}
                       />
                     ))}
@@ -303,8 +562,7 @@ export default function WritesPage() {
                           doc={doc}
                           docId={docId}
                           wsMap={wsMap}
-                          idx={filtered.findIndex(d => d.id === doc.id)}
-                          onNavigate={id => navigate('/writes/' + id)}
+                            onNavigate={id => navigate('/writes/' + id)}
                           onPin={handlePin}
                         />
                       ))}
@@ -319,8 +577,7 @@ export default function WritesPage() {
                           doc={doc}
                           docId={docId}
                           wsMap={wsMap}
-                          idx={filtered.findIndex(d => d.id === doc.id)}
-                          onNavigate={id => navigate('/writes/' + id)}
+                            onNavigate={id => navigate('/writes/' + id)}
                           onPin={handlePin}
                         />
                       ))}
@@ -333,7 +590,7 @@ export default function WritesPage() {
             {/* Mobile FAB */}
             <div className="wr-fab-wrap" ref={fabRef}>
               <button className="wr-fab" onClick={handleNew} aria-label="New note">
-                <NotePencil size={22} weight="bold" aria-hidden="true" />
+                <Plus size={26} weight="bold" aria-hidden="true" />
               </button>
               {showWsPicker && (
                 <div className="wr-ws-picker wr-ws-picker--fab" role="listbox" aria-label="Select workspace">
@@ -368,6 +625,8 @@ export default function WritesPage() {
                 onSave={handleSave}
                 onDelete={handleDelete}
                 onChangeWorkspace={handleChangeWorkspace}
+                remoteUpdateAvailable={remoteUpdateAvailable}
+                onReloadContent={handleReloadContent}
               />
             ) : (
               <div className="writes-empty-state">
@@ -382,6 +641,25 @@ export default function WritesPage() {
       <Suspense fallback={null}>
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       </Suspense>
+
+      {isMobile && previewDoc && (
+        <DocPreviewSheet
+          doc={previewDoc}
+          wsMap={wsMap}
+          loading={previewLoading}
+          onEdit={() => { setEditDoc(previewDoc); setPreviewDoc(null) }}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {isMobile && editDoc && (
+        <DocEditSheet
+          doc={editDoc}
+          onSave={handleSheetSave}
+          onDelete={handleSheetDelete}
+          onClose={() => setEditDoc(null)}
+        />
+      )}
     </div>
   )
 }

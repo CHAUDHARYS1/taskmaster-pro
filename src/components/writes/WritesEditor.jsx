@@ -3,16 +3,92 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
-  ListBullets, ListNumbers,
+  ListBullets, ListNumbers, CheckSquare,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export, CheckCircle, CaretDown,
+  Export, CheckCircle, CaretDown, TrashSimple, X,
 } from '@phosphor-icons/react'
 import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useMembers } from '../../hooks/useMembers'
+import { useAuth } from '../../contexts/AuthContext'
+import { userColor } from '../../lib/userColor'
+
+const MAX_AVATARS = 4
+
+function initials(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  const name = full || m.email?.split('@')[0] || '?'
+  const parts = name.trim().split(/\s+/)
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+}
+
+function displayName(m) {
+  const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
+  return full || m.email?.split('@')[0] || 'Unknown'
+}
+
+function DocAccessAvatars({ workspaceId }) {
+  const { user } = useAuth()
+  const { members } = useMembers(workspaceId)
+  const [openId, setOpenId] = useState(null)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!openId) return
+    const close = (e) => { if (!wrapRef.current?.contains(e.target)) setOpenId(null) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [openId])
+
+  if (!members.length) return null
+
+  const visible  = members.slice(0, MAX_AVATARS)
+  const overflow = members.length - MAX_AVATARS
+
+  return (
+    <div className="we-access-avatars" ref={wrapRef} aria-label="People with access">
+      {visible.map(m => {
+        const isSelf = m.user_id === user?.id
+        const isOpen = openId === m.user_id
+        return (
+          <div key={m.user_id} className="we-access-avatar-wrap">
+            <button
+              className="we-access-avatar"
+              style={{ background: userColor(m.user_id) }}
+              onClick={() => setOpenId(isOpen ? null : m.user_id)}
+              aria-label={displayName(m)}
+              aria-expanded={isOpen}
+            >
+              {initials(m)}
+            </button>
+            {isOpen && (
+              <div className="we-access-tooltip" role="tooltip">
+                <span className="we-access-tooltip-name">
+                  {displayName(m)}{isSelf && <span className="we-access-you"> (you)</span>}
+                </span>
+                <span className="we-access-tooltip-email">{m.email}</span>
+                <span className="we-access-tooltip-role">{m.role}</span>
+              </div>
+            )}
+          </div>
+        )
+      })}
+      {overflow > 0 && (
+        <div className="we-access-avatar we-access-avatar--overflow" aria-label={`${overflow} more`}>
+          +{overflow}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -37,7 +113,7 @@ function Divider() {
   return <span className="we-divider" aria-hidden="true" />
 }
 
-export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace }) {
+export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace, remoteUpdateAvailable, onReloadContent, inSheet = false, onSheetClose }) {
   const { toast }      = useToast()
   const { workspaces } = useWorkspace()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
@@ -150,6 +226,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
       StarterKit,
       Underline,
       Link.configure({ openOnClick: false, autolink: true }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
     content: doc.content || '',
     onUpdate: ({ editor }) => {
@@ -195,6 +273,110 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
 
   if (!editor) return null
 
+  const toolbar = (
+    <>
+      <div className="we-toolbar" role="toolbar" aria-label="Formatting">
+        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleUnderline().run()}     active={editor.isActive('underline')}     label="Underline"><TextUnderline size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
+        <Divider />
+        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })} label="Title (H1)"><TextHOne size={15} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} label="Heading (H2)"><TextHTwo size={15} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} label="Subheading (H3)"><TextHThree size={15} /></Btn>
+        <Divider />
+        <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
+        <Divider />
+        <Btn
+          onClick={() => {
+            if (editor.isActive('link')) { editor.chain().focus().unsetLink().run() }
+            else { setLinkInput(editor.getAttributes('link').href ?? ''); setShowLink(v => !v) }
+          }}
+          active={editor.isActive('link')}
+          label={editor.isActive('link') ? 'Remove link' : 'Add link'}
+        >
+          {editor.isActive('link') ? <LinkBreak size={14} /> : <LinkIcon size={14} />}
+        </Btn>
+        <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
+      </div>
+      {showLink && (
+        <div className="we-link-bar">
+          <input
+            className="we-link-input"
+            value={linkInput}
+            onChange={e => setLinkInput(e.target.value)}
+            onKeyDown={handleLinkKeyDown}
+            placeholder="https://example.com"
+            autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
+            aria-label="Link URL"
+          />
+          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
+          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
+        </div>
+      )}
+    </>
+  )
+
+  /* ── Sheet layout (mobile editing bottom sheet) ── */
+  if (inSheet) {
+    return (
+      <div className="we-wrap we-wrap--sheet">
+        <div className="doc-sheet-bar">
+          <span className="doc-sheet-editing-label">
+            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'unsaved' ? 'Editing' : 'Saved'}
+          </span>
+          <div className="doc-sheet-actions">
+            <div className="we-export-wrap" ref={exportRef}>
+              <button className="doc-sheet-btn" onClick={() => setShowExport(v => !v)} aria-label="Export" title="Export">
+                <Export size={16} aria-hidden="true" />
+              </button>
+              {showExport && (
+                <div className="we-export-menu" role="menu">
+                  <button className="we-export-item" role="menuitem" onClick={handleExportPDF}>PDF</button>
+                  <button className="we-export-item we-export-item--disabled" role="menuitem" disabled>
+                    Google Docs <span className="we-export-soon">soon</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            <button className="doc-sheet-btn" onClick={() => { onDelete?.(); onSheetClose?.() }} aria-label="Delete document" title="Delete">
+              <TrashSimple size={16} aria-hidden="true" />
+            </button>
+            <button className="doc-sheet-btn" onClick={onSheetClose} aria-label="Close editor">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        {toolbar}
+        <div className="doc-sheet-body doc-sheet-body--edit">
+          <input
+            ref={titleRef}
+            className="doc-sheet-title-input"
+            value={title}
+            onChange={handleTitleChange}
+            onKeyDown={handleTitleKeyDown}
+            placeholder="Untitled document"
+            aria-label="Document title"
+          />
+          {workspace && <div className="doc-sheet-ws-label">{workspace.name}</div>}
+          {remoteUpdateAvailable && (
+            <div className="we-remote-banner" role="status">
+              <span>A workspace member updated this document.</span>
+              <button className="we-remote-reload" onClick={onReloadContent}>Reload</button>
+            </div>
+          )}
+          <div className="we-body" onClick={e => { if (e.target === e.currentTarget) editor?.commands.focus('end') }}>
+            <EditorContent editor={editor} className="we-content" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Standard desktop / full-screen layout ── */
   return (
     <div className="we-wrap">
       {/* Editor breadcrumb bar */}
@@ -235,6 +417,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
           {workspace && <span className="sep">›</span>}
           <strong>Writes</strong>
         </div>
+        <DocAccessAvatars workspaceId={doc.workspace_id} />
         <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved
@@ -291,53 +474,19 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace 
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="we-toolbar" role="toolbar" aria-label="Formatting">
-        <Btn onClick={() => editor.chain().focus().toggleBold().run()}          active={editor.isActive('bold')}          label="Bold"><TextB size={14} weight="bold" /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleItalic().run()}        active={editor.isActive('italic')}        label="Italic"><TextItalic size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleUnderline().run()}     active={editor.isActive('underline')}     label="Underline"><TextUnderline size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleStrike().run()}        active={editor.isActive('strike')}        label="Strikethrough"><TextStrikethrough size={14} /></Btn>
-        <Divider />
-        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })} label="Title (H1)"><TextHOne size={15} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} label="Heading (H2)"><TextHTwo size={15} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} label="Subheading (H3)"><TextHThree size={15} /></Btn>
-        <Divider />
-        <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
-        <Divider />
-        <Btn
-          onClick={() => {
-            if (editor.isActive('link')) { editor.chain().focus().unsetLink().run() }
-            else { setLinkInput(editor.getAttributes('link').href ?? ''); setShowLink(v => !v) }
-          }}
-          active={editor.isActive('link')}
-          label={editor.isActive('link') ? 'Remove link' : 'Add link'}
-        >
-          {editor.isActive('link') ? <LinkBreak size={14} /> : <LinkIcon size={14} />}
-        </Btn>
-        <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
-      </div>
-
-      {/* Link input popover */}
-      {showLink && (
-        <div className="we-link-bar">
-          <input
-            className="we-link-input"
-            value={linkInput}
-            onChange={e => setLinkInput(e.target.value)}
-            onKeyDown={handleLinkKeyDown}
-            placeholder="https://example.com"
-            autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
-            aria-label="Link URL"
-          />
-          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
-          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
+      {/* Remote update banner */}
+      {remoteUpdateAvailable && (
+        <div className="we-remote-banner" role="status">
+          <span>A workspace member updated this document.</span>
+          <button className="we-remote-reload" onClick={onReloadContent}>Reload</button>
         </div>
       )}
 
+      {/* Toolbar */}
+      {toolbar}
+
       {/* Editor body */}
-      <div className="we-body">
+      <div className="we-body" onClick={(e) => { if (e.target === e.currentTarget) editor?.commands.focus('end') }}>
         <EditorContent editor={editor} className="we-content" />
       </div>
 

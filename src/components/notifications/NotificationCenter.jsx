@@ -1,14 +1,16 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell, BellSimple, X, Check, Trash,
   Chat, UserCircle, CheckCircle,
   Warning, Clock, UserPlus, UserMinus, Buildings, ArrowSquareOut, Gear,
+  ArrowLeft, Checks,
 } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { useNotifications } from '../../contexts/NotificationContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 
 dayjs.extend(relativeTime)
 
@@ -23,6 +25,17 @@ const TYPE_META = {
   member_joined:     { Icon: UserPlus,       color: 'var(--green,#10b981)' },
   member_removed:    { Icon: UserMinus,      color: 'var(--red,#ef4444)' },
   workspace_renamed: { Icon: Buildings,      color: 'var(--ink-3)' },
+}
+
+const AVATAR_PALETTE = ['#4f46e5','#0891b2','#059669','#d97706','#7c3aed','#db2777','#dc2626']
+function avatarColor(id) {
+  if (!id) return 'var(--ink-3)'
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h)
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
+}
+function initials(first, last) {
+  return [first, last].filter(Boolean).map(n => n[0].toUpperCase()).join('')
 }
 
 function groupByTime(notifications) {
@@ -135,12 +148,16 @@ function PreferencesPanel({ preferences, onSave }) {
 // ── BellButton — rendered in sidebar header ───────────────────────────────────
 
 export function BellButton() {
-  const { unreadCount, togglePanel } = useNotifications()
+  const { unreadCount, togglePanel, openMobile } = useNotifications()
+  const handleClick = () => {
+    if (window.innerWidth <= 768) openMobile()
+    else togglePanel()
+  }
   return (
     <button
       className="notif-bell-btn"
       data-notif-bell="true"
-      onClick={togglePanel}
+      onClick={handleClick}
       aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       title="Notifications"
     >
@@ -157,6 +174,170 @@ export function BellButton() {
   )
 }
 
+// ── Mobile notification item ──────────────────────────────────────────────────
+
+function MobileNotifItem({ notif, onRead, onTaskClick, wsMap }) {
+  const meta   = TYPE_META[notif.type] ?? { Icon: Bell, color: 'var(--ink-3)' }
+  const { Icon, color } = meta
+  const actor  = notif.actor
+  const hasActor = actor && (actor.first_name || actor.last_name)
+  const bgColor  = hasActor ? avatarColor(notif.actor_id) : color
+
+  const handleClick = () => {
+    if (!notif.read) onRead(notif.id)
+    if (notif.task_id && onTaskClick) onTaskClick(notif.task_id, notif.workspace_id)
+  }
+
+  return (
+    <div
+      className={`mn-item${notif.read ? '' : ' mn-item--unread'}`}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && handleClick()}
+      aria-label={notif.title}
+    >
+      <div className="mn-item-avatar" style={{ background: bgColor }} aria-hidden="true">
+        {hasActor
+          ? <span className="mn-item-initials">{initials(actor.first_name, actor.last_name)}</span>
+          : <Icon size={18} weight="fill" />
+        }
+      </div>
+      <div className="mn-item-content">
+        <p className="mn-item-title">{notif.title}</p>
+        {notif.body && (
+          notif.type === 'comment_added'
+            ? <blockquote className="mn-item-quote">{notif.body}</blockquote>
+            : <p className="mn-item-body">{notif.body}</p>
+        )}
+        <p className="mn-item-meta">
+          {wsMap?.[notif.workspace_id] && (
+            <><span className="mn-item-ws">{wsMap[notif.workspace_id].toUpperCase()}</span><span aria-hidden="true"> · </span></>
+          )}
+          {dayjs(notif.created_at).fromNow()}
+        </p>
+      </div>
+      {!notif.read && <span className="mn-item-unread-dot" aria-hidden="true" />}
+    </div>
+  )
+}
+
+// ── Mobile full-screen notification page ─────────────────────────────────────
+
+function MobileNotifPage() {
+  const {
+    notifications, unreadCount, closeMobile,
+    markRead, markAllRead,
+    preferences, savePreferences,
+  } = useNotifications()
+  const { workspaces } = useWorkspace()
+  const navigate = useNavigate()
+  const [tab,       setTab]       = useState('all')
+  const [showPrefs, setShowPrefs] = useState(false)
+
+  const wsMap = useMemo(() => {
+    const m = {}
+    for (const ws of workspaces) m[ws.id] = ws.name
+    return m
+  }, [workspaces])
+
+  const displayed = tab === 'unread' ? notifications.filter(n => !n.read) : notifications
+  const groups    = groupByTime(displayed)
+
+  const handleTaskClick = (taskId, workspaceId) => {
+    closeMobile()
+    sessionStorage.setItem('tm_openTask', taskId)
+    navigate(workspaceId ? `/workspace/${workspaceId}` : '/app')
+  }
+
+  return createPortal(
+    <div className="mn-page" role="dialog" aria-modal="true" aria-label="Notifications">
+      <header className="mn-header">
+        <div className="mn-header-left">
+          <button className="mn-back-btn" onClick={closeMobile} aria-label="Back">
+            <ArrowLeft size={20} aria-hidden="true" />
+          </button>
+          <div>
+            <h1 className="mn-title">Notifications</h1>
+            <p className="mn-subtitle">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
+          </div>
+        </div>
+        <div className="mn-header-actions">
+          {!showPrefs && unreadCount > 0 && (
+            <button className="mn-mark-all-btn" onClick={markAllRead}>
+              <Checks size={14} aria-hidden="true" />
+              Mark all read
+            </button>
+          )}
+          <button
+            className={`mn-prefs-btn${showPrefs ? ' mn-prefs-btn--active' : ''}`}
+            onClick={() => setShowPrefs(p => !p)}
+            aria-label="Notification preferences"
+            title="Preferences"
+          >
+            <Gear size={18} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      {showPrefs ? (
+        <div className="mn-list mn-prefs-wrap">
+          <PreferencesPanel preferences={preferences} onSave={savePreferences} />
+        </div>
+      ) : null}
+
+      <div className="mn-tabs" style={showPrefs ? { display: 'none' } : undefined}>
+        <button
+          className={`mn-tab${tab === 'all' ? ' mn-tab--active' : ''}`}
+          onClick={() => setTab('all')}
+        >
+          All
+          {notifications.length > 0 && (
+            <span className="mn-tab-count">{notifications.length}</span>
+          )}
+        </button>
+        <button
+          className={`mn-tab${tab === 'unread' ? ' mn-tab--active' : ''}`}
+          onClick={() => setTab('unread')}
+        >
+          Unread
+          {unreadCount > 0 && (
+            <span className="mn-tab-badge">{unreadCount}</span>
+          )}
+        </button>
+      </div>
+
+      <div className="mn-list" style={showPrefs ? { display: 'none' } : undefined}>
+        {groups.length === 0 ? (
+          <div className="mn-empty">
+            <CheckCircle size={52} color="var(--green,#10b981)" weight="light" aria-hidden="true" />
+            <p className="mn-empty-title">You're all caught up</p>
+            <p className="mn-empty-sub">No unread notifications.</p>
+          </div>
+        ) : (
+          groups.map(group => (
+            <div key={group.key} className="mn-group">
+              {group.key !== 'Today' && (
+                <p className="mn-group-label">{group.key.toUpperCase()}</p>
+              )}
+              {group.items.map(n => (
+                <MobileNotifItem
+                  key={n.id}
+                  notif={n}
+                  onRead={markRead}
+                  onTaskClick={handleTaskClick}
+                  wsMap={wsMap}
+                />
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 // ── NotificationPanel — floating popover rendered via portal ──────────────────
 
 export default function NotificationPanel() {
@@ -164,6 +345,7 @@ export default function NotificationPanel() {
     notifications, panelOpen, closePanel,
     markRead, markAllRead, clearRead,
     preferences, savePreferences, unreadCount,
+    mobileNotifOpen,
   } = useNotifications()
   const navigate = useNavigate()
 
@@ -218,6 +400,7 @@ export default function NotificationPanel() {
     navigate(workspaceId ? `/workspace/${workspaceId}` : '/app')
   }
 
+  if (mobileNotifOpen) return <MobileNotifPage />
   if (!panelOpen) return null
 
   const groups = groupByTime(notifications)

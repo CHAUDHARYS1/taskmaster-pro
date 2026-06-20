@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { SquaresFour, NotePencil, CalendarBlank, Archive, Plus, SignOut, Kanban, ChartPieSlice } from '@phosphor-icons/react'
+import { SquaresFour, NotePencil, CalendarBlank, Archive, Plus, SignOut, Kanban, ChartPieSlice, CaretRight } from '@phosphor-icons/react'
 import LogoLockup from '../ui/LogoLockup'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useProject } from '../../contexts/ProjectContext'
@@ -218,7 +218,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
             {onProfileClick ? (
               <button
                 className="sidebar-profile-btn"
-                onClick={() => window.innerWidth <= 768 ? navigate('/settings') : onProfileClick()}
+                onClick={() => window.innerWidth <= 768 ? navigate('/profile') : onProfileClick()}
                 aria-label={`Settings for ${displayName || user?.email}`}
                 title={collapsed ? (displayName || user?.email) : undefined}
               >
@@ -228,7 +228,8 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                       {(displayName || user?.email || '?')[0].toUpperCase()}
                     </span>
                 }
-                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+                <span className="sidebar-profile-name sidebar-nav-label">{profile?.first_name || user?.email}</span>
+                <CaretRight size={13} weight="bold" className="sidebar-profile-caret sidebar-nav-label" aria-hidden="true" />
               </button>
             ) : (
               <div
@@ -241,7 +242,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                       {(displayName || user?.email || '?')[0].toUpperCase()}
                     </span>
                 }
-                <span className="sidebar-profile-name sidebar-nav-label">{displayName || user?.email}</span>
+                <span className="sidebar-profile-name sidebar-nav-label">{profile?.first_name || user?.email}</span>
               </div>
             )}
             <button
@@ -250,7 +251,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
               aria-label="Archive"
               title="Archive"
             >
-              <Archive size={14} aria-hidden="true" />
+              <Archive size={18} aria-hidden="true" />
             </button>
             <button
               className="sidebar-signout-btn"
@@ -258,7 +259,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
               aria-label="Sign out"
               title="Sign out"
             >
-              <SignOut size={14} aria-hidden="true" />
+              <SignOut size={18} aria-hidden="true" />
               <span className="sidebar-nav-label">Sign out</span>
             </button>
           </div>

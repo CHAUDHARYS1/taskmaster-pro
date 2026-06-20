@@ -10,13 +10,14 @@ export function NotificationProvider({ children }) {
   const [notifications,  setNotifications]  = useState([])
   const [preferences,    setPreferences]    = useState(null)
   const [panelOpen,      setPanelOpen]      = useState(false)
+  const [mobileNotifOpen, setMobileNotifOpen] = useState(false)
   const dueDateCheckedRef = useRef(false)
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return
     const { data } = await supabase
       .from('notifications')
-      .select('*')
+      .select('*, actor:profiles!actor_id(first_name, last_name)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100)
@@ -182,6 +183,9 @@ export function NotificationProvider({ children }) {
       openPanel:   () => setPanelOpen(true),
       closePanel:  () => setPanelOpen(false),
       togglePanel: () => setPanelOpen(p => !p),
+      mobileNotifOpen,
+      openMobile:  () => setMobileNotifOpen(true),
+      closeMobile: () => setMobileNotifOpen(false),
       notify, markRead, markAllRead, clearRead, clearAll,
       preferences, savePreferences, checkDueDates,
     }}>

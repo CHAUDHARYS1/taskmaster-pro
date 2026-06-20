@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import dayjs from 'dayjs'
-import { CaretLeft, CaretRight, Check, X, Funnel, Plus, CalendarBlank, Trash } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, Check, X, Funnel, Plus, CalendarBlank, Trash, SlidersHorizontal, MagnifyingGlass } from '@phosphor-icons/react'
 import { fmtTimeStr } from '../../utils/format'
 import { stripHtml } from '../../utils/text'
 import { priorityMap } from '../../lib/priority'
@@ -83,6 +83,9 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
     >
       {task.due_time && <span className="cal-event-time">{fmtTimeStr(task.due_time)}</span>}
       <span className="cal-event-text">{task.text}</span>
+      {task.project?.name && (
+        <span className="cal-event-ws">{task.project.name}</span>
+      )}
       {showDesc && task.description && (
         <span className="cal-event-desc">{stripHtml(task.description)}</span>
       )}
@@ -112,6 +115,65 @@ function EventChip({ task, onClick, colorBy = 'status', isDraggable, onDragStart
         </span>
       )}
     </button>
+  )
+}
+
+// ── MobileDateStrip ───────────────────────────────────────────────────────────
+function MobileDateStrip({ tasksByDate, today, month, selectedDate, onDaySelect }) {
+  const scrollRef = useRef(null)
+
+  const days = useMemo(() => {
+    const start  = month.startOf('month').subtract(2, 'day')
+    const end    = month.endOf('month').add(2, 'day')
+    const result = []
+    for (let d = start; !d.isAfter(end); d = d.add(1, 'day')) {
+      const key = d.format('YYYY-MM-DD')
+      result.push({ d, key, hasEvents: !!(tasksByDate[key]?.length) })
+    }
+    return result
+  }, [month, tasksByDate])
+
+  // Center on selected date, today (if in strip), or first pill of the month
+  useEffect(() => {
+    if (!scrollRef.current) return
+    const target = selectedDate || today
+    const el = scrollRef.current.querySelector(`[data-key="${target}"]`)
+      || scrollRef.current.querySelector('button[data-key]')
+    if (!el) return
+    const containerW = scrollRef.current.offsetWidth
+    scrollRef.current.scrollTo({
+      left: el.offsetLeft - containerW / 2 + el.offsetWidth / 2,
+      behavior: 'smooth',
+    })
+  }, [selectedDate, today, month])
+
+  return (
+    <div className="cal-date-strip" ref={scrollRef} aria-label="Jump to date">
+      {days.map(({ d, key, hasEvents }) => {
+        const isToday    = key === today
+        const isSelected = key === selectedDate && !isToday
+        return (
+          <button
+            key={key}
+            type="button"
+            data-key={key}
+            data-today={isToday ? 'true' : undefined}
+            className={[
+              'cal-date-pill',
+              isToday    ? 'cal-date-pill--today'    : '',
+              isSelected ? 'cal-date-pill--selected' : '',
+            ].filter(Boolean).join(' ')}
+            onClick={() => onDaySelect(key)}
+            aria-label={d.format('dddd, MMMM D')}
+            aria-pressed={key === selectedDate}
+          >
+            <span className="cal-date-pill-dow">{d.format('ddd').toUpperCase()}</span>
+            <span className="cal-date-pill-day">{d.format('D')}</span>
+            {hasEvents && <span className="cal-date-pill-dot" aria-hidden="true" />}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -682,33 +744,45 @@ function DayView({ cursor, tasksByDate, onTaskClick, addingDay, setAddingDay, pr
 // ── AgendaView ────────────────────────────────────────────────────────────────
 function relDayLabel(dateKey, today) {
   const diff = dayjs(dateKey).diff(dayjs(today).startOf('day'), 'day')
-  if (diff === 0) return { label: 'Today', variant: 'today' }
-  if (diff > 0)  return { label: `In ${diff}d`, variant: 'future' }
+  if (diff === 0)             return { label: 'Today',      variant: 'today'  }
+  if (diff > 0 && diff <= 2) return { label: `In ${diff}d`, variant: 'soon'   }
+  if (diff > 0)              return { label: `In ${diff}d`, variant: 'future' }
   return null
 }
 
-function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask }) {
+function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDeleteTask, filterDate, filterMonth, onMobileAddRequest }) {
   const today       = dayjs().format('YYYY-MM-DD')
   const isMobile    = typeof window !== 'undefined' && window.innerWidth <= 768
   const [upcomingOnly, setUpcomingOnly] = useState(isMobile)
 
   const allDates = useMemo(() => {
+    if (filterDate)  return tasksByDate[filterDate] ? [filterDate] : []
     const dates = Object.keys(tasksByDate).sort()
+    if (filterMonth) return dates.filter(d => d.startsWith(filterMonth))
     return upcomingOnly ? dates.filter(d => d >= today) : dates
-  }, [tasksByDate, upcomingOnly, today])
+  }, [tasksByDate, upcomingOnly, today, filterDate, filterMonth])
 
   const hasPast = useMemo(
-    () => Object.keys(tasksByDate).some(d => d < today),
-    [tasksByDate, today]
+    () => !filterDate && !filterMonth && Object.keys(tasksByDate).some(d => d < today),
+    [tasksByDate, today, filterDate, filterMonth]
   )
 
   if (allDates.length === 0 && !hasPast) {
-    return <p className="cal-day-empty">No tasks with due dates match the current filters.</p>
+    return (
+      <p className="cal-day-empty">
+        {filterDate
+          ? `No tasks due on ${dayjs(filterDate).format('MMMM D')}.`
+          : filterMonth
+            ? `No tasks in ${dayjs(filterMonth + '-01').format('MMMM YYYY')}.`
+            : 'No tasks with due dates match the current filters.'
+        }
+      </p>
+    )
   }
 
   return (
     <div className="cal-agenda">
-      {hasPast && (
+      {hasPast && !filterDate && (
         <div className="cal-agenda-filter-row">
           <button
             type="button"
@@ -727,7 +801,12 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
         </div>
       )}
       {allDates.length === 0 && (
-        <p className="cal-day-empty">No upcoming tasks with due dates.</p>
+        <p className="cal-day-empty">
+          {filterDate
+            ? `No tasks due on ${dayjs(filterDate).format('MMMM D')}.`
+            : 'No upcoming tasks with due dates.'
+          }
+        </p>
       )}
       {allDates.map(dateKey => {
         const events  = tasksByDate[dateKey]
@@ -739,17 +818,31 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
         return (
           <div
             key={dateKey}
+            id={`cal-day-${dateKey}`}
             className={`cal-agenda-row${isPast ? ' cal-agenda-row--past' : ''}`}
             onContextMenu={e => { e.preventDefault(); onOpenCtxMenu(e, dateKey, null) }}
           >
             <div className={`cal-agenda-date${isToday ? ' cal-agenda-date--today' : ''}`}>
-              {/* Desktop order: dow → day → mon */}
+              {/* Desktop: abbreviated DOW + day number + month */}
               <span className="cal-agenda-dow">{d.format('ddd').toUpperCase()}</span>
               <span className="cal-agenda-day">{d.format('D')}</span>
               <span className="cal-agenda-mon">{d.format('MMM YYYY')}</span>
-              {/* Mobile-only: full day name + TODAY badge */}
-              <span className="cal-agenda-dow-full">{d.format('dddd').toUpperCase()}</span>
-              {isToday && <span className="cal-agenda-today-tag">TODAY</span>}
+              {/* Mobile-only: day name row + month + count badge */}
+              <div className="cal-agenda-date-info">
+                <span className="cal-agenda-dow-full">
+                  {d.format('dddd')}{isToday ? ' · Today' : ''}
+                </span>
+                <span className="cal-agenda-mon-full">{d.format('MMMM YYYY')}</span>
+              </div>
+              <span className="cal-agenda-count" aria-hidden="true">{events.length}</span>
+              <button
+                type="button"
+                className="cal-agenda-add-btn"
+                onClick={e => { e.stopPropagation(); onMobileAddRequest?.(dateKey) }}
+                aria-label={`Add task on ${d.format('MMMM D')}`}
+              >
+                <Plus size={13} weight="bold" aria-hidden="true" />
+              </button>
             </div>
             <div className="cal-agenda-events">
               {events.map(t => (
@@ -777,8 +870,130 @@ function AgendaView({ tasksByDate, onTaskClick, colorBy, onOpenCtxMenu, onDelete
   )
 }
 
+// ── MobileFilterSheet ────────────────────────────────────────────────────────
+const STATUS_OPTIONS = [
+  { value: 'toDo',       label: 'To Do',       color: 'var(--ink-3)'   },
+  { value: 'inProgress', label: 'In Progress',  color: 'var(--accent)'  },
+  { value: 'inReview',   label: 'In Review',    color: 'var(--amber)'   },
+  { value: 'done',       label: 'Done',         color: 'var(--green)'   },
+]
+
+function MobileFilterSheet({ isOpen, onClose, filters, onApply, tasksByDate, today, onJumpToDate }) {
+  const [draftStatus, setDraftStatus] = useState(filters.status || '')
+  const [draftSearch, setDraftSearch] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      setDraftStatus(filters.status || '')
+      setDraftSearch('')
+    }
+  }, [isOpen, filters.status])
+
+  const jumpDates = useMemo(() =>
+    Object.keys(tasksByDate).filter(d => d >= today).sort().slice(0, 5),
+    [tasksByDate, today]
+  )
+
+  const handleApply = () => {
+    onApply({ status: draftStatus, search: draftSearch })
+    onClose()
+  }
+
+  const handleJump = (dateKey) => {
+    onClose()
+    setTimeout(() => {
+      document.getElementById(`cal-day-${dateKey}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 220)
+  }
+
+  if (!isOpen) return null
+
+  return createPortal(
+    <>
+      <div className="cal-sheet-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="cal-filter-sheet" role="dialog" aria-label="Filter and find tasks" aria-modal="true">
+        <div className="cal-sheet-handle" aria-hidden="true" />
+
+        <div className="cal-sheet-head">
+          <span className="cal-sheet-title">Filter &amp; Find</span>
+          <button type="button" className="cal-sheet-close" onClick={onClose} aria-label="Close filter">
+            <X size={18} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="cal-sheet-body">
+          <div className="cal-sheet-section">
+            <p className="cal-sheet-label">Search Tasks</p>
+            <div className="cal-sheet-search-wrap">
+              <MagnifyingGlass size={16} className="cal-sheet-search-icon" aria-hidden="true" />
+              <input
+                type="search"
+                className="cal-sheet-search"
+                placeholder="Find a task..."
+                value={draftSearch}
+                onChange={e => setDraftSearch(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <div className="cal-sheet-section">
+            <p className="cal-sheet-label">Status</p>
+            <div className="cal-sheet-pills">
+              {STATUS_OPTIONS.map(({ value, label, color }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`cal-sheet-pill${draftStatus === value ? ' cal-sheet-pill--active' : ''}`}
+                  style={{ '--pill-color': color }}
+                  onClick={() => setDraftStatus(d => d === value ? '' : value)}
+                >
+                  <span className="cal-sheet-pill-dot" aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {jumpDates.length > 0 && (
+            <div className="cal-sheet-section">
+              <p className="cal-sheet-label">Jump to Date</p>
+              <div className="cal-sheet-pills">
+                {jumpDates.map(dateKey => (
+                  <button
+                    key={dateKey}
+                    type="button"
+                    className="cal-sheet-pill"
+                    onClick={() => handleJump(dateKey)}
+                  >
+                    {dayjs(dateKey).format('MMM D')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="cal-sheet-footer">
+          <button
+            type="button"
+            className="cal-sheet-clear"
+            onClick={() => { setDraftStatus(''); setDraftSearch('') }}
+          >
+            Clear all
+          </button>
+          <button type="button" className="cal-sheet-apply" onClick={handleApply}>
+            Show results
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
 // ── CalendarView (main export) ────────────────────────────────────────────────
-export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [] }) {
+export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onReschedule, onDeleteTask, projectOptions = [], onMobileAddRequest }) {
   const [calView,      setCalView]      = useState(() => window.innerWidth <= 768 ? 'agenda' : 'month')
   const [cursor,       setCursor]       = useState(dayjs())
   const [addingDay,    setAddingDay]    = useState(null)
@@ -787,7 +1002,11 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   const [filters,      setFilters]      = useState({ status: '', priority: '', assignee: '' })
   const [overflowData, setOverflowData] = useState(null)
   const [dragOverDay,  setDragOverDay]  = useState(null)
-  const [ctxMenu,      setCtxMenu]      = useState(null) // { x, y, dayKey, task }
+  const [ctxMenu,          setCtxMenu]          = useState(null) // { x, y, dayKey, task }
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [mobileSearch,     setMobileSearch]     = useState('')
+  const [selectedDate,     setSelectedDate]     = useState(null)
+  const [mobileMonth,      setMobileMonth]      = useState(() => dayjs().startOf('month'))
 
   const defaultProject    = projectOptions[0]?.value ?? ''
   const activeFilterCount = Object.values(filters).filter(Boolean).length
@@ -799,14 +1018,21 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
   }, [tasks])
 
   const filteredTasks = useMemo(() => {
-    if (!activeFilterCount) return tasks
-    return tasks.filter(t => {
-      if (filters.status   && t.status          !== filters.status)   return false
-      if (filters.priority && t.priority        !== filters.priority) return false
-      if (filters.assignee && t.assignee?.email !== filters.assignee) return false
-      return true
-    })
-  }, [tasks, filters, activeFilterCount])
+    let result = tasks
+    if (activeFilterCount) {
+      result = result.filter(t => {
+        if (filters.status   && t.status          !== filters.status)   return false
+        if (filters.priority && t.priority        !== filters.priority) return false
+        if (filters.assignee && t.assignee?.email !== filters.assignee) return false
+        return true
+      })
+    }
+    if (mobileSearch) {
+      const q = mobileSearch.toLowerCase()
+      result = result.filter(t => t.text?.toLowerCase().includes(q))
+    }
+    return result
+  }, [tasks, filters, activeFilterCount, mobileSearch])
 
   const tasksByDate = useMemo(() => {
     const map = {}
@@ -817,6 +1043,21 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
     })
     return map
   }, [filteredTasks])
+
+  const today = dayjs().format('YYYY-MM-DD')
+  const allDateKeys       = Object.keys(tasksByDate)
+  const upcomingDateCount = allDateKeys.filter(d => d >= today).length
+  const totalDateCount    = allDateKeys.length
+
+  const mobileMonthKey = mobileMonth.format('YYYY-MM')
+  const isCurrentMonth = mobileMonthKey === dayjs().format('YYYY-MM')
+  const monthTaskCount = Object.entries(tasksByDate)
+    .filter(([d]) => d.startsWith(mobileMonthKey))
+    .reduce((sum, [, arr]) => sum + arr.length, 0)
+
+  const handleMobileDaySelect = useCallback((dateKey) => {
+    setSelectedDate(prev => prev === dateKey ? null : dateKey)
+  }, [])
 
   const goBack = () => {
     setAddingDay(null)
@@ -889,9 +1130,46 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
     <div className="cal-wrap">
       {/* ── Mobile header ───────────────────────────────────── */}
       <div className="cal-mobile-hdr">
-        <h2 className="cal-mobile-month">{cursor.format('MMMM YYYY')}</h2>
-        <p className="cal-mobile-sub">Agenda <span aria-hidden="true">·</span> upcoming</p>
+        <div className="cal-mob-nav">
+          <button
+            type="button"
+            className="cal-mob-nav-arrow"
+            onClick={() => { setMobileMonth(m => m.subtract(1, 'month')); setSelectedDate(null) }}
+            aria-label="Previous month"
+          >
+            <CaretLeft size={16} weight="bold" aria-hidden="true" />
+          </button>
+          <div className="cal-mob-nav-center">
+            <h2 className="cal-mobile-month">{mobileMonth.format('MMMM YYYY')}</h2>
+            <p className="cal-mobile-sub">
+              {selectedDate
+                ? dayjs(selectedDate).format('dddd, MMMM D')
+                : isCurrentMonth
+                  ? `${upcomingDateCount} of ${totalDateCount} upcoming`
+                  : `${monthTaskCount} task${monthTaskCount !== 1 ? 's' : ''} this month`
+              }
+            </p>
+          </div>
+          <button
+            type="button"
+            className="cal-mob-nav-arrow"
+            onClick={() => { setMobileMonth(m => m.add(1, 'month')); setSelectedDate(null) }}
+            aria-label="Next month"
+          >
+            <CaretRight size={16} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+        {!isCurrentMonth && (
+          <button
+            type="button"
+            className="cal-mob-today-chip"
+            onClick={() => { setMobileMonth(dayjs().startOf('month')); setSelectedDate(null) }}
+          >
+            Back to today
+          </button>
+        )}
       </div>
+      <MobileDateStrip tasksByDate={tasksByDate} today={today} month={mobileMonth} selectedDate={selectedDate} onDaySelect={handleMobileDaySelect} />
 
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div className="cal-toolbar">
@@ -953,9 +1231,43 @@ export default function CalendarView({ tasks, onTaskClick, onQuickAdd, onResched
           {calView === 'month'  && <MonthView {...sharedProps} setOverflowData={setOverflowData} />}
           {calView === 'week'   && <WeekView  {...sharedProps} />}
           {calView === 'day'    && <DayView   {...sharedProps} />}
-          {calView === 'agenda' && <AgendaView tasksByDate={tasksByDate} onTaskClick={onTaskClick} colorBy={colorBy} onOpenCtxMenu={openCtxMenu} onDeleteTask={onDeleteTask} />}
+          {calView === 'agenda' && (
+            <AgendaView
+              tasksByDate={tasksByDate}
+              onTaskClick={onTaskClick}
+              colorBy={colorBy}
+              onOpenCtxMenu={openCtxMenu}
+              onDeleteTask={onDeleteTask}
+              filterDate={selectedDate}
+              filterMonth={!isCurrentMonth ? mobileMonthKey : null}
+              onMobileAddRequest={onMobileAddRequest}
+            />
+          )}
         </div>
       </div>
+
+      {/* ── Mobile filter FAB ───────────────────────────────── */}
+      <button
+        type="button"
+        className="cal-mobile-fab"
+        onClick={() => setMobileFilterOpen(true)}
+        aria-label="Filter tasks"
+      >
+        <SlidersHorizontal size={22} weight="bold" aria-hidden="true" />
+      </button>
+
+      {/* ── Mobile filter sheet ──────────────────────────────── */}
+      <MobileFilterSheet
+        isOpen={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        filters={filters}
+        onApply={({ status, search }) => {
+          setFilters(f => ({ ...f, status }))
+          setMobileSearch(search)
+        }}
+        tasksByDate={tasksByDate}
+        today={today}
+      />
 
       {/* ── Overflow popover ────────────────────────────────── */}
       {overflowData && (

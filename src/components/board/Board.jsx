@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ChartBar, ArrowRight, Plus } from '@phosphor-icons/react'
+import { useNavigate } from 'react-router-dom'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ArrowRight, Plus } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -33,7 +34,6 @@ const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
 const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
-const GanttView             = lazy(() => import('./GanttView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
@@ -76,7 +76,8 @@ function ColumnMoveToast({ event, columns, onDone }) {
 }
 
 export default function Board() {
-  const { currentWorkspace, userRole, loading: wsLoading, autoSave, columnLabels, workspaceColumns } = useWorkspace()
+  const navigate = useNavigate()
+  const { currentWorkspace, userRole, loading: wsLoading, columnLabels, workspaceColumns } = useWorkspace()
   const { currentProject, projects, loading: projLoading } = useProject()
   const { user, profile, displayName, prefs } = useAuth()
   const { toggle: toggleTheme } = useTheme()
@@ -477,7 +478,6 @@ export default function Board() {
     '?':      () => setShowShortcuts(prev => !prev),
     'ctrl+b': (e) => { e.preventDefault(); setViewMode('board') },
     'ctrl+l': (e) => { e.preventDefault(); setViewMode('list') },
-    'ctrl+g': (e) => { e.preventDefault(); setViewMode('gantt') },
     'ctrl+d': (e) => { e.preventDefault(); toggleTheme() },
     'ArrowLeft':  () => navigateTask(-1),
     'ArrowRight': () => navigateTask(1),
@@ -573,6 +573,10 @@ export default function Board() {
       })
     }
   }
+
+  const handleMoveToStatus = useCallback((taskId, statusId) => {
+    return updateTask(taskId, { status: statusId })
+  }, [updateTask])
 
   const handleMoveTask = useCallback((taskId, currentStatus, direction) => {
     const colIdx = columns.findIndex(c => c.id === currentStatus)
@@ -673,23 +677,33 @@ ${colData.map(c => `<div class="col">
             <List size={22} aria-hidden="true" />
           </button>
           <div className="mobile-appbar-title">
-            <div className="mobile-appbar-ws">
-              {currentWorkspace && (
-                <span
-                  className="mobile-appbar-sq"
-                  style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
-                  aria-hidden="true"
-                >
-                  {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <span>{currentWorkspace?.name}</span>
-            </div>
-            <div className="mobile-appbar-sub">
-              {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+            {currentWorkspace && (
+              <span
+                className="mobile-appbar-sq"
+                style={{ background: currentWorkspace.color ?? 'var(--accent)' }}
+                aria-hidden="true"
+              >
+                {currentWorkspace.emoji || currentWorkspace.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="mobile-appbar-text">
+              <div className="mobile-appbar-sub">
+                {isGlobalBoard ? 'All Projects' : currentProject ? currentProject.name : 'General'}
+              </div>
+              <div className="mobile-appbar-ws"><span>{currentWorkspace?.name}</span></div>
             </div>
           </div>
-          <BellButton />
+          <div className="mobile-appbar-actions">
+            <button
+              className="mobile-appbar-settings-btn"
+              onClick={() => navigate('/workspace-settings')}
+              aria-label="Workspace settings"
+            >
+              <GearSix size={20} aria-hidden="true" />
+            </button>
+            <span className="mobile-appbar-sep" aria-hidden="true" />
+            <BellButton />
+          </div>
         </div>
 
         <div className="board-header">
@@ -746,15 +760,25 @@ ${colData.map(c => `<div class="col">
               <Printer size={20} aria-hidden="true" />
             </button>
 
-            <button
-              className="ws-settings-btn"
-              onClick={() => setShowWsSettings(true)}
-              aria-label="Workspace settings"
-              title="Workspace settings"
-            >
-              <GearSix size={20} aria-hidden="true" />
-            </button>
           </div>
+        </div>
+
+        {/* ── Mobile pill view toggle (Board / List) ── */}
+        <div className="mob-view-bar" role="group" aria-label="View mode">
+          {[
+            { id: 'board', label: 'Board', Icon: SquaresFour },
+            { id: 'list',  label: 'List',  Icon: Rows        },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={`mob-view-btn${viewMode === id ? ' mob-view-btn--active' : ''}`}
+              onClick={() => setViewMode(id)}
+              aria-pressed={viewMode === id}
+            >
+              <Icon size={14} weight={viewMode === id ? 'bold' : 'regular'} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* ── View tab bar (below breadcrumb, all screen sizes) ── */}
@@ -787,13 +811,12 @@ ${colData.map(c => `<div class="col">
             <span className="icon-bar-label">Calendar</span>
           </button>
           <button
-            className={`icon-bar-btn${viewMode === 'gantt' ? ' icon-bar-btn--active' : ''}`}
-            onClick={() => setViewMode('gantt')}
-            aria-pressed={viewMode === 'gantt'}
-            title="Gantt view (Ctrl+G)"
+            className="ws-settings-btn icon-bar-settings-btn"
+            onClick={() => navigate('/workspace-settings')}
+            aria-label="Workspace settings"
+            title="Workspace settings"
           >
-            <ChartBar size={18} aria-hidden="true" />
-            <span className="icon-bar-label">Gantt</span>
+            <GearSix size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -863,6 +886,7 @@ ${colData.map(c => `<div class="col">
                       >
                         <Column
                           column={col}
+                          columns={columns}
                           tasks={filteredByStatus[col.id] ?? []}
                           canEdit={canEdit}
                           hasFilter={hasOtherFilter}
@@ -873,6 +897,7 @@ ${colData.map(c => `<div class="col">
                           onArchive={handleColumnArchive}
                           onOpen={openTaskDetail}
                           onComplete={handleComplete}
+                          onMoveToStatus={canEdit ? handleMoveToStatus : undefined}
                           onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
                           bulkMode={bulkMode}
                           selectedIds={selectedIds}
@@ -930,12 +955,6 @@ ${colData.map(c => `<div class="col">
                   />
                 </Suspense>
               </div>
-            ) : viewMode === 'gantt' ? (
-              <div className="gantt-page-body">
-                <Suspense fallback={null}>
-                  <GanttView tasks={allTasks} columns={columns} onTaskClick={openTaskDetail} />
-                </Suspense>
-              </div>
             ) : null}
           </div>
 
@@ -946,7 +965,6 @@ ${colData.map(c => `<div class="col">
                 task={selectedTask}
                 columns={columns}
                 canEdit={canEdit}
-                autoSave={autoSave}
                 onUpdate={(id, changes) => {
                   if (changes.status === 'done' && selectedTask?.status !== 'done') playDoneSound()
                   return updateTask(id, changes)
@@ -971,6 +989,7 @@ ${colData.map(c => `<div class="col">
               toast.success('Task added')
               return taskId
             }}
+            onChecklistCreate={(taskId, items) => patchTaskChecklist(taskId, () => items)}
           />
         )}
       </Suspense>
@@ -998,7 +1017,6 @@ ${colData.map(c => `<div class="col">
 
       <Suspense fallback={null}>
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
-        {showWsSettings && <WorkspaceSettingsPanel onClose={() => setShowWsSettings(false)} canEdit={canEdit} canDelete={canDelete} />}
         {showSettings   && <SettingsModal           onClose={() => setShowSettings(false)} />}
         {welcomeData    && (
           <WelcomeModal
