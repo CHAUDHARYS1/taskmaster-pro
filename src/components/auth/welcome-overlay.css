@@ -1,0 +1,170 @@
+/* ── Welcome Overlay — "Board settles in" ───────────────────────────────── */
+.wm {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  container-type: size;
+  overflow: hidden;
+  cursor: pointer;
+  isolation: isolate;
+}
+.wm.is-gone { display: none; }
+
+/* Paper backdrop — same color as the app surface so the reveal is seamless */
+.wm-paper {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity .8s var(--ease-enter);
+}
+.wm.revealing .wm-paper { opacity: 0; }
+
+/* Soft accent light that breathes behind the words */
+.wm-glow {
+  position: absolute;
+  left: 50%; top: 42%;
+  width: 90cqmin; height: 90cqmin;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in oklab, var(--accent) 18%, transparent) 0%,
+    color-mix(in oklab, var(--accent) 7%, transparent) 38%,
+    transparent 66%);
+  filter: blur(2cqmin);
+  pointer-events: none;
+  opacity: 0;
+  animation: wm-glow-in 1.2s var(--ease-enter) .1s forwards,
+             wm-breathe 6s ease-in-out 1.2s infinite alternate;
+}
+@keyframes wm-glow-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wm-breathe {
+  from { transform: translate(-50%, -50%) scale(1);    }
+  to   { transform: translate(-50%, -50%) scale(1.12); }
+}
+.wm.lifting .wm-glow,
+.wm.revealing .wm-glow { animation: wm-glow-out .65s var(--ease-enter) forwards; }
+@keyframes wm-glow-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Second, slower drifting bloom */
+.wm-glow.b2 {
+  left: 38%; top: 56%;
+  width: 60cqmin; height: 60cqmin;
+  background: radial-gradient(circle,
+    color-mix(in oklab, var(--accent) 12%, transparent) 0%,
+    transparent 62%);
+  animation: wm-glow-in 1.4s var(--ease-enter) .25s forwards,
+             wm-drift 9s ease-in-out 1.4s infinite alternate;
+}
+@keyframes wm-drift {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(-38%, -62%) scale(1.18); }
+}
+
+/* Greeting content */
+.wm-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6cqmin;
+  gap: 2.2cqmin;
+  transition: transform .8s var(--ease-enter), opacity .7s var(--ease-enter), filter .7s var(--ease-enter);
+}
+.wm.lifting .wm-content {
+  transform: translateY(-3.2cqmin);
+  opacity: 0;
+  filter: blur(4px);
+}
+
+.wm-eyebrow {
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 1.9cqmin, 13px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 1.2cqmin;
+  opacity: 0;
+  animation: wm-rise .9s var(--ease-enter) .12s both;
+}
+.wm-tick {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-tint);
+}
+
+.wm-head {
+  margin: 0;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-size: clamp(38px, 12cqmin, 132px);
+  text-wrap: balance;
+}
+.wm-head .l1 {
+  display: block;
+  opacity: 0;
+  animation: wm-rise 1.05s var(--ease-enter) .32s both;
+}
+.wm-head .name {
+  display: block;
+  font-style: italic;
+  color: var(--accent);
+  opacity: 0;
+  animation: wm-rise 1.15s var(--ease-enter) .58s both;
+}
+
+.wm-sub {
+  font-family: var(--font-body);
+  font-size: clamp(13px, 2.1cqmin, 18px);
+  color: var(--ink-3);
+  font-weight: 500;
+  margin-top: 0.4cqmin;
+  opacity: 0;
+  animation: wm-rise 1s var(--ease-enter) .9s both;
+}
+
+@keyframes wm-rise {
+  from { opacity: 0; transform: translateY(0.55em); filter: blur(10px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* Skip hint */
+.wm-skip {
+  position: absolute;
+  left: 50%; bottom: 5cqmin;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.5cqmin, 11px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  white-space: nowrap;
+  opacity: 0;
+  animation: wm-rise 1s var(--ease-enter) 1.25s both;
+}
+.wm.lifting .wm-skip,
+.wm.revealing .wm-skip { animation: wm-glow-out .65s var(--ease-enter) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-glow, .wm-glow.b2,
+  .wm-eyebrow, .wm-head .l1, .wm-head .name, .wm-sub, .wm-skip {
+    animation: none !important;
+  }
+  .wm-eyebrow, .wm-head .l1, .wm-head .name, .wm-sub { opacity: 1; }
+}

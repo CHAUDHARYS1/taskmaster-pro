@@ -13,10 +13,11 @@ const DEFAULT_PREFS = {
 }
 
 export function AuthProvider({ children }) {
-  const [user,       setUser]       = useState(null)
-  const [profile,    setProfile]    = useState(null)
-  const [loading,    setLoading]    = useState(true)
-  const [signingOut, setSigningOut] = useState(false)
+  const [user,          setUser]          = useState(null)
+  const [profile,       setProfile]       = useState(null)
+  const [loading,       setLoading]       = useState(true)
+  const [signingOut,    setSigningOut]    = useState(false)
+  const [justSignedIn,  setJustSignedIn]  = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -61,8 +62,13 @@ export function AuthProvider({ children }) {
       return res
     })
 
-  const signIn = (email, password) =>
-    supabase.auth.signInWithPassword({ email, password })
+  const signIn = async (email, password) => {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    if (!result.error) setJustSignedIn(true)
+    return result
+  }
+
+  const consumeJustSignedIn = () => setJustSignedIn(false)
 
   const signOut = async () => {
     setSigningOut(true)
@@ -121,7 +127,7 @@ export function AuthProvider({ children }) {
   )
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signingOut, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName, prefs, updatePrefs }}>
+    <AuthContext.Provider value={{ user, profile, loading, signingOut, signUp, signIn, signOut, updateProfile, uploadAvatar, displayName, prefs, updatePrefs, justSignedIn, consumeJustSignedIn }}>
       {children}
     </AuthContext.Provider>
   )
