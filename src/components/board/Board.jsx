@@ -15,6 +15,7 @@ import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
 import Sidebar from '../layout/Sidebar'
+import WelcomeOverlay from '../auth/WelcomeOverlay'
 import Column from './Column'
 import TaskCard from './TaskCard'
 import PresenceAvatars from './PresenceAvatars'
@@ -1042,6 +1043,8 @@ ${colData.map(c => `<div class="col">
           onDone={() => setMoveToast(null)}
         />
       )}
+
+      <WelcomeOverlay firstName={profile?.first_name} />
     </div>
   )
 }
