@@ -47,8 +47,11 @@ export function useMembers(workspaceId) {
 
     // Fire-and-forget — email failure doesn't break the invite
     const inviteUrl = `${window.location.origin}/invite/${data.token}`
+    const { data: profile } = await supabase.from('profiles').select('first_name, last_name').eq('id', user.id).single()
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
+    const inviterName = fullName || user.user_metadata?.full_name || user.user_metadata?.name || 'A teammate'
     supabase.functions.invoke('send-invite-email', {
-      body: { email, inviteUrl, workspaceName, role },
+      body: { email, inviteUrl, workspaceName, role, inviterName },
     }).catch(console.error)
 
     return data

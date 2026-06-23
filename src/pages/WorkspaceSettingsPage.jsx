@@ -1106,7 +1106,6 @@ export default function WorkspaceSettingsPage() {
           {/* Desktop back — hidden on mobile */}
           <button className="wsp-back-btn wsp-back-btn--desktop" onClick={handleBack} aria-label="Back to board">
             <ArrowLeft size={16} weight="bold" aria-hidden="true" />
-            Back to board
           </button>
 
           {/* Mobile back — hidden on desktop */}

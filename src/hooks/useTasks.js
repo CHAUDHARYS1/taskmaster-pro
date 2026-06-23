@@ -82,7 +82,7 @@ export function useTasks(workspaceId, projectId) {
     return () => supabase.removeChannel(channel)
   }, [workspaceId, projectId, fetchTasks])
 
-  const addTask = async ({ text, description, due_date, due_time, start_date, status = 'toDo', priority = null, assignee_id = null, labels = [] }) => {
+  const addTask = async ({ text, description, due_date, due_time, start_date, start_time, status = 'toDo', priority = null, assignee_id = null, labels = [] }) => {
     const colTasks = tasks.filter(t => t.status === status)
     const minPos = colTasks.length ? Math.min(...colTasks.map(t => t.position)) : 0
     const { data, error } = await supabase.from('tasks').insert({
@@ -93,6 +93,7 @@ export function useTasks(workspaceId, projectId) {
       due_date:     due_date || null,
       due_time:     due_time || null,
       start_date:   start_date || null,
+      start_time:   start_time || null,
       status,
       position:     minPos - 1000,
       priority:     priority || null,

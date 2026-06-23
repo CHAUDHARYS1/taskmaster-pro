@@ -58,6 +58,7 @@ export default function ListView({
   onDelete,
   onArchive,
   onOpen,
+  onPreview,
   onComplete,
   onUpdate,
   editingMap,
@@ -69,6 +70,25 @@ export default function ListView({
   const [editVal, setEditVal]     = useState('')
   const [openMenu, setOpenMenu]   = useState(null)   // { id, field }
   const [sort, setSort]           = useState({ col: null, dir: 'asc' })
+
+  // Shared double-click / double-tap state for all rows
+  const clickStateRef = useRef({ id: null, count: 0, timer: null })
+
+  const makeRowClickHandler = (taskId) => () => {
+    const s = clickStateRef.current
+    if (s.id !== taskId) { s.count = 0; s.id = taskId; clearTimeout(s.timer) }
+    s.count++
+    clearTimeout(s.timer)
+    if (s.count >= 2) {
+      s.count = 0
+      onPreview?.(taskId)
+    } else {
+      s.timer = setTimeout(() => {
+        s.count = 0
+        onOpen?.(taskId)
+      }, 250)
+    }
+  }
 
   const allTasks = columns.flatMap(col =>
     (tasksByStatus[col.id] ?? []).map(t => ({ ...t, _colId: col.id, _colLabel: col.label }))
@@ -191,6 +211,7 @@ export default function ListView({
 
             <div className={`lv-mob-tasks${isOpen ? ' lv-mob-tasks--open' : ''}`} aria-hidden={!isOpen}>
             <div className="lv-mob-tasks-inner">
+            <div className="lv-mob-tasks-list">
             {colTasks.map(task => {
               const p       = task.priority ? priorityMap[task.priority] : null
               const isDone  = col.id === 'done'
@@ -218,7 +239,7 @@ export default function ListView({
                     urgency === 'soon'    ? 'lv-mob-row--soon'    : '',
                   ].filter(Boolean).join(' ')}
                   style={{ '--lv-mob-col': col.color ?? '#94a3b8' }}
-                  onClick={() => onOpen?.(task.id)}
+                  onClick={makeRowClickHandler(task.id)}
                 >
                   <span className="lv-mob-border" aria-hidden="true" />
                   <span className="lv-mob-body">
@@ -271,6 +292,7 @@ export default function ListView({
                 </button>
               )
             })}
+            </div>
             </div>
             </div>
           </div>
@@ -362,6 +384,7 @@ export default function ListView({
                   selfEdit              ? 'lv-row-self'    : '',
                 ].filter(Boolean).join(' ')}
                 style={glowColor ? { '--ec': glowColor } : undefined}
+                onDoubleClick={() => !lockedOther && onPreview?.(task.id)}
               >
                 {/* ── Row number / check (CSS hover, no React state) ── */}
                 <td className="lv-td lv-td-num">
