@@ -78,6 +78,8 @@ export default function TaskPreviewModal({ task, columns = [], onClose, onEdit }
               <span className="tpm-status-dot" aria-hidden="true" />
               {statusLabel.toUpperCase()}
             </span>
+          </div>
+          <div className="tpm-hdr-center">
             {currentWorkspace && (
               <span className="tpm-ws-chip">
                 <span
@@ -106,11 +108,11 @@ export default function TaskPreviewModal({ task, columns = [], onClose, onEdit }
 
         {/* Body */}
         <div className="tpm-body">
-          {/* Priority + labels */}
+          {/* Priority + labels — reuse existing chip classes for visual consistency */}
           {(priorityDef || (task.labels?.length ?? 0) > 0) && (
             <div className="tpm-badges">
               {priorityDef && (
-                <span className="tpm-priority-badge" style={{ '--p-color': priorityDef.color }}>
+                <span className="task-priority-chip" style={{ '--p-color': priorityDef.color }}>
                   <span aria-hidden="true">{priorityDef.icon}</span>
                   {priorityDef.name}
                 </span>
@@ -165,6 +167,9 @@ export default function TaskPreviewModal({ task, columns = [], onClose, onEdit }
               )}
             </div>
           </div>
+
+          {/* Thin divider separating meta from content sections */}
+          <hr className="tpm-divider" aria-hidden="true" />
 
           {/* Description */}
           {task.description && (
