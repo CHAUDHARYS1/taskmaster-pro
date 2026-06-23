@@ -60,6 +60,7 @@ function TaskCard({
   onDelete,
   onArchive,
   onOpen,
+  onPreview,
   onComplete,
   onMoveToStatus,
   columns = [],
@@ -95,11 +96,30 @@ function TaskCard({
     ...(glowColor ? { '--editing-color': glowColor } : {}),
   }
 
-  const handleOpen = () => {
+  // Track double-click / double-tap to open the preview modal.
+  // A 250 ms debounce distinguishes single from double on all platforms.
+  const clickStateRef = useRef({ count: 0, timer: null })
+
+  const handleClick = () => {
     if (swipeX !== 0) { setSwipeX(0); return }
     if (isLockedByOther) return
+    if (isOverlay) return
     if (bulkMode) { onBulkToggle?.(task.id); return }
-    onOpen(task.id)
+
+    clickStateRef.current.count++
+    clearTimeout(clickStateRef.current.timer)
+
+    if (clickStateRef.current.count >= 2) {
+      // Double-click or double-tap
+      clickStateRef.current.count = 0
+      onPreview?.(task.id)
+    } else {
+      // Single click — wait to see if a second follows
+      clickStateRef.current.timer = setTimeout(() => {
+        clickStateRef.current.count = 0
+        onOpen?.(task.id)
+      }, 250)
+    }
   }
 
   const checklistTotal = task.task_checklist_items?.length ?? 0
@@ -227,7 +247,7 @@ function TaskCard({
         isSearchDimmed                    ? 'task-card--dimmed'       : '',
         isSearchMatch                     ? 'task-card--search-match' : '',
       ].filter(Boolean).join(' ')}
-      onClick={handleOpen}
+      onClick={handleClick}
       onContextMenu={handleContextMenu}
       {...(!isOverlay && canEdit && !isLockedByOther ? { ...attributes, ...listeners } : {})}
     >

@@ -34,6 +34,7 @@ import { DEFAULT_COLUMNS } from '../../lib/columns'
 const SettingsModal         = lazy(() => import('../ui/SettingsModal'))
 const AddTaskPanel          = lazy(() => import('./AddTaskPanel'))
 const TaskDetailPanel       = lazy(() => import('./TaskDetailPanel'))
+const TaskPreviewModal      = lazy(() => import('./TaskPreviewModal'))
 const CalendarView          = lazy(() => import('../calendar/CalendarView'))
 const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
@@ -121,6 +122,7 @@ export default function Board() {
   const [showMondayModal, setShowMondayModal]   = useState(false)
   const [selectedIds, setSelectedIds]           = useState(new Set())
   const [mobileLane,  setMobileLane]            = useState(null)
+  const [previewTaskId, setPreviewTaskId]       = useState(null)
 
   const searchRef      = useRef(null)
   const filterBarRef   = useRef(null)
@@ -315,6 +317,17 @@ export default function Board() {
     setSelectedTaskId(id)
   }
 
+  const previewTask = allTasks.find(t => t.id === previewTaskId) ?? null
+
+  const openPreview = (id) => {
+    setPreviewTaskId(id)
+  }
+
+  const openDetailFromPreview = (id) => {
+    setPreviewTaskId(null)
+    openTaskDetail(id)
+  }
+
   useTaskReminders(allTasks, toast, updateTask, columns, prefs)
 
   const handleComplete = useCallback(async (id) => {
@@ -489,6 +502,7 @@ export default function Board() {
       }
     },
     'Escape': () => {
+      if (previewTaskId)        { setPreviewTaskId(null); return }
       if (showShortcuts)        { setShowShortcuts(false); return }
       if (selectedIds.size > 0) { setSelectedIds(new Set()); return }
       if (selectedTaskId)       { setSelectedTaskId(null); return }
@@ -897,6 +911,7 @@ ${colData.map(c => `<div class="col">
                           onDelete={handleColumnDelete}
                           onArchive={handleColumnArchive}
                           onOpen={openTaskDetail}
+                          onPreview={openPreview}
                           onComplete={handleComplete}
                           onMoveToStatus={canEdit ? handleMoveToStatus : undefined}
                           onQuickAdd={col.id === 'toDo' && !isGlobalBoard ? handleQuickAdd : undefined}
@@ -939,6 +954,7 @@ ${colData.map(c => `<div class="col">
                   onDelete={handleColumnDelete}
                   onArchive={handleColumnArchive}
                   onOpen={setSelectedTaskId}
+                  onPreview={openPreview}
                   onComplete={handleComplete}
                   onUpdate={updateTask}
                 />
@@ -1015,6 +1031,17 @@ ${colData.map(c => `<div class="col">
           onSelectAll={handleBulkSelectAll}
         />
       )}
+
+      <Suspense fallback={null}>
+        {previewTask && (
+          <TaskPreviewModal
+            task={previewTask}
+            columns={columns}
+            onClose={() => setPreviewTaskId(null)}
+            onEdit={openDetailFromPreview}
+          />
+        )}
+      </Suspense>
 
       <Suspense fallback={null}>
         {showShortcuts  && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
