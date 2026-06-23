@@ -7053,6 +7053,12 @@ a:focus-visible,
   letter-spacing: 0.05em;
 }
 
+.atp-date-time-pair {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .atp-date-range-sep {
   font-size: var(--text-body);
   color: var(--ink-4);
