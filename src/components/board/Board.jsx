@@ -382,6 +382,28 @@ export default function Board() {
   }, [archiveTask, selectedTaskId, toast])
 
   const doneCount = tasksByStatus['done']?.length ?? 0
+  const [burningDone, setBurningDone] = useState(false)
+  const burnTargetRef = useRef(null)
+
+  useEffect(() => {
+    if (!burningDone) return
+    const { projectId, taskIds } = burnTargetRef.current ?? {}
+    const staggerMs = Math.min(Math.max((taskIds?.length ?? 0) - 1, 0), 10) * 65
+    const burnMs = 1900 + staggerMs + 120
+    const timer = setTimeout(async () => {
+      taskIds?.forEach(id => removeOptimistic(id))
+      try {
+        const count = await archiveNow(projectId)
+        toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
+      } catch (err) {
+        toast.error(err.message || 'Failed to archive done tasks')
+      } finally {
+        setBurningDone(false)
+        burnTargetRef.current = null
+      }
+    }, burnMs)
+    return () => clearTimeout(timer)
+  }, [burningDone, archiveNow, removeOptimistic, toast])
 
   const handleArchiveDone = useCallback(() => {
     if (doneCount === 0) return
@@ -390,17 +412,16 @@ export default function Board() {
       duration: 8000,
       actions: [{
         label: 'Archive',
-        onClick: async () => {
-          try {
-            const count = await archiveNow(currentProject?.id)
-            toast.success(count > 0 ? `${count} task${count !== 1 ? 's' : ''} archived` : 'No done tasks to archive')
-          } catch (err) {
-            toast.error(err.message || 'Failed to archive done tasks')
+        onClick: () => {
+          burnTargetRef.current = {
+            projectId: currentProject?.id,
+            taskIds: (tasksByStatus['done'] ?? []).map(t => t.id),
           }
+          setBurningDone(true)
         },
       }],
     })
-  }, [archiveNow, currentProject, doneCount, toast])
+  }, [currentProject, doneCount, tasksByStatus, toast])
 
   const bulkMode = selectedIds.size > 0
 
@@ -922,6 +943,7 @@ ${colData.map(c => `<div class="col">
                           isFirstColumn={idx === 0}
                           isLastColumn={idx === columns.length - 1}
                           searchQuery={search}
+                          burning={col.id === 'done' && burningDone}
                         />
                       </div>
                     ))}

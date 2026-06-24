@@ -6429,6 +6429,131 @@ a:focus-visible,
   color: var(--ink-2);
 }
 
+/* ── Burn animation — archive-all done tasks ───────────────────────────── */
+
+/* Animatable custom properties for the fire-border conic gradient */
+@property --fire-head {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+@property --fire-tail {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+/* Fire border: bright leading edge sweeps from 0% → 104% of perimeter */
+@keyframes fire-head-sweep {
+  0%   { --fire-head: 0%; }
+  63%  { --fire-head: 104%; }
+  100% { --fire-head: 104%; }
+}
+/* Trailing embers follow ~70ms behind */
+@keyframes fire-tail-sweep {
+  0%   { --fire-tail: 0%; }
+  7%   { --fire-tail: 0%; }
+  71%  { --fire-tail: 104%; }
+  100% { --fire-tail: 104%; }
+}
+
+/* Card burns out after the border sweep finishes */
+@keyframes card-ignite {
+  0%,  53% { opacity: 1; transform: scale(1) translateY(0); filter: none; }
+  68%       { opacity: 0.72; transform: scale(0.99) translateY(-4px);  filter: brightness(1.2) sepia(0.3) saturate(1.5); }
+  85%       { opacity: 0.25; transform: scale(0.93) translateY(-13px); filter: brightness(1.7) sepia(0.85) saturate(2.5); }
+  100%      { opacity: 0;    transform: scale(0.86) translateY(-24px); filter: brightness(2.5) sepia(1)    saturate(4);   }
+}
+
+/* Flame fill rises after border is fully lit */
+@keyframes flame-fill {
+  0%,  56% { opacity: 0; transform: scaleY(0);    transform-origin: bottom; }
+  70%       { opacity: 0.85; transform: scaleY(0.55); transform-origin: bottom; }
+  88%       { opacity: 1;    transform: scaleY(1.06); transform-origin: bottom; }
+  100%      { opacity: 0;    transform: scaleY(1.22); transform-origin: bottom; }
+}
+
+/* Subtle warm wash on the whole column */
+@keyframes column-heat {
+  0%   { background: transparent; }
+  30%  { background: rgba(251, 146, 60, 0.04); }
+  72%  { background: rgba(239,  68,  68, 0.06); }
+  100% { background: transparent; }
+}
+
+.column--burning {
+  animation: column-heat 2.2s ease-in-out forwards;
+  pointer-events: none;
+}
+
+/* Stagger delay — set once on the card, inherited by ::before and ::after */
+.column--burning .task-card:nth-child(1)   { --burn-delay: 0ms;   }
+.column--burning .task-card:nth-child(2)   { --burn-delay: 65ms;  }
+.column--burning .task-card:nth-child(3)   { --burn-delay: 130ms; }
+.column--burning .task-card:nth-child(4)   { --burn-delay: 195ms; }
+.column--burning .task-card:nth-child(5)   { --burn-delay: 260ms; }
+.column--burning .task-card:nth-child(6)   { --burn-delay: 325ms; }
+.column--burning .task-card:nth-child(7)   { --burn-delay: 390ms; }
+.column--burning .task-card:nth-child(8)   { --burn-delay: 455ms; }
+.column--burning .task-card:nth-child(9)   { --burn-delay: 520ms; }
+.column--burning .task-card:nth-child(10)  { --burn-delay: 585ms; }
+.column--burning .task-card:nth-child(n+11){ --burn-delay: 650ms; }
+
+/* Main card: fade + float up */
+.column--burning .task-card {
+  --burn-delay: 0ms;
+  animation: card-ignite 1.9s ease-in var(--burn-delay) forwards;
+  overflow: visible;
+}
+
+/* ::before — animated fire border that travels clockwise from bottom-left */
+.column--burning .task-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 225deg,
+    transparent                          0%,
+    #7f1d1d       var(--fire-tail),
+    #dc2626       calc(var(--fire-tail)  + 3%),
+    #f97316       calc(var(--fire-tail)  + 7%),
+    #fde047       var(--fire-head),
+    transparent   calc(var(--fire-head)  + 2%),
+    transparent                          100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  animation:
+    fire-head-sweep 1.35s cubic-bezier(0.3, 0, 0.65, 1) var(--burn-delay) forwards,
+    fire-tail-sweep 1.35s cubic-bezier(0.3, 0, 0.65, 1) var(--burn-delay) forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ::after — orange→red flame gradient that fills from the bottom */
+.column--burning .task-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    to top,
+    rgba(251, 146,  60, 0.9)  0%,
+    rgba(239,  68,  68, 0.6) 35%,
+    rgba(254, 240, 138, 0.2) 65%,
+    transparent               82%
+  );
+  animation: flame-fill 1.9s ease-in var(--burn-delay) forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+/* ─────────────────────────────────────────────────────────────────────── */
+
 /* ── Workspace settings modal ─────────────────────────────────────────────── */
 .ws-settings-row {
   display: flex;
