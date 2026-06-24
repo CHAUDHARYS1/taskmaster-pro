@@ -112,12 +112,12 @@ function TaskCard({
     if (clickStateRef.current.count >= 2) {
       // Double-click or double-tap
       clickStateRef.current.count = 0
-      onPreview?.(task.id)
+      onOpen?.(task.id)
     } else {
       // Single click — wait to see if a second follows
       clickStateRef.current.timer = setTimeout(() => {
         clickStateRef.current.count = 0
-        onOpen?.(task.id)
+        onPreview?.(task.id)
       }, 250)
     }
   }
