@@ -217,7 +217,7 @@ export default function TaskPreviewModal({ task, columns = [], onClose, onEdit }
 
         {/* Hint footer */}
         <div className="tpm-hint" aria-hidden="true">
-          Double-click a card to focus · Esc to close
+          Click to preview · Double-click to edit · Esc to close
         </div>
       </div>
     </div>
