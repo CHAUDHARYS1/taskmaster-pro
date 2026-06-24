@@ -5,7 +5,7 @@ import { ArrowRight, CaretLeft } from '@phosphor-icons/react'
 import TaskCard from './TaskCard'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 
-function Column({ column, tasks, columns, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onPreview, onComplete, onMoveToStatus, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn, searchQuery }) {
+function Column({ column, tasks, columns, canEdit, canDelete, hasFilter, onDelete, onArchive, onOpen, onPreview, onComplete, onMoveToStatus, editingMap, onQuickAdd, showProject, bulkMode, selectedIds, onBulkToggle, onMove, isFirstColumn, isLastColumn, searchQuery, burning }) {
   const { setNodeRef } = useDroppable({ id: column.id })
   const { over }       = useDndContext()
   const isOver         = over?.id === column.id || tasks.some(t => t.id === over?.id)
@@ -97,7 +97,7 @@ function Column({ column, tasks, columns, canEdit, canDelete, hasFilter, onDelet
   return (
     <div
       ref={setNodeRef}
-      className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''}`}
+      className={`column column--${column.id} ${isOver && canEdit ? 'column--over' : ''} ${burning ? 'column--burning' : ''}`}
       style={column.color ? { '--col-color': column.color } : undefined}
     >
       <div className="column-header">
