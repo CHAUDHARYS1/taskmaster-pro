@@ -9,6 +9,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers, CheckSquare,
+  TextIndent, TextOutdent,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
   Export, CheckCircle, CaretDown, TrashSimple, X,
@@ -356,6 +357,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!editor.can().sinkListItem('listItem')}   label="Indent"><TextIndent size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')}   label="Deindent"><TextOutdent size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
         <Divider />
         <Btn

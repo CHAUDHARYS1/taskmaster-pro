@@ -3949,6 +3949,10 @@ a:focus-visible,
 .we-content .tiptap p:last-child { margin-bottom: 0; }
 .we-content .tiptap ul,
 .we-content .tiptap ol { padding-left: 1.5em; margin: 0.5em 0 0.75em; }
+.we-content .tiptap ul { list-style: disc; }
+.we-content .tiptap ol { list-style: decimal; }
+.we-content .tiptap ul ul { list-style: circle; }
+.we-content .tiptap ul ul ul { list-style: square; }
 .we-content .tiptap li { margin-bottom: 0.25em; }
 .we-content .tiptap blockquote {
   border-left: 3px solid var(--accent);
