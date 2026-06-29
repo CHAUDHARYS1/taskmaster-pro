@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ArrowRight, Plus } from '@phosphor-icons/react'
+import { List, SquaresFour, Rows, GearSix, ClipboardText, Sparkle, Printer, CalendarBlank, Archive, ArrowRight, Plus, NotePencil } from '@phosphor-icons/react'
 import { fmtPrintNow } from '../../utils/format'
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
@@ -40,6 +40,7 @@ const ShortcutsHelp         = lazy(() => import('../ui/ShortcutsHelp'))
 const WelcomeModal          = lazy(() => import('../ui/WelcomeModal'))
 const MondayMotivationModal = lazy(() => import('../ui/MondayMotivationModal'))
 const WorkspaceSettingsPanel = lazy(() => import('../workspace/WorkspaceSettingsPanel'))
+const WritesView             = lazy(() => import('./WritesView'))
 
 function midpoint(a, b) {
   if (a == null && b == null) return 0
@@ -802,8 +803,9 @@ ${colData.map(c => `<div class="col">
         {/* ── Mobile pill view toggle (Board / List) ── */}
         <div className="mob-view-bar" role="group" aria-label="View mode">
           {[
-            { id: 'board', label: 'Board', Icon: SquaresFour },
-            { id: 'list',  label: 'List',  Icon: Rows        },
+            { id: 'board',  label: 'Board',  Icon: SquaresFour },
+            { id: 'list',   label: 'List',   Icon: Rows        },
+            { id: 'writes', label: 'Writes', Icon: NotePencil  },
           ].map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -847,6 +849,15 @@ ${colData.map(c => `<div class="col">
             <span className="icon-bar-label">Calendar</span>
           </button>
           <button
+            className={`icon-bar-btn${viewMode === 'writes' ? ' icon-bar-btn--active' : ''}`}
+            onClick={() => setViewMode('writes')}
+            aria-pressed={viewMode === 'writes'}
+            title="Writes"
+          >
+            <NotePencil size={18} aria-hidden="true" />
+            <span className="icon-bar-label">Writes</span>
+          </button>
+          <button
             className="ws-settings-btn icon-bar-settings-btn"
             onClick={() => navigate('/workspace-settings')}
             aria-label="Workspace settings"
@@ -857,16 +868,18 @@ ${colData.map(c => `<div class="col">
         </div>
 
 
-        <div ref={filterBarRef}>
-          <FilterBar
-            workspaceId={currentWorkspace?.id}
-            filters={filters}
-            onChange={setFilters}
-            searchRef={searchRef}
-            onAdd={canEdit && !isGlobalBoard ? openAddPanel : undefined}
-            projects={isGlobalBoard ? projects : undefined}
-          />
-        </div>
+        {viewMode !== 'writes' && (
+          <div ref={filterBarRef}>
+            <FilterBar
+              workspaceId={currentWorkspace?.id}
+              filters={filters}
+              onChange={setFilters}
+              searchRef={searchRef}
+              onAdd={canEdit && !isGlobalBoard ? openAddPanel : undefined}
+              projects={isGlobalBoard ? projects : undefined}
+            />
+          </div>
+        )}
 
         {userRole === 'viewer' && (
           <div className="viewer-banner">
@@ -877,7 +890,7 @@ ${colData.map(c => `<div class="col">
         {/* ── Canvas: board content + detail panel side-by-side ── */}
         <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : prefs?.cardDensity === 'expanded' ? ' board-canvas--expanded' : ''}`}>
           <div key={`${currentWorkspace?.id ?? ''}-${currentProject?.id ?? 'all'}`} className="board-canvas__content">
-            {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && (
+            {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'writes' && (
               <div className="board-empty-state">
                 <Sparkle size={48} className="board-empty-icon" aria-hidden="true" />
                 <h2 className="board-empty-title">Your board is empty</h2>
@@ -994,6 +1007,10 @@ ${colData.map(c => `<div class="col">
                   />
                 </Suspense>
               </div>
+            ) : viewMode === 'writes' ? (
+              <Suspense fallback={<div className="writes-view-loading">Loading…</div>}>
+                <WritesView workspaceId={currentWorkspace?.id} />
+              </Suspense>
             ) : null}
           </div>
 

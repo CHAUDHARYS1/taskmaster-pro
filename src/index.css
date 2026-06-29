@@ -3449,6 +3449,49 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
+/* ── Writes view embedded in workspace board ───────────────── */
+.writes-view {
+  padding: var(--space-5) var(--space-6);
+  max-width: 680px;
+  width: 100%;
+}
+.writes-view-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.writes-view-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+.writes-view-new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.writes-view-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.writes-view-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+}
+.writes-view-empty-icon { color: var(--ink-4); }
+.writes-view-empty-msg  { color: var(--ink-3); font-size: var(--text-sm); }
+.writes-view-loading {
+  padding: var(--space-6);
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+}
+
 /* Editor bar */
 .wr-ed-bar {
   display: flex;
