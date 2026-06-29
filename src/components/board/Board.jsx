@@ -888,7 +888,7 @@ ${colData.map(c => `<div class="col">
         )}
 
         {/* ── Canvas: board content + detail panel side-by-side ── */}
-        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : prefs?.cardDensity === 'expanded' ? ' board-canvas--expanded' : ''}`}>
+        <div className={`board-canvas${prefs?.cardDensity === 'compact' ? ' board-canvas--compact' : prefs?.cardDensity === 'expanded' ? ' board-canvas--expanded' : ''}${viewMode === 'writes' ? ' board-canvas--writes' : ''}`}>
           <div key={`${currentWorkspace?.id ?? ''}-${currentProject?.id ?? 'all'}`} className="board-canvas__content">
             {totalTasks === 0 && !hasFilter && canEdit && !isGlobalBoard && viewMode !== 'writes' && (
               <div className="board-empty-state">
