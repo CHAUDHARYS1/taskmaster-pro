@@ -236,6 +236,19 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     },
   })
 
+  // On mobile, blur the editor after a checkbox is tapped so the keyboard doesn't appear
+  useEffect(() => {
+    if (!editor) return
+    const dom = editor.view.dom
+    const onCheckboxClick = (e) => {
+      if (e.target?.type === 'checkbox') {
+        setTimeout(() => editor.commands.blur(), 50)
+      }
+    }
+    dom.addEventListener('click', onCheckboxClick)
+    return () => dom.removeEventListener('click', onCheckboxClick)
+  }, [editor])
+
   // Sync content when doc changes, recount words, and backfill missing preview
   useEffect(() => {
     if (!editor || editor.isDestroyed) return

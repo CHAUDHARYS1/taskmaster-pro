@@ -13630,6 +13630,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .wr-search i { left: 14px; }
   .wr-new-wrap { display: none; }
 
+  /* Pad the bottom of the doc list so the FAB never covers the last card */
+  .wr-notes { padding-bottom: 120px; }
+
   /* FAB */
   .wr-fab-wrap {
     display: block;
@@ -13776,6 +13779,56 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
   .we-btn svg { width: 20px; height: 20px; }
 
+  /* Edit sheet toolbar: single scrollable row — buttons spaced out,
+     swipe left/right to reach all tools */
+  .we-wrap--sheet .we-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 4px 12px;
+    gap: 10px;
+  }
+  .we-wrap--sheet .we-toolbar::-webkit-scrollbar { display: none; }
+  .we-wrap--sheet .we-divider { margin: 0 10px; }
+
+  /* Doc sheet action buttons: 44px touch targets and more breathing room */
+  .doc-sheet-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .doc-sheet-actions { gap: 0; }
+
+  /* Edit sheet: adaptive height for any phone size.
+     Problem: doc-sheet-body--edit is overflow-y:auto, which breaks flex: 1
+     height calculation (children grow with content, not the container).
+     Fix: make the body a non-scrolling flex column, then let .tiptap
+     be the scroll container so it fills exactly the remaining screen space. */
+  .doc-sheet-body--edit {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+  .we-wrap--sheet .we-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .we-wrap--sheet .we-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .we-wrap--sheet .we-content .tiptap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 20px 80px;
+  }
+
   /* Editor body + content: full-bleed, no decorative border */
   .we-body { padding: var(--space-3) var(--space-3) 56px; }
   .we-content {
@@ -13886,6 +13939,63 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: var(--text-body);
   margin: 0;
 }
+/* Task list layout in the read-only preview sheet.
+   Editor scopes these to .we-content .tiptap but the preview renders
+   .doc-sheet-content.tiptap without that ancestor, so flex layout is lost. */
+.doc-sheet-content.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25em;
+  margin: 0.5em 0 0.75em;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin-bottom: 0.25em;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: default;
+  user-select: none;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label > span { display: none; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 4px;
+  background: transparent;
+  position: relative;
+  pointer-events: none;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > div > p { margin: 0; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+
 .doc-sheet-content {
   font-size: 15px;
   line-height: 1.65;
