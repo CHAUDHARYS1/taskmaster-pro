@@ -16065,8 +16065,8 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     height: 16px;
     padding: 0 4px;
     border-radius: 999px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--ink-4);
+    color: var(--ink-2);
     font-size: 10px;
     font-weight: var(--weight-semibold);
     line-height: 1;
