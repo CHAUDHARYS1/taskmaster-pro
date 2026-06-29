@@ -18,6 +18,8 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useMembers } from '../../hooks/useMembers'
 import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
+import { useDocCollaboration } from '../../hooks/useDocCollaboration'
+import { RemoteCursorsExtension } from './RemoteCursorsExtension'
 
 const MAX_AVATARS = 4
 
@@ -35,7 +37,7 @@ function displayName(m) {
   return full || m.email?.split('@')[0] || 'Unknown'
 }
 
-function DocAccessAvatars({ workspaceId }) {
+function DocAccessAvatars({ workspaceId, onlineUserIds = new Set() }) {
   const { user } = useAuth()
   const { members } = useMembers(workspaceId)
   const [openId, setOpenId] = useState(null)
@@ -56,12 +58,13 @@ function DocAccessAvatars({ workspaceId }) {
   return (
     <div className="we-access-avatars" ref={wrapRef} aria-label="People with access">
       {visible.map(m => {
-        const isSelf = m.user_id === user?.id
-        const isOpen = openId === m.user_id
+        const isSelf   = m.user_id === user?.id
+        const isOpen   = openId === m.user_id
+        const isOnline = !isSelf && onlineUserIds.has(m.user_id)
         return (
           <div key={m.user_id} className="we-access-avatar-wrap">
             <button
-              className="we-access-avatar"
+              className={`we-access-avatar${isOnline ? ' we-access-avatar--online' : ''}`}
               style={{ background: userColor(m.user_id) }}
               onClick={() => setOpenId(isOpen ? null : m.user_id)}
               aria-label={displayName(m)}
@@ -76,6 +79,7 @@ function DocAccessAvatars({ workspaceId }) {
                 </span>
                 <span className="we-access-tooltip-email">{m.email}</span>
                 <span className="we-access-tooltip-role">{m.role}</span>
+                {isOnline && <span className="we-access-tooltip-online">Viewing now</span>}
               </div>
             )}
           </div>
@@ -114,8 +118,9 @@ function Divider() {
 }
 
 export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace, remoteUpdateAvailable, onReloadContent, inSheet = false, onSheetClose }) {
-  const { toast }      = useToast()
-  const { workspaces } = useWorkspace()
+  const { toast }                          = useToast()
+  const { workspaces }                     = useWorkspace()
+  const { user: authUser, displayName: authDisplayName } = useAuth()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,       setTitle]       = useState(doc.title)
   const [saveStatus,  setSaveStatus]  = useState('saved')
@@ -228,6 +233,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      RemoteCursorsExtension,
     ],
     content: doc.content || '',
     onUpdate: ({ editor }) => {
@@ -261,6 +267,13 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       if (text) onSave({ preview: text.slice(0, 200) })
     }
   }, [doc.id, editor])
+
+  // Live collaboration — cursor presence and remote cursor rendering
+  const { remoteUsers, remoteCursors } = useDocCollaboration(doc.id, editor, authUser, authDisplayName)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    editor.commands.updateRemoteCursors(remoteCursors)
+  }, [editor, remoteCursors])
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value)
@@ -430,7 +443,10 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           {workspace && <span className="sep">›</span>}
           <strong>Writes</strong>
         </div>
-        <DocAccessAvatars workspaceId={doc.workspace_id} />
+        <DocAccessAvatars
+          workspaceId={doc.workspace_id}
+          onlineUserIds={new Set(remoteUsers.map(u => u.user_id))}
+        />
         <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved

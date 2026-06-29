@@ -255,8 +255,14 @@ export default function WritesPage() {
 
   const handleRemoteDocUpdate = useCallback((updatedDoc) => {
     if (updatedDoc.id !== docId) return
-    if (Date.now() - lastSaveRef.current < 3000) return // own save echoing back
-    setRemoteUpdateAvailable(true)
+    if (Date.now() - lastSaveRef.current < 3000) return // own save echo
+    if (Date.now() - lastSaveRef.current > 5000) {
+      // User hasn't typed in a while — apply silently, no banner
+      setCurrentDoc(updatedDoc)
+    } else {
+      // User is actively editing — show banner to avoid overwriting in-progress work
+      setRemoteUpdateAvailable(true)
+    }
   }, [docId])
 
   const wsIds = workspaces.map(w => w.id)

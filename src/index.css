@@ -3546,6 +3546,50 @@ a:focus-visible,
   text-transform: capitalize;
   margin-top: 2px;
 }
+.we-access-tooltip-online {
+  font-size: var(--text-xs);
+  color: #16a34a;
+  font-weight: var(--weight-medium);
+  margin-top: 2px;
+}
+
+/* Online dot on avatars of users currently viewing the same document */
+.we-access-avatar--online {
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #22c55e;
+}
+
+/* Remote cursor caret — shows where another user's insertion point is */
+.we-remote-cursor {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  border-left: 2px solid var(--cursor-color, #2563EB);
+  height: 1.1em;
+  vertical-align: text-top;
+  margin-left: -1px;
+  pointer-events: none;
+  user-select: none;
+}
+.we-remote-cursor-label {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 1px 6px 2px;
+  border-radius: 3px 3px 3px 0;
+  font-size: 10px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1.6;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.92;
+}
+/* Remote selection highlight — inline background for selected text ranges */
+.we-remote-selection {
+  border-radius: 2px;
+}
 
 .wr-saved {
   display: inline-flex;
