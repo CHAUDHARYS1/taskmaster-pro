@@ -3864,6 +3864,55 @@ a:focus-visible,
 }
 .we-link-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
 
+/* ── Link hover popover (edit / remove) ──────────────────────── */
+.we-link-popover {
+  position: fixed;
+  z-index: 400;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 340px;
+  pointer-events: auto;
+}
+
+.we-link-popover-url {
+  font-size: var(--text-sm);
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.we-link-popover-url:hover { text-decoration: underline; }
+
+.we-link-popover-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.we-link-popover-btn {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.we-link-popover-btn:hover { background: var(--paper-2); color: var(--ink); }
+.we-link-popover-btn--remove { color: #ef4444; }
+.we-link-popover-btn--remove:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
+
 .we-body {
   flex: 1;
   overflow-y: auto;

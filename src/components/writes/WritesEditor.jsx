@@ -127,6 +127,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [wordCount,   setWordCount]   = useState(0)
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
+  const [linkPopover, setLinkPopover] = useState(null) // { href, x, y }
   const [showExport,  setShowExport]  = useState(false)
   const [showWsPick,  setShowWsPick]  = useState(false)
 
@@ -297,6 +298,23 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     if (e.key === 'Escape') { setShowLink(false); setLinkInput('') }
   }
 
+  // Show link popover when cursor is inside a linked range
+  useEffect(() => {
+    if (!editor) return
+    const update = () => {
+      if (editor.isActive('link')) {
+        const href = editor.getAttributes('link').href ?? ''
+        const { from } = editor.state.selection
+        const coords = editor.view.coordsAtPos(from)
+        setLinkPopover({ href, x: coords.left, y: coords.bottom + 8 })
+      } else {
+        setLinkPopover(null)
+      }
+    }
+    editor.on('selectionUpdate', update)
+    return () => editor.off('selectionUpdate', update)
+  }, [editor])
+
   if (!editor) return null
 
   const toolbar = (
@@ -337,10 +355,10 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       onClick={() => { setShowLink(false); setLinkInput('') }}
       role="dialog"
       aria-modal="true"
-      aria-label="Add link"
+      aria-label="Edit link"
     >
       <div className="we-link-dialog" onClick={e => e.stopPropagation()}>
-        <p className="we-link-dialog-label">Add link</p>
+        <p className="we-link-dialog-label">{linkInput ? 'Edit link' : 'Add link'}</p>
         <input
           className="we-link-input"
           value={linkInput}
@@ -354,6 +372,44 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
           <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
         </div>
+      </div>
+    </div>
+  )
+
+  const linkPopoverEl = linkPopover && !showLink && (
+    <div
+      className="we-link-popover"
+      style={{ left: Math.min(linkPopover.x, window.innerWidth - 320), top: linkPopover.y }}
+      onMouseDown={e => e.preventDefault()}
+    >
+      <a
+        href={linkPopover.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="we-link-popover-url"
+        title={linkPopover.href}
+      >
+        {linkPopover.href.replace(/^https?:\/\//, '').slice(0, 40)}
+        {linkPopover.href.replace(/^https?:\/\//, '').length > 40 ? '…' : ''}
+      </a>
+      <div className="we-link-popover-actions">
+        <button
+          className="we-link-popover-btn"
+          onMouseDown={e => {
+            e.preventDefault()
+            setLinkInput(linkPopover.href)
+            setLinkPopover(null)
+            setShowLink(true)
+          }}
+        >Edit</button>
+        <button
+          className="we-link-popover-btn we-link-popover-btn--remove"
+          onMouseDown={e => {
+            e.preventDefault()
+            editor.chain().focus().unsetLink().run()
+            setLinkPopover(null)
+          }}
+        >Remove</button>
       </div>
     </div>
   )
@@ -414,6 +470,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       </div>
     )
       {linkDialog}
+      {linkPopoverEl}
       </>
   )
   }
