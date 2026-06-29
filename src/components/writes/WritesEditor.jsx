@@ -12,7 +12,7 @@ import {
   TextIndent, TextOutdent,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export, CheckCircle, CaretDown, TrashSimple, X,
+  Export, CheckCircle, CaretDown, TrashSimple, X, ChatText,
 } from '@phosphor-icons/react'
 import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
@@ -22,7 +22,10 @@ import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 import { useDocCollaboration } from '../../hooks/useDocCollaboration'
 import { useYjsCollab } from '../../hooks/useYjsCollab'
+import { useDocComments } from '../../hooks/useDocComments'
 import { RemoteCursorsExtension } from './RemoteCursorsExtension'
+import { CommentMark } from './CommentMark'
+import CommentPanel from './CommentPanel'
 
 const MAX_AVATARS = 4
 
@@ -131,17 +134,30 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
   const [linkPopover, setLinkPopover] = useState(null) // { href, x, y }
-  const [showExport,  setShowExport]  = useState(false)
-  const [showWsPick,  setShowWsPick]  = useState(false)
+  const [showExport,       setShowExport]       = useState(false)
+  const [showWsPick,       setShowWsPick]       = useState(false)
+  const [showCommentPanel, setShowCommentPanel] = useState(false)
+  const [activeCommentId,  setActiveCommentId]  = useState(null)
+  const [addCommentInput,  setAddCommentInput]  = useState('')
+  const [showAddComment,   setShowAddComment]   = useState(false)
+  const [addCommentPos,    setAddCommentPos]    = useState(null) // { y } for floating btn
+  const pendingSelectionRef = useRef(null) // { from, to, text } saved before dialog opens
 
-  const saveTimer      = useRef(null)
-  const titleRef       = useRef(null)
-  const exportRef      = useRef(null)
-  const wsPickRef      = useRef(null)
-  const initializingRef = useRef(false) // true while setting initial HTML content
+  const saveTimer       = useRef(null)
+  const titleRef        = useRef(null)
+  const exportRef       = useRef(null)
+  const wsPickRef       = useRef(null)
+  const editorShellRef  = useRef(null)
+  const initializingRef = useRef(false)
 
   // Yjs real-time content sync — must be called before useEditor
   const { ydoc, initMode } = useYjsCollab(doc.id, authUser?.id)
+
+  // Comments
+  const { comments, addComment, addReply, resolveComment } = useDocComments(doc.id)
+
+  // Members for comment author display
+  const { members } = useMembers(doc.workspace_id)
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -242,6 +258,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      CommentMark,
       RemoteCursorsExtension,
     ],
     // Content is set via Yjs; don't pass content here
@@ -340,6 +357,78 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     return () => editor.off('selectionUpdate', update)
   }, [editor])
 
+  // Track selection for floating add-comment button; detect active comment mark
+  useEffect(() => {
+    if (!editor) return
+    const update = () => {
+      const { from, to, empty } = editor.state.selection
+
+      // Floating add-comment button — show when text is selected
+      if (!empty && !showAddComment) {
+        try {
+          const coords = editor.view.coordsAtPos(from)
+          setAddCommentPos({ y: coords.top })
+        } catch { setAddCommentPos(null) }
+      } else if (empty) {
+        setAddCommentPos(null)
+      }
+
+      // Detect cursor inside a comment mark
+      const marks = editor.state.selection.$from.marks()
+      const commentMark = marks.find(m => m.type.name === 'comment')
+      if (commentMark?.attrs.commentId) {
+        setActiveCommentId(commentMark.attrs.commentId)
+        setShowCommentPanel(true)
+      } else {
+        setActiveCommentId(null)
+      }
+    }
+    editor.on('selectionUpdate', update)
+    return () => editor.off('selectionUpdate', update)
+  }, [editor, showAddComment])
+
+  // Comment handlers
+  const handleOpenAddComment = () => {
+    const { from, to } = editor.state.selection
+    const text = editor.state.doc.textBetween(from, to, ' ')
+    pendingSelectionRef.current = { from, to, text }
+    setAddCommentInput('')
+    setShowAddComment(true)
+    setAddCommentPos(null)
+  }
+
+  const handleSubmitComment = async () => {
+    const body = addCommentInput.trim()
+    if (!body || !authUser) return
+    const { from, to, text } = pendingSelectionRef.current ?? {}
+    try {
+      const comment = await addComment({ quote: text, body, userId: authUser.id })
+      // Apply the mark to the selection that was pending
+      if (from != null) {
+        editor.chain().setTextSelection({ from, to }).setCommentMark(comment.id).run()
+      }
+      setShowCommentPanel(true)
+      setActiveCommentId(comment.id)
+    } catch (err) {
+      console.error('Failed to add comment', err)
+    }
+    setShowAddComment(false)
+    setAddCommentInput('')
+    pendingSelectionRef.current = null
+  }
+
+  const handleResolveComment = async (commentId) => {
+    if (!authUser) return
+    await resolveComment(commentId, authUser.id)
+    editor.chain().focus().removeCommentMark(commentId).run()
+    if (activeCommentId === commentId) setActiveCommentId(null)
+  }
+
+  const handleAddReply = async (commentId, body) => {
+    if (!authUser) return
+    await addReply(commentId, body, authUser.id)
+  }
+
   if (!editor) return null
 
   const toolbar = (
@@ -372,6 +461,15 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           {editor.isActive('link') ? <LinkBreak size={14} /> : <LinkIcon size={14} />}
         </Btn>
         <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
+        <Divider />
+        <Btn
+          onClick={handleOpenAddComment}
+          disabled={editor.state.selection.empty}
+          active={showCommentPanel}
+          label="Add comment"
+        >
+          <ChatText size={14} />
+        </Btn>
       </div>
     </>
   )
@@ -441,6 +539,55 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     </div>
   )
 
+  // Add-comment dialog (centered overlay, same pattern as link dialog)
+  const addCommentDialog = showAddComment && (
+    <div
+      className="we-link-overlay"
+      onClick={() => { setShowAddComment(false); setAddCommentInput('') }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add comment"
+    >
+      <div className="we-link-dialog we-add-comment-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">Add a comment</p>
+        {pendingSelectionRef.current?.text && (
+          <div className="wc-dialog-quote">"{pendingSelectionRef.current.text.slice(0, 100)}{pendingSelectionRef.current.text.length > 100 ? '…' : ''}"</div>
+        )}
+        <textarea
+          className="we-link-input wc-comment-textarea"
+          value={addCommentInput}
+          onChange={e => setAddCommentInput(e.target.value)}
+          onKeyDown={e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmitComment() }
+            if (e.key === 'Escape') { setShowAddComment(false); setAddCommentInput('') }
+          }}
+          placeholder="Add a comment… (⌘↵ to post)"
+          autoFocus
+          rows={3}
+          aria-label="Comment text"
+        />
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onClick={() => { setShowAddComment(false); setAddCommentInput('') }}>Cancel</button>
+          <button className="btn-primary btn-sm" onClick={handleSubmitComment} disabled={!addCommentInput.trim()}>Comment</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Floating add-comment button — appears in the right margin when text is selected
+  const floatingCommentBtn = addCommentPos && !showAddComment && !inSheet && (
+    <button
+      className="wc-float-btn"
+      style={{ top: addCommentPos.y }}
+      onMouseDown={e => e.preventDefault()}
+      onClick={handleOpenAddComment}
+      aria-label="Add comment"
+      title="Add comment"
+    >
+      <ChatText size={15} weight="bold" />
+    </button>
+  )
+
   /* ── Sheet layout (mobile editing bottom sheet) ── */
   if (inSheet) {
     return (
@@ -498,6 +645,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     )
       {linkDialog}
       {linkPopoverEl}
+      {addCommentDialog}
       </>
   )
   }
@@ -505,6 +653,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   /* ── Standard desktop / full-screen layout ── */
   return (
     <>
+    <div className="we-editor-shell" ref={editorShellRef}>
     <div className="we-wrap">
       {/* Editor breadcrumb bar */}
       <div className="wr-ed-bar">
@@ -573,6 +722,15 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
               </div>
             )}
           </div>
+          <button
+            className={`wr-ed-btn${showCommentPanel ? ' wr-ed-btn--active' : ''}`}
+            onClick={() => setShowCommentPanel(v => !v)}
+            aria-label="Toggle comments"
+            title={`${showCommentPanel ? 'Hide' : 'Show'} comments${comments.length ? ` (${comments.length})` : ''}`}
+          >
+            <ChatText size={15} aria-hidden="true" />
+            {comments.length > 0 && <span className="wr-ed-btn-badge">{comments.length}</span>}
+          </button>
         </div>
       </div>
 
@@ -626,8 +784,25 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <span className="wr-meta-sep" aria-hidden="true">·</span>
         <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
-    </div>
+    </div>{/* end we-wrap */}
+
+    {showCommentPanel && (
+      <CommentPanel
+        comments={comments}
+        members={members}
+        activeCommentId={activeCommentId}
+        currentUserId={authUser?.id}
+        onResolve={handleResolveComment}
+        onReply={handleAddReply}
+        onClose={() => { setShowCommentPanel(false); setActiveCommentId(null) }}
+      />
+    )}
+    </div>{/* end we-editor-shell */}
+
     {linkDialog}
+    {linkPopoverEl}
+    {addCommentDialog}
+    {floatingCommentBtn}
     </>
   )
 }
