@@ -51,7 +51,7 @@ export function useMembers(workspaceId) {
     const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
     const inviterName = fullName || user.user_metadata?.full_name || user.user_metadata?.name || 'A teammate'
     supabase.functions.invoke('send-invite-email', {
-      body: { email, inviteUrl, workspaceName, role, inviterName },
+      body: { email, inviteUrl, workspaceName, role, inviterName, ownerEmail: user.email },
     }).catch(console.error)
 
     return data

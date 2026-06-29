@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 /**
@@ -12,6 +12,10 @@ export function useDocuments(workspaceId, { onRemoteUpdate } = {}) {
   const [docs,    setDocs]    = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
+
+  // Unique per-instance suffix so each hook mount gets its own channel name,
+  // preventing Supabase from returning an already-subscribed channel on remount.
+  const instanceId = useId().replace(/:/g, '')
 
   const onRemoteUpdateRef = useRef(onRemoteUpdate)
   useEffect(() => { onRemoteUpdateRef.current = onRemoteUpdate }, [onRemoteUpdate])
@@ -45,7 +49,7 @@ export function useDocuments(workspaceId, { onRemoteUpdate } = {}) {
 
     const channels = wsIds.map(id =>
       supabase
-        .channel(`docs:ws:${id}`)
+        .channel(`docs:ws:${id}:${instanceId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',

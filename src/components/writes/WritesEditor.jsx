@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Collaboration from '@tiptap/extension-collaboration'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TaskList from '@tiptap/extension-task-list'
@@ -8,6 +9,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers, CheckSquare,
+  TextIndent, TextOutdent,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
   Export, CheckCircle, CaretDown, TrashSimple, X,
@@ -18,6 +20,9 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useMembers } from '../../hooks/useMembers'
 import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
+import { useDocCollaboration } from '../../hooks/useDocCollaboration'
+import { useYjsCollab } from '../../hooks/useYjsCollab'
+import { RemoteCursorsExtension } from './RemoteCursorsExtension'
 
 const MAX_AVATARS = 4
 
@@ -35,7 +40,7 @@ function displayName(m) {
   return full || m.email?.split('@')[0] || 'Unknown'
 }
 
-function DocAccessAvatars({ workspaceId }) {
+function DocAccessAvatars({ workspaceId, onlineUserIds = new Set() }) {
   const { user } = useAuth()
   const { members } = useMembers(workspaceId)
   const [openId, setOpenId] = useState(null)
@@ -56,12 +61,13 @@ function DocAccessAvatars({ workspaceId }) {
   return (
     <div className="we-access-avatars" ref={wrapRef} aria-label="People with access">
       {visible.map(m => {
-        const isSelf = m.user_id === user?.id
-        const isOpen = openId === m.user_id
+        const isSelf   = m.user_id === user?.id
+        const isOpen   = openId === m.user_id
+        const isOnline = !isSelf && onlineUserIds.has(m.user_id)
         return (
           <div key={m.user_id} className="we-access-avatar-wrap">
             <button
-              className="we-access-avatar"
+              className={`we-access-avatar${isOnline ? ' we-access-avatar--online' : ''}`}
               style={{ background: userColor(m.user_id) }}
               onClick={() => setOpenId(isOpen ? null : m.user_id)}
               aria-label={displayName(m)}
@@ -76,6 +82,7 @@ function DocAccessAvatars({ workspaceId }) {
                 </span>
                 <span className="we-access-tooltip-email">{m.email}</span>
                 <span className="we-access-tooltip-role">{m.role}</span>
+                {isOnline && <span className="we-access-tooltip-online">Viewing now</span>}
               </div>
             )}
           </div>
@@ -114,21 +121,27 @@ function Divider() {
 }
 
 export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace, remoteUpdateAvailable, onReloadContent, inSheet = false, onSheetClose }) {
-  const { toast }      = useToast()
-  const { workspaces } = useWorkspace()
+  const { toast }                          = useToast()
+  const { workspaces }                     = useWorkspace()
+  const { user: authUser, displayName: authDisplayName } = useAuth()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,       setTitle]       = useState(doc.title)
   const [saveStatus,  setSaveStatus]  = useState('saved')
   const [wordCount,   setWordCount]   = useState(0)
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
+  const [linkPopover, setLinkPopover] = useState(null) // { href, x, y }
   const [showExport,  setShowExport]  = useState(false)
   const [showWsPick,  setShowWsPick]  = useState(false)
 
-  const saveTimer   = useRef(null)
-  const titleRef    = useRef(null)
-  const exportRef   = useRef(null)
-  const wsPickRef   = useRef(null)
+  const saveTimer      = useRef(null)
+  const titleRef       = useRef(null)
+  const exportRef      = useRef(null)
+  const wsPickRef      = useRef(null)
+  const initializingRef = useRef(false) // true while setting initial HTML content
+
+  // Yjs real-time content sync — must be called before useEditor
+  const { ydoc, initMode } = useYjsCollab(doc.id, authUser?.id)
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -223,31 +236,70 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ history: false }), // Yjs owns history
+      Collaboration.configure({ document: ydoc }),
       Underline,
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      RemoteCursorsExtension,
     ],
-    content: doc.content || '',
+    // Content is set via Yjs; don't pass content here
     onUpdate: ({ editor }) => {
       setWordCount(countWords(editor))
-      schedule({ content: editor.isEmpty ? '' : editor.getHTML() })
     },
   })
 
-  // Sync content when doc changes, recount words, and backfill missing preview
+  // On mobile, blur the editor after a checkbox is tapped so the keyboard doesn't appear
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return
-    const incoming = doc.content || ''
-    if (editor.getHTML() !== incoming) editor.commands.setContent(incoming, false)
+    if (!editor) return
+    const dom = editor.view.dom
+    const onCheckboxClick = (e) => {
+      if (e.target?.type === 'checkbox') {
+        setTimeout(() => editor.commands.blur(), 50)
+      }
+    }
+    dom.addEventListener('click', onCheckboxClick)
+    return () => dom.removeEventListener('click', onCheckboxClick)
+  }, [editor])
+
+  // When no peer is connected (first user), initialize ydoc from the saved HTML
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || initMode !== 'from-html') return
+    initializingRef.current = true
+    editor.commands.setContent(doc.content || '')
+    initializingRef.current = false
     setWordCount(countWords(editor))
-    // Populate preview for docs that existed before the preview column was added
     if (!doc.preview) {
       const text = editor.getText().trim()
       if (text) onSave({ preview: text.slice(0, 200) })
     }
-  }, [doc.id, editor])
+  }, [editor, initMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When ydoc syncs from a peer, update word count once content arrives
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || initMode !== 'from-yjs') return
+    setWordCount(countWords(editor))
+  }, [editor, initMode])
+
+  // Save on every LOCAL ydoc change (skip remote updates and our own init)
+  useEffect(() => {
+    if (!ydoc || !editor) return
+    const handler = (update, origin) => {
+      if (origin === 'remote' || initializingRef.current) return
+      schedule({ content: editor.isEmpty ? '' : editor.getHTML() })
+      setWordCount(countWords(editor))
+    }
+    ydoc.on('update', handler)
+    return () => ydoc.off('update', handler)
+  }, [ydoc, editor, schedule])
+
+  // Live collaboration — cursor presence and remote cursor rendering
+  const { remoteUsers, remoteCursors } = useDocCollaboration(doc.id, editor, authUser, authDisplayName)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    editor.commands.updateRemoteCursors(remoteCursors)
+  }, [editor, remoteCursors])
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value)
@@ -271,6 +323,23 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     if (e.key === 'Escape') { setShowLink(false); setLinkInput('') }
   }
 
+  // Show link popover when cursor is inside a linked range
+  useEffect(() => {
+    if (!editor) return
+    const update = () => {
+      if (editor.isActive('link')) {
+        const href = editor.getAttributes('link').href ?? ''
+        const { from } = editor.state.selection
+        const coords = editor.view.coordsAtPos(from)
+        setLinkPopover({ href, x: coords.left, y: coords.bottom + 8 })
+      } else {
+        setLinkPopover(null)
+      }
+    }
+    editor.on('selectionUpdate', update)
+    return () => editor.off('selectionUpdate', update)
+  }, [editor])
+
   if (!editor) return null
 
   const toolbar = (
@@ -288,6 +357,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!editor.can().sinkListItem('listItem')}   label="Indent"><TextIndent size={14} /></Btn>
+        <Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')}   label="Deindent"><TextOutdent size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
         <Divider />
         <Btn
@@ -302,27 +373,78 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </Btn>
         <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
       </div>
-      {showLink && (
-        <div className="we-link-bar">
-          <input
-            className="we-link-input"
-            value={linkInput}
-            onChange={e => setLinkInput(e.target.value)}
-            onKeyDown={handleLinkKeyDown}
-            placeholder="https://example.com"
-            autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
-            aria-label="Link URL"
-          />
-          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
-          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
-        </div>
-      )}
     </>
+  )
+
+  const linkDialog = showLink && (
+    <div
+      className="we-link-overlay"
+      onClick={() => { setShowLink(false); setLinkInput('') }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit link"
+    >
+      <div className="we-link-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">{linkInput ? 'Edit link' : 'Add link'}</p>
+        <input
+          className="we-link-input"
+          value={linkInput}
+          onChange={e => setLinkInput(e.target.value)}
+          onKeyDown={handleLinkKeyDown}
+          placeholder="https://example.com"
+          autoFocus
+          aria-label="Link URL"
+        />
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
+          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  const linkPopoverEl = linkPopover && !showLink && (
+    <div
+      className="we-link-popover"
+      style={{ left: Math.min(linkPopover.x, window.innerWidth - 320), top: linkPopover.y }}
+      onMouseDown={e => e.preventDefault()}
+    >
+      <a
+        href={linkPopover.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="we-link-popover-url"
+        title={linkPopover.href}
+      >
+        {linkPopover.href.replace(/^https?:\/\//, '').slice(0, 40)}
+        {linkPopover.href.replace(/^https?:\/\//, '').length > 40 ? '…' : ''}
+      </a>
+      <div className="we-link-popover-actions">
+        <button
+          className="we-link-popover-btn"
+          onMouseDown={e => {
+            e.preventDefault()
+            setLinkInput(linkPopover.href)
+            setLinkPopover(null)
+            setShowLink(true)
+          }}
+        >Edit</button>
+        <button
+          className="we-link-popover-btn we-link-popover-btn--remove"
+          onMouseDown={e => {
+            e.preventDefault()
+            editor.chain().focus().unsetLink().run()
+            setLinkPopover(null)
+          }}
+        >Remove</button>
+      </div>
+    </div>
   )
 
   /* ── Sheet layout (mobile editing bottom sheet) ── */
   if (inSheet) {
     return (
+      <>
       <div className="we-wrap we-wrap--sheet">
         <div className="doc-sheet-bar">
           <span className="doc-sheet-editing-label">
@@ -374,10 +496,15 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </div>
       </div>
     )
+      {linkDialog}
+      {linkPopoverEl}
+      </>
+  )
   }
 
   /* ── Standard desktop / full-screen layout ── */
   return (
+    <>
     <div className="we-wrap">
       {/* Editor breadcrumb bar */}
       <div className="wr-ed-bar">
@@ -417,7 +544,10 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           {workspace && <span className="sep">›</span>}
           <strong>Writes</strong>
         </div>
-        <DocAccessAvatars workspaceId={doc.workspace_id} />
+        <DocAccessAvatars
+          workspaceId={doc.workspace_id}
+          onlineUserIds={new Set(remoteUsers.map(u => u.user_id))}
+        />
         <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved
@@ -497,5 +627,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
     </div>
+    {linkDialog}
+    </>
   )
 }

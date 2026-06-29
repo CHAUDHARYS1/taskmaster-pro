@@ -3449,6 +3449,42 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
+/* ── Writes embedded in workspace (WritesView) ─────────────── */
+/* Full-width canvas override so the split panel can fill the space */
+.board-canvas--writes {
+  overflow: hidden;
+}
+.board-canvas--writes .board-canvas__content {
+  overflow: hidden;
+  display: flex;
+}
+
+/* The embedded split-panel shell */
+.writes-view-embed {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Left panel reuses .wr-list styles — just pin the width */
+.writes-view-embed__list {
+  /* inherits .wr-list sizing (280px) — no overrides needed */
+}
+
+.writes-view-loading {
+  padding: var(--space-6);
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+}
+
+/* Active state for doc cards inside the embedded view */
+.wr-note--active {
+  background: var(--paper-2);
+  border-color: var(--accent);
+}
+
 /* Editor bar */
 .wr-ed-bar {
   display: flex;
@@ -3545,6 +3581,50 @@ a:focus-visible,
   color: var(--ink-4);
   text-transform: capitalize;
   margin-top: 2px;
+}
+.we-access-tooltip-online {
+  font-size: var(--text-xs);
+  color: #16a34a;
+  font-weight: var(--weight-medium);
+  margin-top: 2px;
+}
+
+/* Online dot on avatars of users currently viewing the same document */
+.we-access-avatar--online {
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #22c55e;
+}
+
+/* Remote cursor caret — shows where another user's insertion point is */
+.we-remote-cursor {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  border-left: 2px solid var(--cursor-color, #2563EB);
+  height: 1.1em;
+  vertical-align: text-top;
+  margin-left: -1px;
+  pointer-events: none;
+  user-select: none;
+}
+.we-remote-cursor-label {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 1px 6px 2px;
+  border-radius: 3px 3px 3px 0;
+  font-size: 10px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1.6;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.92;
+}
+/* Remote selection highlight — inline background for selected text ranges */
+.we-remote-selection {
+  border-radius: 2px;
 }
 
 .wr-saved {
@@ -3736,26 +3816,102 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
-.we-link-bar {
+/* ── Link dialog (floating overlay) ─────────────────────────── */
+.we-link-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.we-link-dialog {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+  width: min(380px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.we-link-dialog-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+}
+
+.we-link-dialog-actions {
+  display: flex;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-6);
-  border-bottom: 1px solid var(--line);
-  background: var(--paper-2);
-  flex-shrink: 0;
+  justify-content: flex-end;
 }
 
 .we-link-input {
-  flex: 1;
+  width: 100%;
   font-size: var(--text-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px 10px;
+  padding: 8px 12px;
   background: var(--surface);
   color: var(--ink);
+  box-sizing: border-box;
 }
 .we-link-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+
+/* ── Link hover popover (edit / remove) ──────────────────────── */
+.we-link-popover {
+  position: fixed;
+  z-index: 400;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 340px;
+  pointer-events: auto;
+}
+
+.we-link-popover-url {
+  font-size: var(--text-sm);
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.we-link-popover-url:hover { text-decoration: underline; }
+
+.we-link-popover-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.we-link-popover-btn {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.we-link-popover-btn:hover { background: var(--paper-2); color: var(--ink); }
+.we-link-popover-btn--remove { color: #ef4444; }
+.we-link-popover-btn--remove:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
 
 .we-body {
   flex: 1;
@@ -3793,6 +3949,10 @@ a:focus-visible,
 .we-content .tiptap p:last-child { margin-bottom: 0; }
 .we-content .tiptap ul,
 .we-content .tiptap ol { padding-left: 1.5em; margin: 0.5em 0 0.75em; }
+.we-content .tiptap ul { list-style: disc; }
+.we-content .tiptap ol { list-style: decimal; }
+.we-content .tiptap ul ul { list-style: circle; }
+.we-content .tiptap ul ul ul { list-style: square; }
 .we-content .tiptap li { margin-bottom: 0.25em; }
 .we-content .tiptap blockquote {
   border-left: 3px solid var(--accent);
@@ -13630,6 +13790,9 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   .wr-search i { left: 14px; }
   .wr-new-wrap { display: none; }
 
+  /* Pad the bottom of the doc list so the FAB never covers the last card */
+  .wr-notes { padding-bottom: 120px; }
+
   /* FAB */
   .wr-fab-wrap {
     display: block;
@@ -13776,6 +13939,56 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   }
   .we-btn svg { width: 20px; height: 20px; }
 
+  /* Edit sheet toolbar: single scrollable row — buttons spaced out,
+     swipe left/right to reach all tools */
+  .we-wrap--sheet .we-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 4px 12px;
+    gap: 10px;
+  }
+  .we-wrap--sheet .we-toolbar::-webkit-scrollbar { display: none; }
+  .we-wrap--sheet .we-divider { margin: 0 10px; }
+
+  /* Doc sheet action buttons: 44px touch targets and more breathing room */
+  .doc-sheet-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .doc-sheet-actions { gap: 0; }
+
+  /* Edit sheet: adaptive height for any phone size.
+     Problem: doc-sheet-body--edit is overflow-y:auto, which breaks flex: 1
+     height calculation (children grow with content, not the container).
+     Fix: make the body a non-scrolling flex column, then let .tiptap
+     be the scroll container so it fills exactly the remaining screen space. */
+  .doc-sheet-body--edit {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+  .we-wrap--sheet .we-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .we-wrap--sheet .we-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .we-wrap--sheet .we-content .tiptap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 20px 80px;
+  }
+
   /* Editor body + content: full-bleed, no decorative border */
   .we-body { padding: var(--space-3) var(--space-3) 56px; }
   .we-content {
@@ -13886,6 +14099,63 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   font-size: var(--text-body);
   margin: 0;
 }
+/* Task list layout in the read-only preview sheet.
+   Editor scopes these to .we-content .tiptap but the preview renders
+   .doc-sheet-content.tiptap without that ancestor, so flex layout is lost. */
+.doc-sheet-content.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25em;
+  margin: 0.5em 0 0.75em;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin-bottom: 0.25em;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: default;
+  user-select: none;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label > span { display: none; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 4px;
+  background: transparent;
+  position: relative;
+  pointer-events: none;
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li > div > p { margin: 0; }
+.doc-sheet-content.tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+
 .doc-sheet-content {
   font-size: 15px;
   line-height: 1.65;
@@ -13909,7 +14179,7 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
-.we-wrap--sheet .we-link-bar { flex-shrink: 0; }
+
 .doc-sheet-body--edit {
   display: flex;
   flex-direction: column;
@@ -15860,6 +16130,27 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
     background: var(--card);
     color: var(--ink);
     box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+  }
+  .mob-view-btn__inner {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    position: relative;
+  }
+  .mob-view-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--ink-4);
+    color: var(--ink-2);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    line-height: 1;
+    letter-spacing: 0;
   }
 }
 
