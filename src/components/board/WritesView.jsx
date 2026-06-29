@@ -31,7 +31,7 @@ function DocCard({ doc, isSelected, onClick, onPin }) {
   )
 }
 
-export default function WritesView({ workspaceId }) {
+export default function WritesView({ workspaceId, onDocsChange }) {
   const { toast }    = useToast()
   const lastSaveRef  = useRef(0)
 
@@ -57,6 +57,10 @@ export default function WritesView({ workspaceId }) {
 
   const { docs, loading, createDoc, updateDoc, deleteDoc, fetchDocContent, pinDoc } =
     useDocuments(workspaceId, { onRemoteUpdate: handleRemoteDocUpdate })
+
+  useEffect(() => {
+    onDocsChange?.(docs.length)
+  }, [docs.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768)
