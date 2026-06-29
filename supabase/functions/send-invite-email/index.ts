@@ -27,8 +27,9 @@ function buildHtml(opts: {
   roleLabel: string
   inviteUrl: string
   markUrl: string
+  forwardTo?: string
 }): string {
-  const { inviterName, workspaceName, roleLabel, inviteUrl, markUrl } = opts
+  const { inviterName, workspaceName, roleLabel, inviteUrl, markUrl, forwardTo } = opts
   const inviterFirst = inviterName.split(' ')[0]
   const wsInitials = initials(workspaceName)
   const wsColor = avatarColor(workspaceName)
@@ -63,7 +64,7 @@ function buildHtml(opts: {
 </head>
 <body style="margin:0; padding:0; background-color:#f5f5f7;">
   <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f5f5f7; opacity:0;">
-    ${inviterName} added you to ${workspaceName} on Taskmaster Pro.
+    ${forwardTo ? `Forward this to ${forwardTo} — ` : ''}${inviterName} added ${forwardTo ? 'them' : 'you'} to ${workspaceName} on Taskmaster Pro.
   </div>
   <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;</div>
 
@@ -93,6 +94,21 @@ function buildHtml(opts: {
           <tr>
             <td>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff; border:1px solid #eeeeee; border-radius:5px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+
+                ${forwardTo ? `<!-- Forwarding banner -->
+                <tr>
+                  <td style="padding:0; border-radius:5px 5px 0 0; overflow:hidden;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFF8E7; border-bottom:1px solid #FDE68A;">
+                      <tr>
+                        <td class="tm-px" style="padding:14px 48px;">
+                          <p style="margin:0; font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; color:#92400E;">
+                            Forward this email to <strong style="color:#78350F;">${forwardTo}</strong> — they need to click the button below to join the workspace.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>` : ''}
 
                 <!-- Hero -->
                 <tr>
@@ -152,7 +168,7 @@ function buildHtml(opts: {
                   </td>
                 </tr>
 
-                <!-- Fallback link -->
+                <!-- Decline / fallback -->
                 <tr>
                   <td class="tm-px" style="padding:18px 48px 44px;">
                     <p style="margin:0; font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#888888;">
@@ -215,7 +231,7 @@ serve(async (req) => {
       })
     }
 
-    const { email, inviteUrl, workspaceName, role, inviterName } = await req.json()
+    const { email, inviteUrl, workspaceName, role, inviterName, ownerEmail } = await req.json()
     if (!email || !inviteUrl || !workspaceName) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
@@ -236,7 +252,8 @@ serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL') ?? 'https://taskmaster-pro.netlify.app'
     const markUrl = `${appUrl}/mark.png`
 
-    const html = buildHtml({ inviterName: resolvedInviterName, workspaceName, roleLabel, inviteUrl, markUrl })
+    const forwardTo = ownerEmail && ownerEmail !== email ? email : undefined
+    const html = buildHtml({ inviterName: resolvedInviterName, workspaceName, roleLabel, inviteUrl, markUrl, forwardTo })
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -245,11 +262,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // Replace with a verified Resend domain for reliable inbox delivery.
-        // onboarding@resend.dev only delivers to the Resend account owner's address.
         from: 'Taskmaster Pro <onboarding@resend.dev>',
-        to: [email],
-        subject: `${resolvedInviterName} added you to ${workspaceName}`,
+        to: [ownerEmail ?? email],
+        subject: forwardTo
+          ? `Forward to ${email} — ${workspaceName} invite`
+          : `${resolvedInviterName} added you to ${workspaceName}`,
         text: `${resolvedInviterName} added you to ${workspaceName} on Taskmaster Pro as a ${roleLabel}.\n\nAccept your invitation:\n${inviteUrl}\n\nThis link expires in 7 days.`,
         html,
       }),
