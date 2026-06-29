@@ -14,6 +14,7 @@ import { useArchive } from '../../hooks/useArchive'
 import { usePresence } from '../../hooks/usePresence'
 import { useMembers } from '../../hooks/useMembers'
 import { useEditingBroadcast } from '../../hooks/useEditingBroadcast'
+import { useDocuments } from '../../hooks/useDocuments'
 import Sidebar from '../layout/Sidebar'
 import WelcomeOverlay from '../auth/WelcomeOverlay'
 import Column from './Column'
@@ -161,6 +162,7 @@ export default function Board() {
   const present                      = usePresence(currentWorkspace?.id)
   const { members: workspaceMembers } = useMembers(currentWorkspace?.id)
   const editingMap = useEditingBroadcast(currentWorkspace?.id, selectedTaskId)
+  const { docs: workspaceDocs }      = useDocuments(currentWorkspace?.id)
   const { toast } = useToast()
   const { notify, checkDueDates } = useNotifications()
 
@@ -800,7 +802,7 @@ ${colData.map(c => `<div class="col">
           </div>
         </div>
 
-        {/* ── Mobile pill view toggle (Board / List) ── */}
+        {/* ── Mobile pill view toggle (Board / List / Writes) ── */}
         <div className="mob-view-bar" role="group" aria-label="View mode">
           {[
             { id: 'board',  label: 'Board',  Icon: SquaresFour },
@@ -813,8 +815,15 @@ ${colData.map(c => `<div class="col">
               onClick={() => setViewMode(id)}
               aria-pressed={viewMode === id}
             >
-              <Icon size={14} weight={viewMode === id ? 'bold' : 'regular'} aria-hidden="true" />
-              {label}
+              <span className="mob-view-btn__inner">
+                <Icon size={14} weight={viewMode === id ? 'bold' : 'regular'} aria-hidden="true" />
+                {label}
+                {id === 'writes' && workspaceDocs.length > 0 && (
+                  <span className="mob-view-badge" aria-label={`${workspaceDocs.length} documents`}>
+                    {workspaceDocs.length > 99 ? '99+' : workspaceDocs.length}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
