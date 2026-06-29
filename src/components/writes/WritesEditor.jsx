@@ -328,27 +328,40 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </Btn>
         <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
       </div>
-      {showLink && (
-        <div className="we-link-bar">
-          <input
-            className="we-link-input"
-            value={linkInput}
-            onChange={e => setLinkInput(e.target.value)}
-            onKeyDown={handleLinkKeyDown}
-            placeholder="https://example.com"
-            autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
-            aria-label="Link URL"
-          />
-          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
-          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
-        </div>
-      )}
     </>
+  )
+
+  const linkDialog = showLink && (
+    <div
+      className="we-link-overlay"
+      onClick={() => { setShowLink(false); setLinkInput('') }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add link"
+    >
+      <div className="we-link-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">Add link</p>
+        <input
+          className="we-link-input"
+          value={linkInput}
+          onChange={e => setLinkInput(e.target.value)}
+          onKeyDown={handleLinkKeyDown}
+          placeholder="https://example.com"
+          autoFocus
+          aria-label="Link URL"
+        />
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onMouseDown={e => { e.preventDefault(); setShowLink(false); setLinkInput('') }}>Cancel</button>
+          <button className="btn-primary btn-sm" onMouseDown={e => { e.preventDefault(); applyLink() }}>Apply</button>
+        </div>
+      </div>
+    </div>
   )
 
   /* ── Sheet layout (mobile editing bottom sheet) ── */
   if (inSheet) {
     return (
+      <>
       <div className="we-wrap we-wrap--sheet">
         <div className="doc-sheet-bar">
           <span className="doc-sheet-editing-label">
@@ -400,10 +413,14 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </div>
       </div>
     )
+      {linkDialog}
+      </>
+  )
   }
 
   /* ── Standard desktop / full-screen layout ── */
   return (
+    <>
     <div className="we-wrap">
       {/* Editor breadcrumb bar */}
       <div className="wr-ed-bar">
@@ -526,5 +543,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
     </div>
+    {linkDialog}
+    </>
   )
 }
