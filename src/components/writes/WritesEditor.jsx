@@ -134,9 +134,10 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
   const [linkPopover, setLinkPopover] = useState(null) // { href, x, y }
-  const [showExport,       setShowExport]       = useState(false)
-  const [showWsPick,       setShowWsPick]       = useState(false)
-  const [showCommentPanel, setShowCommentPanel] = useState(false)
+  const [showExport,        setShowExport]        = useState(false)
+  const [showWsPick,        setShowWsPick]        = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showCommentPanel,  setShowCommentPanel]  = useState(false)
   const [activeCommentId,  setActiveCommentId]  = useState(null)
   const [addCommentInput,  setAddCommentInput]  = useState('')
   const [showAddComment,   setShowAddComment]   = useState(false)
@@ -539,6 +540,34 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     </div>
   )
 
+  // Delete confirmation dialog
+  const deleteConfirmDialog = showDeleteConfirm && (
+    <div
+      className="we-link-overlay"
+      onClick={() => setShowDeleteConfirm(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Delete document"
+    >
+      <div className="we-link-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">Delete "{title || 'Untitled'}"?</p>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-3)', margin: '0 0 var(--space-4)' }}>
+          This document will be permanently deleted and cannot be recovered.
+        </p>
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+          <button
+            className="btn-sm"
+            style={{ background: '#ef4444', color: '#fff', border: 'none' }}
+            onClick={() => { setShowDeleteConfirm(false); onDelete?.(); inSheet && onSheetClose?.() }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   // Add-comment dialog (centered overlay, same pattern as link dialog)
   const addCommentDialog = showAddComment && (
     <div
@@ -611,7 +640,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
                 </div>
               )}
             </div>
-            <button className="doc-sheet-btn" onClick={() => { onDelete?.(); onSheetClose?.() }} aria-label="Delete document" title="Delete">
+            <button className="doc-sheet-btn" onClick={() => setShowDeleteConfirm(true)} aria-label="Delete document" title="Delete">
               <TrashSimple size={16} aria-hidden="true" />
             </button>
             <button className="doc-sheet-btn" onClick={onSheetClose} aria-label="Close editor">
@@ -646,6 +675,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       {linkDialog}
       {linkPopoverEl}
       {addCommentDialog}
+      {deleteConfirmDialog}
       </>
   )
   }
@@ -753,7 +783,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           </span>
           <button
             className="btn-ghost we-delete-btn"
-            onClick={onDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             title="Delete document"
             aria-label="Delete document"
           >
@@ -802,6 +832,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {linkDialog}
     {linkPopoverEl}
     {addCommentDialog}
+    {deleteConfirmDialog}
     {floatingCommentBtn}
     </>
   )
