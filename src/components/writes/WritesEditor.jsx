@@ -880,7 +880,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {selectionToolbarEl}
     {showDetectPanel && (
       <DetectTasksPanel
-        editorText={editor?.getText() ?? ''}
+        editorText={editor?.state?.doc?.textContent ?? ''}
         workspaceId={doc.workspace_id}
         onClose={(action, count) => {
           setShowDetectPanel(false)

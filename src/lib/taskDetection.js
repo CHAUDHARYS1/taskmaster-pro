@@ -1,4 +1,4 @@
-import * as chrono from 'chrono-node'
+import { parse as chronoParse } from 'chrono-node'
 
 // Matches checkbox, bullet, or numbered list prefixes
 const STRUCTURAL_RE = /^(\s*[-*•]\s*\[[ x]\]|\s*\[[ x]\]|[☐✓✗]|\s*[-*•]\s+|\s*\d+\.\s+)/u
@@ -48,7 +48,7 @@ function scoreLine(line) {
   if (IMPERATIVE_RE.test(line.trim()) || IMPERATIVE_RE.test(cleanLine(line))) score += 2
 
   // Rule 4: date/deadline detected
-  const parsed = chrono.parse(line, new Date(), { forwardDate: true })
+  const parsed = chronoParse(line, new Date(), { forwardDate: true })
   const dueDate = parsed.length > 0 ? parsed[0].date() : null
   if (dueDate) score += 1
 
