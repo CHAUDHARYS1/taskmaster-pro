@@ -129,7 +129,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const { user: authUser, displayName: authDisplayName } = useAuth()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,       setTitle]       = useState(doc.title)
-  const [saveStatus,  setSaveStatus]  = useState('saved')
+  const [saveStatus,  setSaveStatus]  = useState('idle')
   const [wordCount,   setWordCount]   = useState(0)
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
@@ -145,6 +145,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const pendingSelectionRef = useRef(null) // { from, to, text } saved before dialog opens
 
   const saveTimer       = useRef(null)
+  const savedHideTimer  = useRef(null)
   const titleRef        = useRef(null)
   const exportRef       = useRef(null)
   const wsPickRef       = useRef(null)
@@ -224,11 +225,13 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   // Sync title if doc changes (e.g. switched document)
   useEffect(() => {
     setTitle(doc.title)
-    setSaveStatus('saved')
+    setSaveStatus('idle')
+    clearTimeout(savedHideTimer.current)
   }, [doc.id])
 
   const schedule = useCallback((updates) => {
-    setSaveStatus('unsaved')
+    clearTimeout(savedHideTimer.current) // user started typing — cancel any pending hide
+    setSaveStatus('editing')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       setSaveStatus('saving')
@@ -240,8 +243,9 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         }
         await onSave(payload)
         setSaveStatus('saved')
+        savedHideTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
       } catch {
-        setSaveStatus('unsaved')
+        setSaveStatus('editing')
       }
     }, 1200)
   }, [onSave])
@@ -624,7 +628,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       <div className="we-wrap we-wrap--sheet">
         <div className="doc-sheet-bar">
           <span className="doc-sheet-editing-label">
-            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'unsaved' ? 'Editing' : 'Saved'}
+            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'editing' ? 'Editing…' : 'Saved'}
           </span>
           <div className="doc-sheet-actions">
             <div className="we-export-wrap" ref={exportRef}>
@@ -777,9 +781,9 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         />
         <div className="we-hdr-right">
           <span className={`we-save-status we-save-status--${saveStatus}`}>
-            {saveStatus === 'saved'   && 'Saved'}
+            {saveStatus === 'editing' && 'Editing…'}
             {saveStatus === 'saving'  && 'Saving…'}
-            {saveStatus === 'unsaved' && 'Unsaved'}
+            {saveStatus === 'saved'   && 'Saved'}
           </span>
           <button
             className="btn-ghost we-delete-btn"
