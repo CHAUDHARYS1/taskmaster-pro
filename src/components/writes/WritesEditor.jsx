@@ -526,8 +526,24 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!editor.can().sinkListItem('listItem')}   label="Indent"><TextIndent size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')}   label="Deindent"><TextOutdent size={14} /></Btn>
+        <Btn
+          onClick={() => {
+            const chain = editor.chain().focus()
+            if (editor.can().sinkListItem('listItem')) chain.sinkListItem('listItem').run()
+            else if (editor.can().sinkListItem('taskItem')) chain.sinkListItem('taskItem').run()
+          }}
+          disabled={!editor.can().sinkListItem('listItem') && !editor.can().sinkListItem('taskItem')}
+          label="Indent"
+        ><TextIndent size={14} /></Btn>
+        <Btn
+          onClick={() => {
+            const chain = editor.chain().focus()
+            if (editor.can().liftListItem('listItem')) chain.liftListItem('listItem').run()
+            else if (editor.can().liftListItem('taskItem')) chain.liftListItem('taskItem').run()
+          }}
+          disabled={!editor.can().liftListItem('listItem') && !editor.can().liftListItem('taskItem')}
+          label="Outdent"
+        ><TextOutdent size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
         <Divider />
         <Btn
