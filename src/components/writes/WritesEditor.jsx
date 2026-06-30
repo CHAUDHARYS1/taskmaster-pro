@@ -1,18 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Collaboration from '@tiptap/extension-collaboration'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+
+// High-priority keymap so Tab/Shift-Tab inside a task list is handled before
+// StarterKit's ListItem handler gets a chance to swallow the event.
+const TaskListIndentKeymap = Extension.create({
+  name: 'taskListIndentKeymap',
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        if (!this.editor.isActive('taskList')) return false
+        return this.editor.commands.sinkListItem('taskItem')
+      },
+      'Shift-Tab': () => {
+        if (!this.editor.isActive('taskList')) return false
+        return this.editor.commands.liftListItem('taskItem')
+      },
+    }
+  },
+})
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers, CheckSquare,
   TextIndent, TextOutdent,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export, CheckCircle, CaretDown, TrashSimple, X,
+  Export, CheckCircle, CaretDown, TrashSimple, X, ChatText, Sparkle,
 } from '@phosphor-icons/react'
 import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
@@ -22,9 +42,17 @@ import { useAuth } from '../../contexts/AuthContext'
 import { userColor } from '../../lib/userColor'
 import { useDocCollaboration } from '../../hooks/useDocCollaboration'
 import { useYjsCollab } from '../../hooks/useYjsCollab'
+import { useDocComments } from '../../hooks/useDocComments'
 import { RemoteCursorsExtension } from './RemoteCursorsExtension'
+import { CommentMark } from './CommentMark'
+import CommentPanel from './CommentPanel'
+import DetectTasksPanel from './DetectTasksPanel'
+import { supabase } from '../../lib/supabase'
 
 const MAX_AVATARS = 4
+
+// Walk the ProseMirror doc tree and emit lines with structural prefixes so
+// detectTasksFromText can score checkbox/bullet/ordered nodes properly.
 
 function initials(m) {
   const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
@@ -126,22 +154,41 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const { user: authUser, displayName: authDisplayName } = useAuth()
   const workspace      = workspaces?.find(w => w.id === doc.workspace_id)
   const [title,       setTitle]       = useState(doc.title)
-  const [saveStatus,  setSaveStatus]  = useState('saved')
+  const [saveStatus,  setSaveStatus]  = useState('idle')
   const [wordCount,   setWordCount]   = useState(0)
   const [linkInput,   setLinkInput]   = useState('')
   const [showLink,    setShowLink]    = useState(false)
   const [linkPopover, setLinkPopover] = useState(null) // { href, x, y }
-  const [showExport,  setShowExport]  = useState(false)
-  const [showWsPick,  setShowWsPick]  = useState(false)
+  const [showExport,        setShowExport]        = useState(false)
+  const [showWsPick,        setShowWsPick]        = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showCommentPanel,  setShowCommentPanel]  = useState(false)
+  const [showDetectPanel,   setShowDetectPanel]   = useState(false)
+  const [detectCandidates,  setDetectCandidates]  = useState([])
+  const [detectLoading,     setDetectLoading]     = useState(false)
+  const [detectError,       setDetectError]       = useState(null)
+  const [activeCommentId,  setActiveCommentId]  = useState(null)
+  const [addCommentInput,  setAddCommentInput]  = useState('')
+  const [showAddComment,   setShowAddComment]   = useState(false)
+  const [selToolbar,       setSelToolbar]       = useState(null) // { x, y } above selection
+  const pendingSelectionRef = useRef(null) // { from, to, text } saved before dialog opens
 
-  const saveTimer      = useRef(null)
-  const titleRef       = useRef(null)
-  const exportRef      = useRef(null)
-  const wsPickRef      = useRef(null)
-  const initializingRef = useRef(false) // true while setting initial HTML content
+  const saveTimer       = useRef(null)
+  const savedHideTimer  = useRef(null)
+  const titleRef        = useRef(null)
+  const exportRef       = useRef(null)
+  const wsPickRef       = useRef(null)
+  const editorShellRef  = useRef(null)
+  const initializingRef = useRef(false)
 
   // Yjs real-time content sync — must be called before useEditor
   const { ydoc, initMode } = useYjsCollab(doc.id, authUser?.id)
+
+  // Comments
+  const { comments, addComment, addReply, resolveComment } = useDocComments(doc.id)
+
+  // Members for comment author display
+  const { members } = useMembers(doc.workspace_id)
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -207,11 +254,13 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   // Sync title if doc changes (e.g. switched document)
   useEffect(() => {
     setTitle(doc.title)
-    setSaveStatus('saved')
+    setSaveStatus('idle')
+    clearTimeout(savedHideTimer.current)
   }, [doc.id])
 
   const schedule = useCallback((updates) => {
-    setSaveStatus('unsaved')
+    clearTimeout(savedHideTimer.current) // user started typing — cancel any pending hide
+    setSaveStatus('editing')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       setSaveStatus('saving')
@@ -223,8 +272,9 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         }
         await onSave(payload)
         setSaveStatus('saved')
+        savedHideTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
       } catch {
-        setSaveStatus('unsaved')
+        setSaveStatus('editing')
       }
     }, 1200)
   }, [onSave])
@@ -242,6 +292,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      TaskListIndentKeymap,
+      CommentMark,
       RemoteCursorsExtension,
     ],
     // Content is set via Yjs; don't pass content here
@@ -306,6 +358,67 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     schedule({ title: e.target.value.trim() || 'Untitled' })
   }
 
+  // Converts the ProseMirror doc to structured plain text for AI detection
+  function getDocText(pmDoc) {
+    if (!pmDoc) return ''
+
+    // Detect paragraphs where every text node carries the bold mark — treat as a title
+    function isAllBold(node) {
+      let bold = true, hasText = false
+      node.descendants(child => {
+        if (child.isText) {
+          hasText = true
+          if (!child.marks.some(m => m.type.name === 'bold')) bold = false
+        }
+      })
+      return hasText && bold
+    }
+
+    const parts = []
+    pmDoc.forEach(node => {
+      const t = node.type.name
+      if (t === 'heading') {
+        parts.push(`${'#'.repeat(node.attrs.level)} ${node.textContent}`)
+      } else if (t === 'paragraph') {
+        const text = node.textContent.trim()
+        if (text) parts.push(isAllBold(node) ? `**${text}**` : text)
+      } else if (t === 'taskList') {
+        node.forEach(child => {
+          const mark = child.attrs?.checked ? '[x]' : '[ ]'
+          parts.push(`- ${mark} ${child.textContent}`)
+        })
+      } else if (t === 'bulletList') {
+        node.forEach(child => parts.push(`- ${child.textContent}`))
+      } else if (t === 'orderedList') {
+        node.forEach((child, _, i) => parts.push(`${i + 1}. ${child.textContent}`))
+      } else if (t === 'blockquote') {
+        parts.push(`> ${node.textContent}`)
+      } else if (node.textContent.trim()) {
+        parts.push(node.textContent)
+      }
+    })
+    return parts.join('\n')
+  }
+
+  const handleDetectTasks = async () => {
+    setShowDetectPanel(true)
+    setDetectLoading(true)
+    setDetectError(null)
+    setDetectCandidates([])
+    try {
+      const text = getDocText(editor?.state?.doc)
+      const { data, error } = await supabase.functions.invoke('detect-tasks', {
+        body: { text },
+      })
+      if (error) throw error
+      setDetectCandidates(data?.tasks ?? [])
+    } catch (err) {
+      setDetectError(err?.message ?? 'Detection failed. Please try again.')
+    } finally {
+      setDetectLoading(false)
+    }
+  }
+
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); editor?.commands.focus() }
   }
@@ -340,6 +453,83 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     return () => editor.off('selectionUpdate', update)
   }, [editor])
 
+  // Selection toolbar + active comment detection
+  useEffect(() => {
+    if (!editor) return
+    const update = () => {
+      const { empty } = editor.state.selection
+
+      // Floating selection toolbar
+      if (!empty && !showAddComment && !showLink) {
+        const winSel = window.getSelection()
+        if (winSel && winSel.rangeCount > 0) {
+          const rect = winSel.getRangeAt(0).getBoundingClientRect()
+          if (rect.width > 0) {
+            setSelToolbar({ x: rect.left + rect.width / 2, y: rect.top })
+          }
+        }
+      } else {
+        setSelToolbar(null)
+      }
+
+      // Detect cursor inside a comment mark
+      const marks = editor.state.selection.$from.marks()
+      const commentMark = marks.find(m => m.type.name === 'comment')
+      if (commentMark?.attrs.commentId) {
+        setActiveCommentId(commentMark.attrs.commentId)
+        setShowCommentPanel(true)
+      } else {
+        setActiveCommentId(null)
+      }
+    }
+    const hide = () => setSelToolbar(null)
+    editor.on('selectionUpdate', update)
+    editor.on('blur', hide)
+    return () => { editor.off('selectionUpdate', update); editor.off('blur', hide) }
+  }, [editor, showAddComment, showLink])
+
+  // Comment handlers
+  const handleOpenAddComment = () => {
+    const { from, to } = editor.state.selection
+    const text = editor.state.doc.textBetween(from, to, ' ')
+    pendingSelectionRef.current = { from, to, text }
+    setAddCommentInput('')
+    setShowAddComment(true)
+    setAddCommentPos(null)
+  }
+
+  const handleSubmitComment = async () => {
+    const body = addCommentInput.trim()
+    if (!body || !authUser) return
+    const { from, to, text } = pendingSelectionRef.current ?? {}
+    try {
+      const comment = await addComment({ quote: text, body, userId: authUser.id })
+      // Apply the mark to the selection that was pending
+      if (from != null) {
+        editor.chain().setTextSelection({ from, to }).setCommentMark(comment.id).run()
+      }
+      setShowCommentPanel(true)
+      setActiveCommentId(comment.id)
+    } catch (err) {
+      console.error('Failed to add comment', err)
+    }
+    setShowAddComment(false)
+    setAddCommentInput('')
+    pendingSelectionRef.current = null
+  }
+
+  const handleResolveComment = async (commentId) => {
+    if (!authUser) return
+    await resolveComment(commentId, authUser.id)
+    editor.chain().focus().removeCommentMark(commentId).run()
+    if (activeCommentId === commentId) setActiveCommentId(null)
+  }
+
+  const handleAddReply = async (commentId, body) => {
+    if (!authUser) return
+    await addReply(commentId, body, authUser.id)
+  }
+
   if (!editor) return null
 
   const toolbar = (
@@ -357,8 +547,30 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <Btn onClick={() => editor.chain().focus().toggleBulletList().run()}    active={editor.isActive('bulletList')}    label="Bullet list"><ListBullets size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()}   active={editor.isActive('orderedList')}   label="Numbered list"><ListNumbers size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleTaskList().run()}      active={editor.isActive('taskList')}      label="Checklist"><CheckSquare size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!editor.can().sinkListItem('listItem')}   label="Indent"><TextIndent size={14} /></Btn>
-        <Btn onClick={() => editor.chain().focus().liftListItem('listItem').run()} disabled={!editor.can().liftListItem('listItem')}   label="Deindent"><TextOutdent size={14} /></Btn>
+        <Btn
+          onClick={() => {
+            const type = editor.isActive('taskList') ? 'taskItem' : 'listItem'
+            editor.chain().focus().sinkListItem(type).run()
+          }}
+          disabled={
+            editor.isActive('taskList')
+              ? !editor.can().sinkListItem('taskItem')
+              : !editor.can().sinkListItem('listItem')
+          }
+          label="Indent"
+        ><TextIndent size={14} /></Btn>
+        <Btn
+          onClick={() => {
+            const type = editor.isActive('taskList') ? 'taskItem' : 'listItem'
+            editor.chain().focus().liftListItem(type).run()
+          }}
+          disabled={
+            editor.isActive('taskList')
+              ? !editor.can().liftListItem('taskItem')
+              : !editor.can().liftListItem('listItem')
+          }
+          label="Outdent"
+        ><TextOutdent size={14} /></Btn>
         <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()}    active={editor.isActive('blockquote')}    label="Blockquote"><Quotes size={14} /></Btn>
         <Divider />
         <Btn
@@ -372,6 +584,24 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           {editor.isActive('link') ? <LinkBreak size={14} /> : <LinkIcon size={14} />}
         </Btn>
         <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} label="Horizontal rule"><Minus size={14} /></Btn>
+        <Divider />
+        <Btn
+          onClick={handleOpenAddComment}
+          disabled={editor.state.selection.empty}
+          active={showCommentPanel}
+          label="Add comment"
+        >
+          <ChatText size={14} />
+        </Btn>
+        <Divider />
+        <Btn
+          onClick={handleDetectTasks}
+          active={showDetectPanel}
+          disabled={detectLoading}
+          label="Detect tasks"
+        >
+          <Sparkle size={14} />
+        </Btn>
       </div>
     </>
   )
@@ -441,6 +671,108 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     </div>
   )
 
+  // Delete confirmation dialog
+  const deleteConfirmDialog = showDeleteConfirm && (
+    <div
+      className="we-link-overlay"
+      onClick={() => setShowDeleteConfirm(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Delete document"
+    >
+      <div className="we-link-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">Delete "{title || 'Untitled'}"?</p>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-3)', margin: '0 0 var(--space-4)' }}>
+          This document will be permanently deleted and cannot be recovered.
+        </p>
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+          <button
+            className="btn-sm"
+            style={{ background: '#ef4444', color: '#fff', border: 'none' }}
+            onClick={() => { setShowDeleteConfirm(false); onDelete?.(); inSheet && onSheetClose?.() }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Add-comment dialog (centered overlay, same pattern as link dialog)
+  const addCommentDialog = showAddComment && (
+    <div
+      className="we-link-overlay"
+      onClick={() => { setShowAddComment(false); setAddCommentInput('') }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add comment"
+    >
+      <div className="we-link-dialog we-add-comment-dialog" onClick={e => e.stopPropagation()}>
+        <p className="we-link-dialog-label">Add a comment</p>
+        {pendingSelectionRef.current?.text && (
+          <div className="wc-dialog-quote">"{pendingSelectionRef.current.text.slice(0, 100)}{pendingSelectionRef.current.text.length > 100 ? '…' : ''}"</div>
+        )}
+        <textarea
+          className="we-link-input wc-comment-textarea"
+          value={addCommentInput}
+          onChange={e => setAddCommentInput(e.target.value)}
+          onKeyDown={e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmitComment() }
+            if (e.key === 'Escape') { setShowAddComment(false); setAddCommentInput('') }
+          }}
+          placeholder="Add a comment… (⌘↵ to post)"
+          autoFocus
+          rows={3}
+          aria-label="Comment text"
+        />
+        <div className="we-link-dialog-actions">
+          <button className="btn-ghost btn-sm" onClick={() => { setShowAddComment(false); setAddCommentInput('') }}>Cancel</button>
+          <button className="btn-primary btn-sm" onClick={handleSubmitComment} disabled={!addCommentInput.trim()}>Comment</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Inline selection toolbar — appears above selected text
+  const selectionToolbarEl = selToolbar && !inSheet && (
+    <div
+      className="we-sel-toolbar"
+      style={{ left: selToolbar.x, top: selToolbar.y }}
+      onMouseDown={e => e.preventDefault()}
+      role="toolbar"
+      aria-label="Text actions"
+    >
+      <button
+        className="we-sel-btn"
+        onClick={handleOpenAddComment}
+        title="Add comment"
+        aria-label="Add comment"
+      >
+        <ChatText size={14} weight="bold" />
+        <span className="we-sel-btn-label">Comment</span>
+      </button>
+      <button
+        className="we-sel-btn"
+        onClick={() => { setLinkInput(editor.getAttributes('link').href ?? ''); setShowLink(true) }}
+        title="Add link"
+        aria-label="Add link"
+      >
+        <LinkIcon size={14} weight="bold" />
+        <span className="we-sel-btn-label">Link</span>
+      </button>
+      <button
+        className="we-sel-btn"
+        onClick={() => { editor.chain().focus().toggleTaskList().run(); setSelToolbar(null) }}
+        title="Turn into checklist"
+        aria-label="Turn into checklist"
+      >
+        <CheckSquare size={14} weight="bold" />
+        <span className="we-sel-btn-label">Checklist</span>
+      </button>
+    </div>
+  )
+
   /* ── Sheet layout (mobile editing bottom sheet) ── */
   if (inSheet) {
     return (
@@ -448,7 +780,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       <div className="we-wrap we-wrap--sheet">
         <div className="doc-sheet-bar">
           <span className="doc-sheet-editing-label">
-            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'unsaved' ? 'Editing' : 'Saved'}
+            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'editing' ? 'Editing…' : 'Saved'}
           </span>
           <div className="doc-sheet-actions">
             <div className="we-export-wrap" ref={exportRef}>
@@ -464,7 +796,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
                 </div>
               )}
             </div>
-            <button className="doc-sheet-btn" onClick={() => { onDelete?.(); onSheetClose?.() }} aria-label="Delete document" title="Delete">
+            <button className="doc-sheet-btn" onClick={() => setShowDeleteConfirm(true)} aria-label="Delete document" title="Delete">
               <TrashSimple size={16} aria-hidden="true" />
             </button>
             <button className="doc-sheet-btn" onClick={onSheetClose} aria-label="Close editor">
@@ -498,6 +830,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     )
       {linkDialog}
       {linkPopoverEl}
+      {addCommentDialog}
+      {deleteConfirmDialog}
       </>
   )
   }
@@ -505,6 +839,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   /* ── Standard desktop / full-screen layout ── */
   return (
     <>
+    <div className="we-editor-shell" ref={editorShellRef}>
     <div className="we-wrap">
       {/* Editor breadcrumb bar */}
       <div className="wr-ed-bar">
@@ -548,7 +883,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           workspaceId={doc.workspace_id}
           onlineUserIds={new Set(remoteUsers.map(u => u.user_id))}
         />
-        <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
+        <div className="wr-saved visible">
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved
         </div>
@@ -573,6 +908,15 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
               </div>
             )}
           </div>
+          <button
+            className={`wr-ed-btn${showCommentPanel ? ' wr-ed-btn--active' : ''}`}
+            onClick={() => setShowCommentPanel(v => !v)}
+            aria-label="Toggle comments"
+            title={`${showCommentPanel ? 'Hide' : 'Show'} comments${comments.length ? ` (${comments.length})` : ''}`}
+          >
+            <ChatText size={15} aria-hidden="true" />
+            {comments.length > 0 && <span className="wr-ed-btn-badge">{comments.length}</span>}
+          </button>
         </div>
       </div>
 
@@ -589,17 +933,17 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         />
         <div className="we-hdr-right">
           <span className={`we-save-status we-save-status--${saveStatus}`}>
-            {saveStatus === 'saved'   && 'Saved'}
+            {saveStatus === 'editing' && 'Editing…'}
             {saveStatus === 'saving'  && 'Saving…'}
-            {saveStatus === 'unsaved' && 'Unsaved'}
+            {saveStatus === 'saved'   && 'Saved'}
           </span>
           <button
             className="btn-ghost we-delete-btn"
-            onClick={onDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             title="Delete document"
             aria-label="Delete document"
           >
-            Delete
+            <TrashSimple size={15} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -626,8 +970,41 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         <span className="wr-meta-sep" aria-hidden="true">·</span>
         <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
       </div>
-    </div>
+    </div>{/* end we-wrap */}
+
+    {showCommentPanel && (
+      <CommentPanel
+        comments={comments}
+        members={members}
+        activeCommentId={activeCommentId}
+        currentUserId={authUser?.id}
+        onResolve={handleResolveComment}
+        onReply={handleAddReply}
+        onClose={() => { setShowCommentPanel(false); setActiveCommentId(null) }}
+      />
+    )}
+    </div>{/* end we-editor-shell */}
+
     {linkDialog}
+    {linkPopoverEl}
+    {addCommentDialog}
+    {deleteConfirmDialog}
+    {selectionToolbarEl}
+    {showDetectPanel && (
+      <DetectTasksPanel
+        initialCandidates={detectCandidates}
+        loading={detectLoading}
+        error={detectError}
+        onRetry={handleDetectTasks}
+        workspaceId={doc.workspace_id}
+        onClose={(action, count) => {
+          setShowDetectPanel(false)
+          setDetectLoading(false)
+          setDetectError(null)
+          if (action === 'added') toast(`${count} task${count !== 1 ? 's' : ''} added to board`)
+        }}
+      />
+    )}
     </>
   )
 }

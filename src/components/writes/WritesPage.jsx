@@ -85,7 +85,8 @@ export default function WritesPage() {
   const [docLoading,  setDocLoading]  = useState(false)
   const [previewDoc,  setPreviewDoc]  = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
-  const [editDoc,     setEditDoc]     = useState(null)
+  const [editDoc,       setEditDoc]       = useState(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showWsPicker,  setShowWsPicker]  = useState(false)
   const wsPickerRef = useRef(null)
@@ -184,17 +185,30 @@ export default function WritesPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!docId) return
-    const title = currentDoc?.title || 'Untitled'
-    try {
-      await deleteDoc(docId)
-      toast.success(`"${title}" deleted`)
-      navigate('/writes', { replace: true })
-      setCurrentDoc(null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete document')
-    }
+    const id = docId
+    const saved = currentDoc
+    const title = saved?.title || 'Untitled'
+
+    navigate('/writes', { replace: true })
+    setCurrentDoc(null)
+    setPendingDeleteId(id)
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      if (cancelled) return
+      setPendingDeleteId(null)
+      try { await deleteDoc(id) }
+      catch (err) { toast.error(err.message || 'Failed to delete document') }
+    }, 4000)
+
+    toast.undo(`"${title}" deleted`, () => {
+      cancelled = true
+      clearTimeout(timer)
+      setPendingDeleteId(null)
+      navigate(`/writes/${id}`, { replace: true })
+    })
   }
 
   const handleSheetSave = async (updates) => {
@@ -204,16 +218,29 @@ export default function WritesPage() {
     setEditDoc(prev => ({ ...prev, ...updates }))
   }
 
-  const handleSheetDelete = async () => {
+  const handleSheetDelete = () => {
     if (!editDoc) return
-    const title = editDoc.title || 'Untitled'
-    try {
-      await deleteDoc(editDoc.id)
-      toast.success(`"${title}" deleted`)
-      setEditDoc(null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete document')
-    }
+    const id = editDoc.id
+    const saved = editDoc
+    const title = saved.title || 'Untitled'
+
+    setEditDoc(null)
+    setPendingDeleteId(id)
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      if (cancelled) return
+      setPendingDeleteId(null)
+      try { await deleteDoc(id) }
+      catch (err) { toast.error(err.message || 'Failed to delete document') }
+    }, 4000)
+
+    toast.undo(`"${title}" deleted`, () => {
+      cancelled = true
+      clearTimeout(timer)
+      setPendingDeleteId(null)
+      setEditDoc(saved)
+    })
   }
 
   const handlePin = async (doc, e) => {
@@ -240,7 +267,8 @@ export default function WritesPage() {
   }
 
   const q = search.trim().toLowerCase()
-  const filtered = q ? docs.filter(d => (d.title || '').toLowerCase().includes(q)) : docs
+  const visible  = pendingDeleteId ? docs.filter(d => d.id !== pendingDeleteId) : docs
+  const filtered = q ? visible.filter(d => (d.title || '').toLowerCase().includes(q)) : visible
   const grouped  = workspaces
     .map(ws => ({
       ws,
