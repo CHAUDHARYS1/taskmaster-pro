@@ -30,6 +30,40 @@ import DetectTasksPanel from './DetectTasksPanel'
 
 const MAX_AVATARS = 4
 
+// Walk the ProseMirror doc tree and emit lines with structural prefixes so
+// detectTasksFromText can score checkbox/bullet/ordered nodes properly.
+function getStructuredText(editor) {
+  if (!editor) return ''
+  const lines = []
+
+  function walk(node, parentType) {
+    const type = node.type.name
+    if (type === 'taskList') {
+      node.forEach(child => walk(child, 'taskList'))
+    } else if (type === 'taskItem') {
+      const mark = node.attrs.checked ? 'x' : ' '
+      lines.push(`- [${mark}] ${node.textContent}`)
+    } else if (type === 'bulletList') {
+      node.forEach(child => walk(child, 'bulletList'))
+    } else if (type === 'orderedList') {
+      node.forEach((child, _offset, idx) => walk(child, `orderedList:${idx + 1}`))
+    } else if (type === 'listItem') {
+      const num = parentType?.startsWith('orderedList:') ? parentType.split(':')[1] : null
+      lines.push(num ? `${num}. ${node.textContent}` : `- ${node.textContent}`)
+    } else if (type === 'blockquote') {
+      node.forEach(child => walk(child, 'blockquote'))
+    } else if (type === 'heading' || type === 'paragraph' || type === 'codeBlock') {
+      const t = node.textContent
+      if (t.trim()) lines.push(t)
+    } else {
+      node.forEach(child => walk(child, parentType))
+    }
+  }
+
+  editor.state.doc.forEach(node => walk(node, null))
+  return lines.join('\n')
+}
+
 function initials(m) {
   const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
   const name = full || m.email?.split('@')[0] || '?'
@@ -880,7 +914,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {selectionToolbarEl}
     {showDetectPanel && (
       <DetectTasksPanel
-        editorText={editor?.state?.doc?.textContent ?? ''}
+        editorText={getStructuredText(editor)}
         workspaceId={doc.workspace_id}
         onClose={(action, count) => {
           setShowDetectPanel(false)
