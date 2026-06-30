@@ -731,7 +731,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           workspaceId={doc.workspace_id}
           onlineUserIds={new Set(remoteUsers.map(u => u.user_id))}
         />
-        <div className={`wr-saved${saveStatus === 'saved' ? ' visible' : ''}`}>
+        <div className="wr-saved visible">
           <CheckCircle size={13} weight="fill" aria-hidden="true" />
           Saved
         </div>
