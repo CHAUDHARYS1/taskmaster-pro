@@ -27,7 +27,7 @@ import { RemoteCursorsExtension } from './RemoteCursorsExtension'
 import { CommentMark } from './CommentMark'
 import CommentPanel from './CommentPanel'
 import DetectTasksPanel from './DetectTasksPanel'
-import { detectTasksFromDoc } from '../../lib/taskDetection'
+import { supabase } from '../../lib/supabase'
 
 const MAX_AVATARS = 4
 
@@ -145,6 +145,8 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [showCommentPanel,  setShowCommentPanel]  = useState(false)
   const [showDetectPanel,   setShowDetectPanel]   = useState(false)
   const [detectCandidates,  setDetectCandidates]  = useState([])
+  const [detectLoading,     setDetectLoading]     = useState(false)
+  const [detectError,       setDetectError]       = useState(null)
   const [activeCommentId,  setActiveCommentId]  = useState(null)
   const [addCommentInput,  setAddCommentInput]  = useState('')
   const [showAddComment,   setShowAddComment]   = useState(false)
@@ -335,6 +337,51 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     schedule({ title: e.target.value.trim() || 'Untitled' })
   }
 
+  // Converts the ProseMirror doc to structured plain text for AI detection
+  function getDocText(pmDoc) {
+    if (!pmDoc) return ''
+    const parts = []
+    pmDoc.forEach(node => {
+      const t = node.type.name
+      if (t === 'heading') {
+        parts.push(`${'#'.repeat(node.attrs.level)} ${node.textContent}`)
+      } else if (t === 'taskList') {
+        node.forEach(child => {
+          const mark = child.attrs?.checked ? '[x]' : '[ ]'
+          parts.push(`- ${mark} ${child.textContent}`)
+        })
+      } else if (t === 'bulletList') {
+        node.forEach(child => parts.push(`- ${child.textContent}`))
+      } else if (t === 'orderedList') {
+        node.forEach((child, _, i) => parts.push(`${i + 1}. ${child.textContent}`))
+      } else if (t === 'blockquote') {
+        parts.push(`> ${node.textContent}`)
+      } else if (node.textContent.trim()) {
+        parts.push(node.textContent)
+      }
+    })
+    return parts.join('\n')
+  }
+
+  const handleDetectTasks = async () => {
+    setShowDetectPanel(true)
+    setDetectLoading(true)
+    setDetectError(null)
+    setDetectCandidates([])
+    try {
+      const text = getDocText(editor?.state?.doc)
+      const { data, error } = await supabase.functions.invoke('detect-tasks', {
+        body: { text },
+      })
+      if (error) throw error
+      setDetectCandidates(data?.tasks ?? [])
+    } catch (err) {
+      setDetectError(err?.message ?? 'Detection failed. Please try again.')
+    } finally {
+      setDetectLoading(false)
+    }
+  }
+
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); editor?.commands.focus() }
   }
@@ -489,11 +536,9 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </Btn>
         <Divider />
         <Btn
-          onClick={() => {
-            setDetectCandidates(detectTasksFromDoc(editor?.state?.doc))
-            setShowDetectPanel(true)
-          }}
+          onClick={handleDetectTasks}
           active={showDetectPanel}
+          disabled={detectLoading}
           label="Detect tasks"
         >
           <Sparkle size={14} />
@@ -889,9 +934,14 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {showDetectPanel && (
       <DetectTasksPanel
         initialCandidates={detectCandidates}
+        loading={detectLoading}
+        error={detectError}
+        onRetry={handleDetectTasks}
         workspaceId={doc.workspace_id}
         onClose={(action, count) => {
           setShowDetectPanel(false)
+          setDetectLoading(false)
+          setDetectError(null)
           if (action === 'added') toast(`${count} task${count !== 1 ? 's' : ''} added to board`)
         }}
       />

@@ -1,31 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, CheckSquare, Square, Question } from '@phosphor-icons/react'
+import { X, CheckSquare, Square, ArrowClockwise } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 
-function confidenceColor(score) {
-  if (score >= 6) return 'var(--green)'
-  if (score >= 4) return 'var(--accent)'
-  return 'var(--ink-4)'
+function SkeletonCard() {
+  return (
+    <div className="dtk-skeleton-card" aria-hidden="true">
+      <div className="dtk-skeleton dtk-skeleton--icon" />
+      <div className="dtk-skeleton-lines">
+        <div className="dtk-skeleton dtk-skeleton--title" />
+        <div className="dtk-skeleton dtk-skeleton--sub" />
+      </div>
+    </div>
+  )
 }
 
-function confidenceLabel(score) {
-  if (score >= 6) return 'High match'
-  if (score >= 4) return 'Likely task'
-  return 'Possible task'
-}
-
-export default function DetectTasksPanel({ initialCandidates, workspaceId, onClose }) {
+export default function DetectTasksPanel({
+  initialCandidates,
+  loading,
+  error,
+  onRetry,
+  workspaceId,
+  onClose,
+}) {
   const [projects, setProjects]               = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
   const [candidates, setCandidates]           = useState([])
   const [selected, setSelected]               = useState(new Set())
-  const [edits, setEdits]                     = useState({}) // index → { text?, dueDate?, description? }
+  const [edits, setEdits]                     = useState({})
   const [projectId, setProjectId]             = useState(null)
   const [adding, setAdding]                   = useState(false)
   const [addError, setAddError]               = useState(null)
   const panelRef = useRef(null)
 
-  // One-time fetch — avoids subscribing to a realtime channel already open elsewhere
   useEffect(() => {
     supabase
       .from('projects')
@@ -40,7 +46,6 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
       })
   }, [workspaceId])
 
-  // Initialize candidates from prop (computed once when panel opens)
   useEffect(() => {
     const list = initialCandidates ?? []
     setCandidates(list)
@@ -63,13 +68,10 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
   const editField = (i, field, value) =>
     setEdits(prev => ({ ...prev, [i]: { ...prev[i], [field]: value } }))
 
-  const getTaskText = (i) => edits[i]?.text         ?? candidates[i]?.text         ?? ''
+  const getTaskText = (i) => edits[i]?.text ?? candidates[i]?.text ?? ''
   const getTaskDate = (i) => edits[i]?.hasOwnProperty('dueDate')
     ? edits[i].dueDate
     : candidates[i]?.suggestedDueDate ?? ''
-  const getTaskDesc = (i) => edits[i]?.hasOwnProperty('description')
-    ? edits[i].description
-    : candidates[i]?.description ?? ''
 
   const selectedCount = [...selected].filter(i => getTaskText(i).trim()).length
 
@@ -84,7 +86,6 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
           workspace_id: workspaceId,
           project_id:   projectId,
           text:         getTaskText(i).trim(),
-          description:  getTaskDesc(i).trim() || null,
           due_date:     getTaskDate(i) || null,
           status:       'toDo',
           position:     -(Date.now() + order),
@@ -100,6 +101,8 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
     }
   }
 
+  const showFooter = !loading && !error && candidates.length > 0
+
   return (
     <>
       <div className="ws-panel-overlay" onClick={() => onClose()} aria-hidden="true" />
@@ -108,22 +111,12 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
         {/* Header */}
         <div className="ws-panel-hdr dtk-hdr">
           <div className="dtk-hdr-title">
-            <span className="dtk-hdr-heading">Detected Tasks</span>
-            {candidates.length > 0 && (
+            <span className="dtk-hdr-heading">Detect Tasks</span>
+            {!loading && !error && candidates.length > 0 && (
               <span className="dtk-badge">{candidates.length}</span>
             )}
           </div>
           <div className="dtk-hdr-actions">
-            <a
-              href="/detect-tasks-help"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ws-panel-close"
-              aria-label="Formatting guide (opens in new tab)"
-              title="Formatting guide"
-            >
-              <Question size={16} />
-            </a>
             <button className="ws-panel-close" onClick={() => onClose()} aria-label="Close panel">
               <X size={16} />
             </button>
@@ -132,16 +125,48 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
 
         {/* Body */}
         <div className="dtk-body">
-          {candidates.length === 0 ? (
+
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="dtk-loading" aria-label="Detecting tasks…">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <p className="dtk-loading-label">AI is reading your document…</p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!loading && error && (
+            <div className="dtk-error-state">
+              <p className="dtk-error-msg">{error}</p>
+              <button className="dtk-retry-btn" onClick={onRetry}>
+                <ArrowClockwise size={14} aria-hidden="true" />
+                Try again
+              </button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && candidates.length === 0 && (
             <div className="dtk-empty">
               <p className="dtk-empty-title">No tasks detected</p>
-              <p className="dtk-empty-sub">Try adding checkboxes, bullet points, or numbered lists. Sentences starting with verbs like "Call", "Schedule", or "Review" are also detected.</p>
+              <p className="dtk-empty-sub">Try writing clear action items — checkboxes, bullet points, numbered lists, or sentences like "Schedule a call with the team by Friday."</p>
+              <button className="dtk-retry-btn dtk-retry-btn--inline" onClick={onRetry}>
+                <ArrowClockwise size={14} aria-hidden="true" />
+                Try again
+              </button>
             </div>
-          ) : (
+          )}
+
+          {/* Candidates */}
+          {!loading && !error && candidates.length > 0 && (
             <>
               <div className="dtk-select-all-row">
                 <button className="dtk-select-all" onClick={toggleAll}>
-                  {selected.size === candidates.length ? <CheckSquare size={14} weight="bold" /> : <Square size={14} />}
+                  {selected.size === candidates.length
+                    ? <CheckSquare size={14} weight="bold" />
+                    : <Square size={14} />}
                   {selected.size === candidates.length ? 'Deselect all' : 'Select all'}
                 </button>
                 <span className="dtk-count">{selected.size} of {candidates.length} selected</span>
@@ -150,7 +175,6 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
               <ul className="dtk-list" role="list">
                 {candidates.map((c, i) => {
                   const isOn = selected.has(i)
-                  const desc = getTaskDesc(i)
                   return (
                     <li key={i} className={`dtk-card${isOn ? ' dtk-card--on' : ''}`} role="listitem">
                       <button
@@ -161,8 +185,7 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
                       >
                         {isOn
                           ? <CheckSquare size={16} weight="bold" style={{ color: 'var(--accent)' }} />
-                          : <Square size={16} style={{ color: 'var(--ink-4)' }} />
-                        }
+                          : <Square size={16} style={{ color: 'var(--ink-4)' }} />}
                       </button>
 
                       <div className="dtk-card-body">
@@ -174,24 +197,7 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
                             aria-label="Task title"
                             disabled={!isOn}
                           />
-                          <span
-                            className="dtk-dot"
-                            style={{ background: confidenceColor(c.confidence) }}
-                            title={confidenceLabel(c.confidence)}
-                            aria-label={confidenceLabel(c.confidence)}
-                          />
                         </div>
-
-                        {isOn && desc !== '' && (
-                          <textarea
-                            className="dtk-desc-input"
-                            value={desc}
-                            onChange={e => editField(i, 'description', e.target.value)}
-                            aria-label="Task description"
-                            rows={2}
-                            placeholder="Description…"
-                          />
-                        )}
 
                         {isOn && (
                           <div className="dtk-date-row">
@@ -223,7 +229,7 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
         </div>
 
         {/* Footer */}
-        {candidates.length > 0 && (
+        {showFooter && (
           <div className="dtk-footer">
             {addError && <p className="dtk-error">{addError}</p>}
 
