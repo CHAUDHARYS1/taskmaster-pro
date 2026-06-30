@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, CheckSquare, Square } from '@phosphor-icons/react'
 import { detectTasksFromText } from '../../lib/taskDetection'
-import { useProjects } from '../../hooks/useProjects'
 import { supabase } from '../../lib/supabase'
 
 function confidenceColor(score) {
@@ -17,7 +16,8 @@ function confidenceLabel(score) {
 }
 
 export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
-  const { projects, loading: projectsLoading } = useProjects(workspaceId)
+  const [projects, setProjects]     = useState([])
+  const [projectsLoading, setProjectsLoading] = useState(true)
   const [candidates, setCandidates] = useState([])
   const [selected, setSelected]     = useState(new Set())
   const [edits, setEdits]           = useState({}) // index → { text, dueDate }
@@ -26,17 +26,27 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
   const [addError, setAddError]     = useState(null)
   const panelRef = useRef(null)
 
+  // One-time fetch — avoids subscribing to a realtime channel already open elsewhere
+  useEffect(() => {
+    supabase
+      .from('projects')
+      .select('id, name')
+      .eq('workspace_id', workspaceId)
+      .order('position', { ascending: true })
+      .then(({ data }) => {
+        const list = data ?? []
+        setProjects(list)
+        if (list.length > 0) setProjectId(list[0].id)
+        setProjectsLoading(false)
+      })
+  }, [workspaceId])
+
   // Run detection once on mount
   useEffect(() => {
     const results = detectTasksFromText(editorText)
     setCandidates(results)
     setSelected(new Set(results.map((_, i) => i)))
   }, [editorText])
-
-  // Default to first project once loaded
-  useEffect(() => {
-    if (!projectId && projects.length > 0) setProjectId(projects[0].id)
-  }, [projects, projectId])
 
   const toggleAll = () => {
     if (selected.size === candidates.length) setSelected(new Set())
