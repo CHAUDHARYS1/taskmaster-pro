@@ -340,11 +340,27 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   // Converts the ProseMirror doc to structured plain text for AI detection
   function getDocText(pmDoc) {
     if (!pmDoc) return ''
+
+    // Detect paragraphs where every text node carries the bold mark — treat as a title
+    function isAllBold(node) {
+      let bold = true, hasText = false
+      node.descendants(child => {
+        if (child.isText) {
+          hasText = true
+          if (!child.marks.some(m => m.type.name === 'bold')) bold = false
+        }
+      })
+      return hasText && bold
+    }
+
     const parts = []
     pmDoc.forEach(node => {
       const t = node.type.name
       if (t === 'heading') {
         parts.push(`${'#'.repeat(node.attrs.level)} ${node.textContent}`)
+      } else if (t === 'paragraph') {
+        const text = node.textContent.trim()
+        if (text) parts.push(isAllBold(node) ? `**${text}**` : text)
       } else if (t === 'taskList') {
         node.forEach(child => {
           const mark = child.attrs?.checked ? '[x]' : '[ ]'
