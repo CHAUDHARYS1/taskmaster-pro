@@ -4238,6 +4238,15 @@ a:focus-visible,
   flex-direction: column;
   cursor: text;
 }
+html[data-theme="dark"] .we-doc-hdr,
+html[data-theme="dark"] .we-toolbar,
+html[data-theme="dark"] .we-content,
+html[data-theme="dark"] .wr-list {
+  background: transparent;
+}
+html[data-theme="dark"] .we-content {
+  border-color: transparent;
+}
 
 /* Prose styles inside the editor */
 .we-content .tiptap {
