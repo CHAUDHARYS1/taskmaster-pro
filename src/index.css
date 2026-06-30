@@ -4241,11 +4241,18 @@ a:focus-visible,
 html[data-theme="dark"] .we-doc-hdr,
 html[data-theme="dark"] .we-toolbar,
 html[data-theme="dark"] .we-content,
-html[data-theme="dark"] .wr-list {
+html[data-theme="dark"] .wr-list,
+html[data-theme="dark"] .wr-ed-bar {
   background: transparent;
 }
 html[data-theme="dark"] .we-content {
   border-color: transparent;
+}
+html[data-theme="dark"] .wr-note {
+  background: transparent;
+}
+html[data-theme="dark"] .wr-note:hover {
+  background: var(--surface);
 }
 
 /* Prose styles inside the editor */
