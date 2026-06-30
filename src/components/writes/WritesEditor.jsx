@@ -1,11 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Collaboration from '@tiptap/extension-collaboration'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+
+// High-priority keymap so Tab/Shift-Tab inside a task list is handled before
+// StarterKit's ListItem handler gets a chance to swallow the event.
+const TaskListIndentKeymap = Extension.create({
+  name: 'taskListIndentKeymap',
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        if (!this.editor.isActive('taskList')) return false
+        return this.editor.commands.sinkListItem('taskItem')
+      },
+      'Shift-Tab': () => {
+        if (!this.editor.isActive('taskList')) return false
+        return this.editor.commands.liftListItem('taskItem')
+      },
+    }
+  },
+})
 import {
   TextB, TextItalic, TextUnderline, TextStrikethrough,
   ListBullets, ListNumbers, CheckSquare,
@@ -272,6 +292,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      TaskListIndentKeymap,
       CommentMark,
       RemoteCursorsExtension,
     ],
