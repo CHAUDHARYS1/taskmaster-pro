@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, CheckSquare, Square } from '@phosphor-icons/react'
-import { detectTasksFromText } from '../../lib/taskDetection'
 import { supabase } from '../../lib/supabase'
 
 function confidenceColor(score) {
@@ -15,15 +14,15 @@ function confidenceLabel(score) {
   return 'Possible task'
 }
 
-export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
-  const [projects, setProjects]     = useState([])
+export default function DetectTasksPanel({ initialCandidates, workspaceId, onClose }) {
+  const [projects, setProjects]               = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
-  const [candidates, setCandidates] = useState([])
-  const [selected, setSelected]     = useState(new Set())
-  const [edits, setEdits]           = useState({}) // index → { text, dueDate }
-  const [projectId, setProjectId]   = useState(null)
-  const [adding, setAdding]         = useState(false)
-  const [addError, setAddError]     = useState(null)
+  const [candidates, setCandidates]           = useState([])
+  const [selected, setSelected]               = useState(new Set())
+  const [edits, setEdits]                     = useState({}) // index → { text?, dueDate?, description? }
+  const [projectId, setProjectId]             = useState(null)
+  const [adding, setAdding]                   = useState(false)
+  const [addError, setAddError]               = useState(null)
   const panelRef = useRef(null)
 
   // One-time fetch — avoids subscribing to a realtime channel already open elsewhere
@@ -41,12 +40,13 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
       })
   }, [workspaceId])
 
-  // Run detection once on mount
+  // Initialize candidates from prop (computed once when panel opens)
   useEffect(() => {
-    const results = detectTasksFromText(editorText)
-    setCandidates(results)
-    setSelected(new Set(results.map((_, i) => i)))
-  }, [editorText])
+    const list = initialCandidates ?? []
+    setCandidates(list)
+    setSelected(new Set(list.map((_, i) => i)))
+    setEdits({})
+  }, [initialCandidates])
 
   const toggleAll = () => {
     if (selected.size === candidates.length) setSelected(new Set())
@@ -60,17 +60,16 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
     setSelected(next)
   }
 
-  const editText = (i, text) =>
-    setEdits(prev => ({ ...prev, [i]: { ...prev[i], text } }))
+  const editField = (i, field, value) =>
+    setEdits(prev => ({ ...prev, [i]: { ...prev[i], [field]: value } }))
 
-  const editDate = (i, dueDate) =>
-    setEdits(prev => ({ ...prev, [i]: { ...prev[i], dueDate } }))
-
-  const getTaskText = (i) => edits[i]?.text ?? candidates[i]?.text ?? ''
-  const getTaskDate = (i) =>
-    edits[i]?.hasOwnProperty('dueDate')
-      ? edits[i].dueDate
-      : candidates[i]?.suggestedDueDate ?? ''
+  const getTaskText = (i) => edits[i]?.text         ?? candidates[i]?.text         ?? ''
+  const getTaskDate = (i) => edits[i]?.hasOwnProperty('dueDate')
+    ? edits[i].dueDate
+    : candidates[i]?.suggestedDueDate ?? ''
+  const getTaskDesc = (i) => edits[i]?.hasOwnProperty('description')
+    ? edits[i].description
+    : candidates[i]?.description ?? ''
 
   const selectedCount = [...selected].filter(i => getTaskText(i).trim()).length
 
@@ -85,6 +84,7 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
           workspace_id: workspaceId,
           project_id:   projectId,
           text:         getTaskText(i).trim(),
+          description:  getTaskDesc(i).trim() || null,
           due_date:     getTaskDate(i) || null,
           status:       'toDo',
           position:     -(Date.now() + order),
@@ -123,7 +123,7 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
           {candidates.length === 0 ? (
             <div className="dtk-empty">
               <p className="dtk-empty-title">No tasks detected</p>
-              <p className="dtk-empty-sub">Try adding action items, checklists, or sentences starting with verbs like "Call", "Schedule", or "Review".</p>
+              <p className="dtk-empty-sub">Try adding checkboxes, bullet points, or numbered lists. Sentences starting with verbs like "Call", "Schedule", or "Review" are also detected.</p>
             </div>
           ) : (
             <>
@@ -138,6 +138,7 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
               <ul className="dtk-list" role="list">
                 {candidates.map((c, i) => {
                   const isOn = selected.has(i)
+                  const desc = getTaskDesc(i)
                   return (
                     <li key={i} className={`dtk-card${isOn ? ' dtk-card--on' : ''}`} role="listitem">
                       <button
@@ -157,8 +158,8 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
                           <input
                             className="dtk-task-input"
                             value={getTaskText(i)}
-                            onChange={e => editText(i, e.target.value)}
-                            aria-label="Task text"
+                            onChange={e => editField(i, 'text', e.target.value)}
+                            aria-label="Task title"
                             disabled={!isOn}
                           />
                           <span
@@ -168,6 +169,18 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
                             aria-label={confidenceLabel(c.confidence)}
                           />
                         </div>
+
+                        {isOn && desc !== '' && (
+                          <textarea
+                            className="dtk-desc-input"
+                            value={desc}
+                            onChange={e => editField(i, 'description', e.target.value)}
+                            aria-label="Task description"
+                            rows={2}
+                            placeholder="Description…"
+                          />
+                        )}
+
                         {isOn && (
                           <div className="dtk-date-row">
                             <label className="dtk-date-label" htmlFor={`dtk-date-${i}`}>Due date</label>
@@ -176,13 +189,13 @@ export default function DetectTasksPanel({ editorText, workspaceId, onClose }) {
                               className="dtk-date-input"
                               type="date"
                               value={getTaskDate(i)}
-                              onChange={e => editDate(i, e.target.value)}
+                              onChange={e => editField(i, 'dueDate', e.target.value)}
                               aria-label="Due date"
                             />
                             {getTaskDate(i) && (
                               <button
                                 className="dtk-date-clear"
-                                onClick={() => editDate(i, '')}
+                                onClick={() => editField(i, 'dueDate', '')}
                                 aria-label="Clear date"
                               >×</button>
                             )}

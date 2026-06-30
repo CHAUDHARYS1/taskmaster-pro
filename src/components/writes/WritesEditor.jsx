@@ -27,42 +27,12 @@ import { RemoteCursorsExtension } from './RemoteCursorsExtension'
 import { CommentMark } from './CommentMark'
 import CommentPanel from './CommentPanel'
 import DetectTasksPanel from './DetectTasksPanel'
+import { detectTasksFromDoc } from '../../lib/taskDetection'
 
 const MAX_AVATARS = 4
 
 // Walk the ProseMirror doc tree and emit lines with structural prefixes so
 // detectTasksFromText can score checkbox/bullet/ordered nodes properly.
-function getStructuredText(editor) {
-  if (!editor) return ''
-  const lines = []
-
-  function walk(node, parentType) {
-    const type = node.type.name
-    if (type === 'taskList') {
-      node.forEach(child => walk(child, 'taskList'))
-    } else if (type === 'taskItem') {
-      const mark = node.attrs.checked ? 'x' : ' '
-      lines.push(`- [${mark}] ${node.textContent}`)
-    } else if (type === 'bulletList') {
-      node.forEach(child => walk(child, 'bulletList'))
-    } else if (type === 'orderedList') {
-      node.forEach((child, _offset, idx) => walk(child, `orderedList:${idx + 1}`))
-    } else if (type === 'listItem') {
-      const num = parentType?.startsWith('orderedList:') ? parentType.split(':')[1] : null
-      lines.push(num ? `${num}. ${node.textContent}` : `- ${node.textContent}`)
-    } else if (type === 'blockquote') {
-      node.forEach(child => walk(child, 'blockquote'))
-    } else if (type === 'heading' || type === 'paragraph' || type === 'codeBlock') {
-      const t = node.textContent
-      if (t.trim()) lines.push(t)
-    } else {
-      node.forEach(child => walk(child, parentType))
-    }
-  }
-
-  editor.state.doc.forEach(node => walk(node, null))
-  return lines.join('\n')
-}
 
 function initials(m) {
   const full = [m.first_name, m.last_name].filter(Boolean).join(' ')
@@ -174,6 +144,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showCommentPanel,  setShowCommentPanel]  = useState(false)
   const [showDetectPanel,   setShowDetectPanel]   = useState(false)
+  const [detectCandidates,  setDetectCandidates]  = useState([])
   const [activeCommentId,  setActiveCommentId]  = useState(null)
   const [addCommentInput,  setAddCommentInput]  = useState('')
   const [showAddComment,   setShowAddComment]   = useState(false)
@@ -518,7 +489,10 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         </Btn>
         <Divider />
         <Btn
-          onClick={() => setShowDetectPanel(true)}
+          onClick={() => {
+            setDetectCandidates(detectTasksFromDoc(editor?.state?.doc))
+            setShowDetectPanel(true)
+          }}
           active={showDetectPanel}
           label="Detect tasks"
         >
@@ -914,7 +888,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {selectionToolbarEl}
     {showDetectPanel && (
       <DetectTasksPanel
-        editorText={getStructuredText(editor)}
+        initialCandidates={detectCandidates}
         workspaceId={doc.workspace_id}
         onClose={(action, count) => {
           setShowDetectPanel(false)

@@ -115,3 +115,127 @@ function toDateString(date) {
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
+
+// Score a single list item given its type prefix, return candidate or null
+function scoreListItem(itemText, prefix) {
+  if (!itemText) return null
+  const { score, dueDate } = scoreLine(`${prefix}${itemText}`)
+  if (score < 3) return null
+  return {
+    text: itemText,
+    description: null,
+    suggestedDueDate: dueDate ? toDateString(dueDate) : null,
+    confidence: score,
+  }
+}
+
+// Flush accumulated paragraphs as prose task candidates
+function flushProse(paragraphs, candidates) {
+  for (const text of paragraphs) {
+    const sentences = splitSentences(text)
+    const units = sentences.length > 0 ? sentences : [text]
+    for (const sentence of units) {
+      const { score, dueDate } = scoreLine(sentence)
+      if (score >= 3) {
+        candidates.push({
+          text: sentence.trim(),
+          description: null,
+          suggestedDueDate: dueDate ? toDateString(dueDate) : null,
+          confidence: score,
+        })
+      }
+    }
+  }
+}
+
+/**
+ * Walk a ProseMirror document and return task candidates.
+ * Paragraphs that appear between a heading and a list are attached as
+ * `description` on each list item rather than detected as standalone tasks.
+ *
+ * @param {import('@tiptap/pm/model').Node} pmDoc
+ * @returns {{ text: string, description: string|null, suggestedDueDate: string|null, confidence: number }[]}
+ */
+export function detectTasksFromDoc(pmDoc) {
+  if (!pmDoc) return []
+  const candidates = []
+  let descBuf = []       // paragraphs since last heading / reset
+  let lastWasList = false
+
+  function processTaskList(node) {
+    const description = descBuf.length > 0 ? descBuf.join('\n') : null
+    node.forEach(child => {
+      // child = taskItem
+      const text = child.textContent.trim()
+      if (!text) return
+      const mark = child.attrs?.checked ? 'x' : ' '
+      const c = scoreListItem(text, `- [${mark}] `)
+      // taskItems always qualify (structural rule guarantees score ≥ 3)
+      candidates.push(c ?? { text, description: null, suggestedDueDate: null, confidence: 3 })
+      if (c) c.description = description
+    })
+  }
+
+  function processGenericList(node, getPrefix) {
+    const description = descBuf.length > 0 ? descBuf.join('\n') : null
+    node.forEach((child, _offset, idx) => {
+      const text = child.textContent.trim()
+      if (!text) return
+      const c = scoreListItem(text, getPrefix(idx))
+      if (c) {
+        c.description = description
+        candidates.push(c)
+      }
+    })
+  }
+
+  pmDoc.forEach(node => {
+    const type = node.type.name
+
+    if (type === 'heading') {
+      // Paragraphs before this heading weren't followed by a list — score as prose
+      if (!lastWasList) flushProse(descBuf, candidates)
+      descBuf = []
+      lastWasList = false
+      return
+    }
+
+    if (type === 'paragraph') {
+      const text = node.textContent.trim()
+      if (text) descBuf.push(text)
+      lastWasList = false
+      return
+    }
+
+    if (type === 'taskList') {
+      processTaskList(node)
+      descBuf = []
+      lastWasList = true
+      return
+    }
+
+    if (type === 'bulletList') {
+      processGenericList(node, () => '- ')
+      descBuf = []
+      lastWasList = true
+      return
+    }
+
+    if (type === 'orderedList') {
+      processGenericList(node, idx => `${idx + 1}. `)
+      descBuf = []
+      lastWasList = true
+      return
+    }
+
+    // Any other block (blockquote, codeBlock, etc.) — flush paragraphs as prose, reset
+    if (!lastWasList) flushProse(descBuf, candidates)
+    descBuf = []
+    lastWasList = false
+  })
+
+  // Flush any trailing paragraphs
+  if (!lastWasList) flushProse(descBuf, candidates)
+
+  return candidates
+}
