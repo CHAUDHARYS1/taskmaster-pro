@@ -206,31 +206,34 @@ export default function DetectTasksHelpPage() {
             {/* ── Grouping ── */}
             <section className="dth-section">
               <div className="dth-rule-badge dth-rule-badge--teal">Grouping</div>
-              <h2 className="dth-section-title">Heading + description + list = one task</h2>
+              <h2 className="dth-section-title">Heading + list = one task</h2>
               <p className="dth-section-intro">
-                When a paragraph sits between a heading and a list, it's attached as the task's <strong>description</strong> — not counted as a separate task. The description appears as an editable field in the panel and is written to the task card when you add it to the board.
+                When a list appears directly under a heading, the entire group is detected as <strong>one task</strong> — the heading becomes the task title. Any paragraph between the heading and the list becomes the task's description. This prevents a checklist of 10 sub-items from creating 10 board tasks.
               </p>
               <div className="dth-group-example">
                 <div className="dth-group-row dth-group-row--heading">
-                  <span className="dth-group-tag">Heading</span>
+                  <span className="dth-group-tag">Title</span>
                   <span className="dth-group-text">## Fix the login bug</span>
                 </div>
                 <div className="dth-group-row dth-group-row--desc">
                   <span className="dth-group-tag">Description</span>
-                  <span className="dth-group-text">Safari users can't sign in since the last deploy. Affects about 30% of logins.</span>
+                  <span className="dth-group-text">Safari users can't sign in since the last deploy.</span>
                 </div>
                 <div className="dth-group-row dth-group-row--list">
-                  <span className="dth-group-tag">Task 1</span>
-                  <span className="dth-group-text">☐ Debug the Safari-specific auth error</span>
+                  <span className="dth-group-tag">Sub-item</span>
+                  <span className="dth-group-text">☐ Debug the auth error</span>
                 </div>
                 <div className="dth-group-row dth-group-row--list">
-                  <span className="dth-group-tag">Task 2</span>
-                  <span className="dth-group-text">☐ Test on iPhone and iPad before release</span>
+                  <span className="dth-group-tag">Sub-item</span>
+                  <span className="dth-group-text">☐ Test on iPhone and iPad</span>
                 </div>
                 <div className="dth-group-arrow">
-                  Both tasks inherit the paragraph as their description.
+                  → 1 task detected: "Fix the login bug" with description from the paragraph.
                 </div>
               </div>
+              <p className="dth-section-intro" style={{ marginTop: 'var(--space-4)', marginBottom: 0 }}>
+                Lists with <strong>no heading above them</strong> are still detected as individual tasks — one per item.
+              </p>
             </section>
 
             {/* ── Tips ── */}
@@ -241,8 +244,9 @@ export default function DetectTasksHelpPage() {
                 <li><strong>Checked items are still detected.</strong> Deselect them in the panel if you don't want to re-add completed work.</li>
                 <li><strong>Prose sentences need at least 2 signals</strong> (e.g., action verb + keyword) to hit the threshold. A sentence like "The meeting is at 3pm" won't be detected.</li>
                 <li><strong>Blockquotes and code blocks are ignored</strong> — only headings, paragraphs, and list items are scored.</li>
-                <li><strong>Multiple paragraphs before a list</strong> are joined and used as a shared description for every item in that list.</li>
-                <li><strong>A new heading resets the description context.</strong> Paragraphs under the next heading start fresh.</li>
+                <li><strong>Heading + list = 1 task.</strong> All checkboxes under a heading collapse into one board card using the heading as the title. Use headings to avoid clutter when you have many sub-items.</li>
+                <li><strong>No heading above a list?</strong> Each item is its own task. Good for loose action lists that aren't part of a named task.</li>
+                <li><strong>A new heading resets the context.</strong> Each heading + its following list produces one task independently.</li>
               </ul>
             </section>
 

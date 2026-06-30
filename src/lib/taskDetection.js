@@ -150,8 +150,11 @@ function flushProse(paragraphs, candidates) {
 
 /**
  * Walk a ProseMirror document and return task candidates.
- * Paragraphs that appear between a heading and a list are attached as
- * `description` on each list item rather than detected as standalone tasks.
+ *
+ * Grouping rules:
+ *  - List under a heading → 1 task (heading = title, preceding paragraphs = description)
+ *  - List with no heading → 1 task per item (standalone behavior)
+ *  - Paragraphs not followed by a list → scored as prose tasks
  *
  * @param {import('@tiptap/pm/model').Node} pmDoc
  * @returns {{ text: string, description: string|null, suggestedDueDate: string|null, confidence: number }[]}
@@ -159,24 +162,41 @@ function flushProse(paragraphs, candidates) {
 export function detectTasksFromDoc(pmDoc) {
   if (!pmDoc) return []
   const candidates = []
-  let descBuf = []       // paragraphs since last heading / reset
+  let currentHeading = null  // heading text waiting for a list to group under it
+  let descBuf = []           // paragraphs since last heading / reset
   let lastWasList = false
 
-  function processTaskList(node) {
-    const description = descBuf.length > 0 ? descBuf.join('\n') : null
-    node.forEach(child => {
-      // child = taskItem
-      const text = child.textContent.trim()
-      if (!text) return
-      const mark = child.attrs?.checked ? 'x' : ' '
-      const c = scoreListItem(text, `- [${mark}] `)
-      // taskItems always qualify (structural rule guarantees score ≥ 3)
-      candidates.push(c ?? { text, description: null, suggestedDueDate: null, confidence: 3 })
-      if (c) c.description = description
+  // Emit 1 grouped task from a heading + optional description + list
+  function emitGroupedTask(headingText, paragraphs, listNode) {
+    const description = paragraphs.length > 0 ? paragraphs.join('\n') : null
+
+    // Scan list items for the first parseable date
+    let dueDate = null
+    listNode.forEach(child => {
+      if (dueDate) return
+      const parsed = chronoParse(child.textContent, new Date(), { forwardDate: true })
+      if (parsed.length > 0) dueDate = parsed[0].date()
+    })
+    // Fall back to date in the heading itself
+    if (!dueDate) {
+      const h = scoreLine(headingText)
+      if (h.dueDate) dueDate = h.dueDate
+    }
+
+    let confidence = 4
+    if (description) confidence += 1
+    if (dueDate)     confidence += 1
+
+    candidates.push({
+      text: headingText,
+      description,
+      suggestedDueDate: dueDate ? toDateString(dueDate) : null,
+      confidence,
     })
   }
 
-  function processGenericList(node, getPrefix) {
+  // Emit 1 task per item in a standalone list (no heading context)
+  function emitStandaloneList(node, getPrefix) {
     const description = descBuf.length > 0 ? descBuf.join('\n') : null
     node.forEach((child, _offset, idx) => {
       const text = child.textContent.trim()
@@ -189,12 +209,31 @@ export function detectTasksFromDoc(pmDoc) {
     })
   }
 
+  // taskItem always qualifies structurally — never filter by score
+  function emitStandaloneTaskList(node) {
+    const description = descBuf.length > 0 ? descBuf.join('\n') : null
+    node.forEach(child => {
+      const text = child.textContent.trim()
+      if (!text) return
+      const mark = child.attrs?.checked ? 'x' : ' '
+      const c = scoreListItem(text, `- [${mark}] `)
+      candidates.push(c ?? { text, description: null, suggestedDueDate: null, confidence: 3 })
+      if (c) c.description = description
+    })
+  }
+
+  function flushHeadingOrProse() {
+    // Paragraphs that accumulated without a following list → prose scoring
+    if (!lastWasList) flushProse(descBuf, candidates)
+  }
+
   pmDoc.forEach(node => {
     const type = node.type.name
 
     if (type === 'heading') {
-      // Paragraphs before this heading weren't followed by a list — score as prose
-      if (!lastWasList) flushProse(descBuf, candidates)
+      // Heading change before any list consumed the previous heading's paragraphs
+      flushHeadingOrProse()
+      currentHeading = node.textContent.trim()
       descBuf = []
       lastWasList = false
       return
@@ -207,35 +246,32 @@ export function detectTasksFromDoc(pmDoc) {
       return
     }
 
-    if (type === 'taskList') {
-      processTaskList(node)
+    const isList = type === 'taskList' || type === 'bulletList' || type === 'orderedList'
+    if (isList) {
+      if (currentHeading) {
+        emitGroupedTask(currentHeading, descBuf, node)
+        currentHeading = null
+      } else if (type === 'taskList') {
+        emitStandaloneTaskList(node)
+      } else if (type === 'bulletList') {
+        emitStandaloneList(node, () => '- ')
+      } else {
+        emitStandaloneList(node, idx => `${idx + 1}. `)
+      }
       descBuf = []
       lastWasList = true
       return
     }
 
-    if (type === 'bulletList') {
-      processGenericList(node, () => '- ')
-      descBuf = []
-      lastWasList = true
-      return
-    }
-
-    if (type === 'orderedList') {
-      processGenericList(node, idx => `${idx + 1}. `)
-      descBuf = []
-      lastWasList = true
-      return
-    }
-
-    // Any other block (blockquote, codeBlock, etc.) — flush paragraphs as prose, reset
-    if (!lastWasList) flushProse(descBuf, candidates)
+    // Any other block (blockquote, codeBlock, hr) — flush and reset
+    flushHeadingOrProse()
+    currentHeading = null
     descBuf = []
     lastWasList = false
   })
 
-  // Flush any trailing paragraphs
-  if (!lastWasList) flushProse(descBuf, candidates)
+  // Trailing paragraphs / heading with no list
+  flushHeadingOrProse()
 
   return candidates
 }
