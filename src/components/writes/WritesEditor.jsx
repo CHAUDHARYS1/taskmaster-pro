@@ -141,7 +141,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [activeCommentId,  setActiveCommentId]  = useState(null)
   const [addCommentInput,  setAddCommentInput]  = useState('')
   const [showAddComment,   setShowAddComment]   = useState(false)
-  const [addCommentPos,    setAddCommentPos]    = useState(null) // { y } for floating btn
+  const [selToolbar,       setSelToolbar]       = useState(null) // { x, y } above selection
   const pendingSelectionRef = useRef(null) // { from, to, text } saved before dialog opens
 
   const saveTimer       = useRef(null)
@@ -362,20 +362,23 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     return () => editor.off('selectionUpdate', update)
   }, [editor])
 
-  // Track selection for floating add-comment button; detect active comment mark
+  // Selection toolbar + active comment detection
   useEffect(() => {
     if (!editor) return
     const update = () => {
-      const { from, to, empty } = editor.state.selection
+      const { empty } = editor.state.selection
 
-      // Floating add-comment button — show when text is selected
-      if (!empty && !showAddComment) {
-        try {
-          const coords = editor.view.coordsAtPos(from)
-          setAddCommentPos({ y: coords.top })
-        } catch { setAddCommentPos(null) }
-      } else if (empty) {
-        setAddCommentPos(null)
+      // Floating selection toolbar
+      if (!empty && !showAddComment && !showLink) {
+        const winSel = window.getSelection()
+        if (winSel && winSel.rangeCount > 0) {
+          const rect = winSel.getRangeAt(0).getBoundingClientRect()
+          if (rect.width > 0) {
+            setSelToolbar({ x: rect.left + rect.width / 2, y: rect.top })
+          }
+        }
+      } else {
+        setSelToolbar(null)
       }
 
       // Detect cursor inside a comment mark
@@ -388,9 +391,11 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
         setActiveCommentId(null)
       }
     }
+    const hide = () => setSelToolbar(null)
     editor.on('selectionUpdate', update)
-    return () => editor.off('selectionUpdate', update)
-  }, [editor, showAddComment])
+    editor.on('blur', hide)
+    return () => { editor.off('selectionUpdate', update); editor.off('blur', hide) }
+  }, [editor, showAddComment, showLink])
 
   // Comment handlers
   const handleOpenAddComment = () => {
@@ -607,18 +612,43 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     </div>
   )
 
-  // Floating add-comment button — appears in the right margin when text is selected
-  const floatingCommentBtn = addCommentPos && !showAddComment && !inSheet && (
-    <button
-      className="wc-float-btn"
-      style={{ top: addCommentPos.y }}
+  // Inline selection toolbar — appears above selected text
+  const selectionToolbarEl = selToolbar && !inSheet && (
+    <div
+      className="we-sel-toolbar"
+      style={{ left: selToolbar.x, top: selToolbar.y }}
       onMouseDown={e => e.preventDefault()}
-      onClick={handleOpenAddComment}
-      aria-label="Add comment"
-      title="Add comment"
+      role="toolbar"
+      aria-label="Text actions"
     >
-      <ChatText size={15} weight="bold" />
-    </button>
+      <button
+        className="we-sel-btn"
+        onClick={handleOpenAddComment}
+        title="Add comment"
+        aria-label="Add comment"
+      >
+        <ChatText size={14} weight="bold" />
+        <span className="we-sel-btn-label">Comment</span>
+      </button>
+      <button
+        className="we-sel-btn"
+        onClick={() => { setLinkInput(editor.getAttributes('link').href ?? ''); setShowLink(true) }}
+        title="Add link"
+        aria-label="Add link"
+      >
+        <LinkIcon size={14} weight="bold" />
+        <span className="we-sel-btn-label">Link</span>
+      </button>
+      <button
+        className="we-sel-btn"
+        onClick={() => { editor.chain().focus().toggleTaskList().run(); setSelToolbar(null) }}
+        title="Turn into checklist"
+        aria-label="Turn into checklist"
+      >
+        <CheckSquare size={14} weight="bold" />
+        <span className="we-sel-btn-label">Checklist</span>
+      </button>
+    </div>
   )
 
   /* ── Sheet layout (mobile editing bottom sheet) ── */
@@ -837,7 +867,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {linkPopoverEl}
     {addCommentDialog}
     {deleteConfirmDialog}
-    {floatingCommentBtn}
+    {selectionToolbarEl}
     </>
   )
 }
