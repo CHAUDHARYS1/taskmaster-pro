@@ -12,7 +12,7 @@ import {
   TextIndent, TextOutdent,
   Quotes, Minus, Link as LinkIcon, LinkBreak,
   TextHOne, TextHTwo, TextHThree,
-  Export, CheckCircle, CaretDown, TrashSimple, X, ChatText,
+  Export, CheckCircle, CaretDown, TrashSimple, X, ChatText, Sparkle,
 } from '@phosphor-icons/react'
 import { fmtDate } from '../../utils/format'
 import { useToast } from '../../contexts/ToastContext'
@@ -26,6 +26,7 @@ import { useDocComments } from '../../hooks/useDocComments'
 import { RemoteCursorsExtension } from './RemoteCursorsExtension'
 import { CommentMark } from './CommentMark'
 import CommentPanel from './CommentPanel'
+import DetectTasksPanel from './DetectTasksPanel'
 
 const MAX_AVATARS = 4
 
@@ -138,6 +139,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
   const [showWsPick,        setShowWsPick]        = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showCommentPanel,  setShowCommentPanel]  = useState(false)
+  const [showDetectPanel,   setShowDetectPanel]   = useState(false)
   const [activeCommentId,  setActiveCommentId]  = useState(null)
   const [addCommentInput,  setAddCommentInput]  = useState('')
   const [showAddComment,   setShowAddComment]   = useState(false)
@@ -479,6 +481,14 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
           label="Add comment"
         >
           <ChatText size={14} />
+        </Btn>
+        <Divider />
+        <Btn
+          onClick={() => setShowDetectPanel(true)}
+          active={showDetectPanel}
+          label="Detect tasks"
+        >
+          <Sparkle size={14} />
         </Btn>
       </div>
     </>
@@ -868,6 +878,16 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
     {addCommentDialog}
     {deleteConfirmDialog}
     {selectionToolbarEl}
+    {showDetectPanel && (
+      <DetectTasksPanel
+        editorText={editor?.getText() ?? ''}
+        workspaceId={doc.workspace_id}
+        onClose={(action, count) => {
+          setShowDetectPanel(false)
+          if (action === 'added') toast(`${count} task${count !== 1 ? 's' : ''} added to board`)
+        }}
+      />
+    )}
     </>
   )
 }

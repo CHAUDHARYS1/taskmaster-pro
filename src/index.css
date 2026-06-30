@@ -17052,3 +17052,281 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   from { opacity: 0; transform: translateY(30px) }
   to   { opacity: 1; transform: translateY(0) }
 }
+
+/* ── Detect Tasks Panel ──────────────────────────────── */
+
+.dtk-panel {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.dtk-hdr {
+  gap: var(--space-3);
+}
+
+.dtk-hdr-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.dtk-hdr-heading {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.dtk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+}
+
+.dtk-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dtk-select-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dtk-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.dtk-select-all:hover { text-decoration: underline; }
+.dtk-select-all:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.dtk-count {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+}
+
+.dtk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dtk-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  transition: border-color 0.12s, background 0.12s;
+  opacity: 0.55;
+}
+
+.dtk-card--on {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.dtk-checkbox {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ink-3);
+}
+.dtk-checkbox:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.dtk-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dtk-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dtk-task-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  padding: 0;
+  outline: none;
+}
+.dtk-task-input:focus { color: var(--ink); }
+.dtk-task-input:disabled { color: var(--ink-4); cursor: not-allowed; }
+
+.dtk-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dtk-date-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dtk-date-label {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+
+.dtk-date-input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
+  padding: 2px 6px;
+  outline: none;
+}
+.dtk-date-input:focus { border-color: var(--accent); }
+
+.dtk-date-clear {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+.dtk-date-clear:hover { color: var(--ink); background: var(--paper-2); }
+
+.dtk-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.dtk-empty-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.dtk-empty-sub {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  margin: 0;
+  max-width: 280px;
+}
+
+.dtk-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dtk-error {
+  font-size: var(--text-xs);
+  color: var(--red);
+  margin: 0;
+}
+
+.dtk-footer-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dtk-project-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.dtk-project-label {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.dtk-project-select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
+  padding: 4px 6px;
+  outline: none;
+  cursor: pointer;
+}
+.dtk-project-select:focus { border-color: var(--accent); }
+
+.dtk-project-loading {
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+}
+
+.dtk-add-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Detect Tasks Panel dark-mode overrides */
+html[data-theme="dark"] .dtk-task-input:focus { color: var(--ink); }
+html[data-theme="dark"] .dtk-date-input,
+html[data-theme="dark"] .dtk-project-select { background: var(--surface); border-color: rgba(255,255,255,0.1); }
