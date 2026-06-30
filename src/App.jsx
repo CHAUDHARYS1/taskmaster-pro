@@ -25,7 +25,8 @@ const DashboardPage   = lazy(() => import('./components/dashboard/DashboardPage'
 const WritesPage      = lazy(() => import('./components/writes/WritesPage'))
 const CalendarPage    = lazy(() => import('./components/calendar/CalendarPage'))
 const ArchivePage        = lazy(() => import('./pages/ArchivePage'))
-const ReleaseNotesPage   = lazy(() => import('./pages/ReleaseNotesPage'))
+const ReleaseNotesPage      = lazy(() => import('./pages/ReleaseNotesPage'))
+const DetectTasksHelpPage   = lazy(() => import('./pages/DetectTasksHelpPage'))
 const SettingsPage            = lazy(() => import('./pages/SettingsPage'))
 const WorkspaceSettingsPage   = lazy(() => import('./pages/WorkspaceSettingsPage'))
 const ProfileSettingsPage     = lazy(() => import('./pages/ProfileSettingsPage'))
@@ -70,7 +71,8 @@ export default function App() {
             <Route path="/calendar"              element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/writes/:docId?"        element={<ProtectedRoute><WritesPage /></ProtectedRoute>} />
             <Route path="/archive"           element={<ProtectedRoute><ArchivePage /></ProtectedRoute>} />
-            <Route path="/release-notes"     element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
+            <Route path="/release-notes"          element={<ProtectedRoute><ReleaseNotesPage /></ProtectedRoute>} />
+            <Route path="/detect-tasks-help"  element={<ProtectedRoute><DetectTasksHelpPage /></ProtectedRoute>} />
             <Route path="/settings"          element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/profile"           element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/workspace-settings" element={<ProtectedRoute><WorkspaceSettingsPage /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, CheckSquare, Square } from '@phosphor-icons/react'
+import { X, CheckSquare, Square, Question } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabase'
 
 function confidenceColor(score) {
@@ -113,9 +113,21 @@ export default function DetectTasksPanel({ initialCandidates, workspaceId, onClo
               <span className="dtk-badge">{candidates.length}</span>
             )}
           </div>
-          <button className="ws-panel-close" onClick={() => onClose()} aria-label="Close panel">
-            <X size={16} />
-          </button>
+          <div className="dtk-hdr-actions">
+            <a
+              href="/detect-tasks-help"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ws-panel-close"
+              aria-label="Formatting guide (opens in new tab)"
+              title="Formatting guide"
+            >
+              <Question size={16} />
+            </a>
+            <button className="ws-panel-close" onClick={() => onClose()} aria-label="Close panel">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}

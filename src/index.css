@@ -17063,6 +17063,13 @@ html[data-theme="dark"] .heat-cell.l4 { background: var(--accent); }
   gap: var(--space-3);
 }
 
+.dtk-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
 .dtk-hdr-title {
   display: flex;
   align-items: center;
