@@ -4175,13 +4175,14 @@ a:focus-visible,
   position: fixed;
   transform: translate(-50%, calc(-100% - 8px));
   z-index: 350;
-  background: var(--ink);
+  background: #1e1e26;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius);
   padding: 4px 6px;
   display: flex;
   align-items: center;
   gap: 2px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   pointer-events: all;
   animation: selToolbarIn 0.1s ease;
 }
@@ -4197,7 +4198,7 @@ a:focus-visible,
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--ink);
+  border-top-color: #1e1e26;
   border-bottom: none;
 }
 
@@ -4208,7 +4209,7 @@ a:focus-visible,
   padding: 4px 8px;
   background: none;
   border: none;
-  color: #fff;
+  color: rgba(255,255,255,0.9);
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
@@ -4216,7 +4217,7 @@ a:focus-visible,
   font-size: var(--text-xs);
   font-family: var(--font-body);
 }
-.we-sel-btn:hover { background: rgba(255,255,255,0.15); }
+.we-sel-btn:hover { background: rgba(255,255,255,0.12); }
 .we-sel-btn-label { font-weight: var(--weight-medium); }
 
 .we-body {
