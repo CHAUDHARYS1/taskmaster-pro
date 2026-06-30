@@ -787,7 +787,7 @@ export default function WritesEditor({ doc, onSave, onDelete, onChangeWorkspace,
             title="Delete document"
             aria-label="Delete document"
           >
-            Delete
+            <TrashSimple size={15} aria-hidden="true" />
           </button>
         </div>
       </div>

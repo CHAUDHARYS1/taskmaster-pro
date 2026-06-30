@@ -36,14 +36,15 @@ export default function WritesView({ workspaceId, onDocsChange }) {
   const lastSaveRef  = useRef(0)
 
   const [remoteUpdateAvailable, setRemoteUpdateAvailable] = useState(false)
-  const [selectedDocId, setSelectedDocId] = useState(null)
-  const [currentDoc,    setCurrentDoc]    = useState(null)
-  const [docLoading,    setDocLoading]    = useState(false)
-  const [search,        setSearch]        = useState('')
-  const [isMobile,      setIsMobile]      = useState(() => window.innerWidth <= 768)
-  const [previewDoc,    setPreviewDoc]    = useState(null)
+  const [selectedDocId,  setSelectedDocId]  = useState(null)
+  const [currentDoc,     setCurrentDoc]     = useState(null)
+  const [docLoading,     setDocLoading]     = useState(false)
+  const [search,         setSearch]         = useState('')
+  const [isMobile,       setIsMobile]       = useState(() => window.innerWidth <= 768)
+  const [previewDoc,     setPreviewDoc]     = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
-  const [editDoc,       setEditDoc]       = useState(null)
+  const [editDoc,        setEditDoc]        = useState(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState(null) // id hidden while undo timer runs
 
   const handleRemoteDocUpdate = useCallback((updatedDoc) => {
     if (updatedDoc.id !== selectedDocId) return
@@ -125,17 +126,32 @@ export default function WritesView({ workspaceId, onDocsChange }) {
     setCurrentDoc(prev => ({ ...prev, ...updates }))
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedDocId) return
-    const title = currentDoc?.title || 'Untitled'
-    try {
-      await deleteDoc(selectedDocId)
-      toast.success(`"${title}" deleted`)
-      setCurrentDoc(null)
-      setSelectedDocId(null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete document')
-    }
+    const id = selectedDocId
+    const saved = currentDoc
+    const title = saved?.title || 'Untitled'
+
+    // Optimistically clear the editor and hide from list
+    setSelectedDocId(null)
+    setCurrentDoc(null)
+    setPendingDeleteId(id)
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      if (cancelled) return
+      setPendingDeleteId(null)
+      try { await deleteDoc(id) }
+      catch (err) { toast.error(err.message || 'Failed to delete document') }
+    }, 4000)
+
+    toast.undo(`"${title}" deleted`, () => {
+      cancelled = true
+      clearTimeout(timer)
+      setPendingDeleteId(null)
+      setSelectedDocId(id)
+      setCurrentDoc(saved)
+    })
   }
 
   const handleReloadContent = async () => {
@@ -168,20 +184,34 @@ export default function WritesView({ workspaceId, onDocsChange }) {
     setEditDoc(prev => ({ ...prev, ...updates }))
   }
 
-  const handleSheetDelete = async () => {
+  const handleSheetDelete = () => {
     if (!editDoc) return
-    const title = editDoc.title || 'Untitled'
-    try {
-      await deleteDoc(editDoc.id)
-      toast.success(`"${title}" deleted`)
-      setEditDoc(null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete document')
-    }
+    const id = editDoc.id
+    const saved = editDoc
+    const title = saved.title || 'Untitled'
+
+    setEditDoc(null)
+    setPendingDeleteId(id)
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      if (cancelled) return
+      setPendingDeleteId(null)
+      try { await deleteDoc(id) }
+      catch (err) { toast.error(err.message || 'Failed to delete document') }
+    }, 4000)
+
+    toast.undo(`"${title}" deleted`, () => {
+      cancelled = true
+      clearTimeout(timer)
+      setPendingDeleteId(null)
+      setEditDoc(saved)
+    })
   }
 
   const q = search.trim().toLowerCase()
-  const filtered = q ? docs.filter(d => (d.title || '').toLowerCase().includes(q)) : docs
+  const visible  = pendingDeleteId ? docs.filter(d => d.id !== pendingDeleteId) : docs
+  const filtered = q ? visible.filter(d => (d.title || '').toLowerCase().includes(q)) : visible
   const sorted   = [...filtered].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
 
   return (
