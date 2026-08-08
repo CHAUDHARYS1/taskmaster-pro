@@ -273,21 +273,23 @@ Press `?` anywhere on the board to see the in-app cheatsheet.
 | Key | Action |
 |---|---|
 | **Navigation** | |
-| `N` | Add a new task |
+| `Ctrl + N` | Add a new task |
 | `/` | Focus the search bar |
-| `F` | Focus the filter bar |
-| `B` | Switch to Board view |
-| `L` | Switch to List view |
+| `Ctrl + B` | Switch to Board view |
+| `Ctrl + L` | Switch to List view |
+| `Ctrl + G` | Switch to Gantt view |
 | `?` | Toggle the shortcuts cheatsheet |
 | `Esc` | Close the open panel, modal, or sheet |
 | **Board** | |
-| `D` | Toggle dark / light mode |
+| `Ctrl + D` | Toggle dark / light mode |
+| `Ctrl + F` | Focus the filter bar |
 | `Del` | Delete the currently-open task *(owners only — shows confirmation)* |
 | **Task panel** | |
 | `←` | Open the previous task |
 | `→` | Open the next task |
 | `Enter` | Submit a comment |
 | `Shift + Enter` | New line inside a comment |
+| `Ctrl + Shift + A` | Archive the open task |
 
 ---
 

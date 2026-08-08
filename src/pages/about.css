@@ -76,7 +76,8 @@
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--font-body); font-size: 13px; font-weight: 600;
   border-radius: 8px; border: none; cursor: pointer;
-  text-decoration: none; transition: all .18s; white-space: nowrap;
+  text-decoration: none; transition: background .18s, color .18s, border-color .18s, transform .18s;
+  white-space: nowrap;
 }
 .ab-btn-ghost {
   padding: 8px 16px; background: transparent;
@@ -92,7 +93,7 @@
   padding: 13px 28px; font-size: 15px; border-radius: 10px;
   background: transparent; color: var(--text-2); border: 1px solid var(--border);
   font-family: var(--font-body); font-weight: 600; text-decoration: none;
-  display: inline-flex; align-items: center; transition: all .18s;
+  display: inline-flex; align-items: center; transition: color .18s, border-color .18s, background .18s;
 }
 .ab-btn-outline-lg:hover { color: var(--text); border-color: var(--border-hi); }
 

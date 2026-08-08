@@ -231,7 +231,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                 title={collapsed ? (displayName || user?.email) : undefined}
               >
                 {profile?.avatar_url
-                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  ? <img src={profile.avatar_url} alt="" width={24} height={24} className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
                   : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
                       {(displayName || user?.email || '?')[0].toUpperCase()}
                     </span>
@@ -245,7 +245,7 @@ export default function Sidebar({ isOpen, collapsed, onToggleCollapse, viewMode,
                 aria-label={`Signed in as ${displayName || user?.email}`}
               >
                 {profile?.avatar_url
-                  ? <img src={profile.avatar_url} alt="" className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
+                  ? <img src={profile.avatar_url} alt="" width={24} height={24} className="sidebar-profile-avatar sidebar-profile-avatar--photo" />
                   : <span className="sidebar-profile-avatar" style={{ background: userColor(user?.id) }} aria-hidden="true">
                       {(displayName || user?.email || '?')[0].toUpperCase()}
                     </span>
