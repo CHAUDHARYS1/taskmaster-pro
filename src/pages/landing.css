@@ -121,7 +121,7 @@
   border: none;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s;
   white-space: nowrap;
 }
 .lp-btn-ghost {
@@ -163,7 +163,7 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: all 0.18s;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
 }
 .lp-btn-outline-lg:hover {
   color: var(--text);
@@ -548,7 +548,7 @@
   background: var(--card);
   color: var(--text-2);
   cursor: pointer;
-  transition: all .18s;
+  transition: color .18s, border-color .18s;
 }
 .lp-template-tab:hover { color: var(--text); border-color: var(--border-hi); }
 .lp-template-tab--active {
@@ -1177,7 +1177,7 @@
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
-  transition: all 0.18s;
+  transition: background 0.18s, color 0.18s;
   display: inline-flex;
   align-items: center;
   gap: 7px;

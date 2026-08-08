@@ -85,6 +85,11 @@
     --radius-sm:  8px;
     --radius-lg: 16px;
   }
+
+  /* iOS Safari auto-zooms the viewport when a focused input's font-size is
+     under 16px. Force 16px here instead of disabling user-scalable, which
+     would break pinch-zoom for everyone. */
+  input, select, textarea { font-size: 16px; }
 }
 
 /* ── Color scheme hints for browser UI (scrollbars, inputs) ── */
@@ -127,6 +132,19 @@ html[data-theme="dark"] {
 
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Reduced motion ───────────────────────────────────────────
+   Site-wide fallback: shrink every animation/transition to near-zero for
+   users who've asked for less motion, instead of relying on each modal/
+   drawer/toast/drag interaction to opt in individually. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 body {
   font-family: var(--font-body);
